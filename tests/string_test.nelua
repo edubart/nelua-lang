@@ -193,7 +193,8 @@ do -- string.byte
   s = string.char(255) assert(string.byte(s) == 255) s:destroy()
   s = string.char(0)   assert(string.byte(s) == 0)   s:destroy()
   assert(string.byte("\0") == 0)
-  assert(string.byte("\0\0alo\0x", -1) == string.byte('x'))
+  local x = string.byte('x')
+  assert(string.byte("\0\0alo\0x", -1) == x)
   assert(string.byte("ba", 2) == 97)
 end
 

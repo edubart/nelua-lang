@@ -486,7 +486,8 @@ Converts input strings to numbers and returns the result of addition.
 Use by the add operator (`+`).
 ]]
 function string.__add(a: scalar_coercion_concept, b: scalar_coercion_concept): number
-  return tonumber(a) + tonumber(b)
+  local a, b = tonumber(a), tonumber(b)
+  return a + b
 end
 
 --[[
@@ -494,7 +495,8 @@ Converts input strings to numbers and returns the result of subtraction.
 Use by the subtract operator (`-`).
 ]]
 function string.__sub(a: scalar_coercion_concept, b: scalar_coercion_concept): number
-  return tonumber(a) - tonumber(b)
+  local a, b = tonumber(a), tonumber(b)
+  return a - b
 end
 
 --[[
@@ -502,7 +504,8 @@ Converts input strings to numbers and returns the result of multiplication.
 Use by the multiply operator (`*`).
 ]]
 function string.__mul(a: scalar_coercion_concept, b: scalar_coercion_concept): number
-  return tonumber(a) * tonumber(b)
+  local a, b = tonumber(a), tonumber(b)
+  return a * b
 end
 
 --[[
@@ -510,7 +513,8 @@ Converts input strings to numbers and returns the result of division.
 Use by the division operator (`/`).
 ]]
 function string.__div(a: scalar_coercion_concept, b: scalar_coercion_concept): number
-  return tonumber(a) / tonumber(b)
+  local a, b = tonumber(a), tonumber(b)
+  return a / b
 end
 
 --[[
@@ -518,7 +522,8 @@ Converts input strings to numbers and returns the result of floor division.
 Use by the integer division operator (`//`).
 ]]
 function string.__idiv(a: scalar_coercion_concept, b: scalar_coercion_concept): number
-  return tonumber(a) // tonumber(b)
+  local a, b = tonumber(a), tonumber(b)
+  return a // b
 end
 
 --[[
@@ -526,7 +531,8 @@ Converts input strings to numbers and returns the result of truncate division.
 Use by the truncate division operator (`///`).
 ]]
 function string.__tdiv(a: scalar_coercion_concept, b: scalar_coercion_concept): number
-  return tonumber(a) /// tonumber(b)
+  local a, b = tonumber(a), tonumber(b)
+  return a /// b
 end
 
 --[[
@@ -534,7 +540,8 @@ Converts input strings to numbers and returns the result of floor division remai
 Use by the modulo operator (`%`).
 ]]
 function string.__mod(a: scalar_coercion_concept, b: scalar_coercion_concept): number
-  return tonumber(a) % tonumber(b)
+  local a, b = tonumber(a), tonumber(b)
+  return a % b
 end
 
 --[[
@@ -542,7 +549,8 @@ Converts input strings to numbers and returns the result of truncate division re
 Use by the truncate module operator (`%%%`).
 ]]
 function string.__tmod(a: scalar_coercion_concept, b: scalar_coercion_concept): number
-  return tonumber(a) %%% tonumber(b)
+  local a, b = tonumber(a), tonumber(b)
+  return a %%% b
 end
 
 --[[
@@ -550,7 +558,8 @@ Converts input strings to numbers and returns the result of exponentiation.
 Use by the pow operator (`^`).
 ]]
 function string.__pow(a: scalar_coercion_concept, b: scalar_coercion_concept): number
-  return tonumber(a) ^ tonumber(b)
+  local a, b = tonumber(a), tonumber(b)
+  return a ^ b
 end
 
 --[[
@@ -558,7 +567,8 @@ Converts the input string to a number and returns its negation.
 Use by the negation operator (`-`).
 ]]
 function string.__unm(a: scalar_coercion_concept): number
-  return -tonumber(a)
+  local a = tonumber(a)
+  return -a
 end
 
 --[[
@@ -566,7 +576,8 @@ Converts input strings to integers and returns the result of bitwise AND.
 Use by the bitwise AND operator (`&`).
 ]]
 function string.__band(a: scalar_coercion_concept, b: scalar_coercion_concept): integer
-  return tointeger(a) & tointeger(b)
+  local a, b = tointeger(a), tointeger(b)
+  return a & b
 end
 
 --[[
@@ -574,7 +585,8 @@ Converts input strings to integers and returns the result of bitwise OR.
 Use by the bitwise OR operator (`|`).
 ]]
 function string.__bor(a: scalar_coercion_concept, b: scalar_coercion_concept): integer
-  return tointeger(a) | tointeger(b)
+  local a, b = tointeger(a), tointeger(b)
+  return a | b
 end
 
 --[[
@@ -582,7 +594,8 @@ Converts input strings to integers and returns the result of bitwise XOR.
 Use by the bitwise XOR operator (`~`).
 ]]
 function string.__bxor(a: scalar_coercion_concept, b: scalar_coercion_concept): integer
-  return tointeger(a) ~ tointeger(b)
+  local a, b = tointeger(a), tointeger(b)
+  return a ~ b
 end
 
 --[[
@@ -590,7 +603,8 @@ Converts input strings to integers and returns the result of bitwise logical lef
 Use by the bitwise logical left shift operator (`<<`).
 ]]
 function string.__shl(a: scalar_coercion_concept, b: scalar_coercion_concept): integer
-  return tointeger(a) << tointeger(b)
+  local a, b = tointeger(a), tointeger(b)
+  return a << b
 end
 
 --[[
@@ -598,7 +612,8 @@ Converts input strings to integers and returns the result of bitwise logical rig
 Use by the bitwise logical right shift operator (`>>`).
 ]]
 function string.__shr(a: scalar_coercion_concept, b: scalar_coercion_concept): integer
-  return tointeger(a) >> tointeger(b)
+  local a, b = tointeger(a), tointeger(b)
+  return a >> b
 end
 
 --[[
@@ -606,7 +621,8 @@ Converts input strings to integers and returns the result of bitwise arithmetic 
 Use by the bitwise arithmetic right shift operator (`>>>`).
 ]]
 function string.__asr(a: scalar_coercion_concept, b: scalar_coercion_concept): integer
-  return tointeger(a) >>> tointeger(b)
+  local a, b = tointeger(a), tointeger(b)
+  return a >>> b
 end
 
 --[[
@@ -614,7 +630,8 @@ Converts the input string to an integer and returns its bitwise NOT.
 Use by the bitwise NOT operator (`~`).
 ]]
 function string.__bnot(a: scalar_coercion_concept): integer
-  return ~tointeger(a)
+  local a = tointeger(a)
+  return ~a
 end
 
 -- Convert a string to an integer in the desired base.

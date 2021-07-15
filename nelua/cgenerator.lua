@@ -32,7 +32,7 @@ local function izipargnodes(vars, argnodes)
       local var, argnode
       i, var, argnode = iter(ts, i)
       if not i then return nil end
-      if i >= lastargindex and lastargnode.attr.multirets then
+      if i >= lastargindex and lastargnode.attr.usemultirets then
         -- argnode does not exists, fill with multiple returns type
         -- in case it doest not exists, the argtype will be false
         local callretindex = i - lastargindex + 1
@@ -500,143 +500,130 @@ end
 
 local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjnode)
   local isstatement = context:get_visiting_node(1).is_Block
-  if isstatement then
-    emitter:add_indent()
-  end
   local attr = node.attr
   local calleetype = attr.calleetype
-  local upfuncscope = context.scope:get_up_function_scope()
-  if calleetype.is_procedure then -- function call
-    local tmpargs
-    local tmpcount = 0
-    local lastcalltmp
-    local sequential
-    local serialized
-    local callargtypes = attr.pseudoargtypes or calleetype.argtypes
-    local callargattrs = attr.pseudoargattrs or calleetype.argattrs
-    for i,funcargtype,argnode,_,lastcallindex in izipargnodes(callargtypes, argnodes) do
-      if not argnode and (funcargtype.is_cvarargs or funcargtype.is_varargs) then break end
-      if (argnode and argnode.attr.sideeffect) or lastcallindex == 1 then
-        -- expressions with side effects need to be evaluated in sequence
-        -- and expressions with multiple returns needs to be stored in a temporary
-        if tmpcount == 0 then
-          tmpargs = {}
-        end
-        tmpcount = tmpcount + 1
-        local tmpname = '_tmp' .. tmpcount
-        tmpargs[i] = tmpname
-        if lastcallindex == 1 then
-          lastcalltmp = tmpname
-        end
-        if tmpcount >= 2 or lastcallindex then
-          -- only need to evaluate in sequence mode if we have two or more temporaries
-          -- or the last argument is a multiple return call
-          sequential = true
-          serialized = true
-        end
-      end
+  assert(calleetype.is_procedure) -- a function call is expected
+  local sequential = false -- whether arguments need to be evaluated sequentially
+  local serialized = false -- weather the call need to be break into multiple statements
+  local returnfirst = false
+  local lastcalltmp = nil
+  local tmpcount = 0
+  local tmpargs = {}
+  local callargtypes = attr.pseudoargtypes or calleetype.argtypes
+  local callargattrs = attr.pseudoargattrs or calleetype.argattrs
+  for i,funcargtype,argnode,_,lastcallindex in izipargnodes(callargtypes, argnodes) do
+    if not argnode and funcargtype.is_multipleargs then
+      break
     end
-    local handlereturns
-    local retvalname
-    local returnfirst
-    if #calleetype.rettypes > 1 and not isstatement and not attr.multirets then -- we are handling the returns
-      returnfirst = true
-      handlereturns = true
-      serialized = true
-    end
-    if serialized then -- break apart the call into many statements
-      if not isstatement then
-        emitter:add_value('(')
+    if (argnode and argnode.attr.sideeffect) or lastcallindex == 1 then
+      -- expressions with side effects need to be evaluated in sequence
+      -- and expressions with multiple returns needs to be stored in a temporary
+      tmpcount = tmpcount + 1
+      local tmpname = '_tmp'..tmpcount
+      tmpargs[i] = tmpname
+      if lastcallindex == 1 then
+        lastcalltmp = tmpname
       end
-      emitter:add_ln('{') emitter:inc_indent()
-    end
-    if sequential then
-      for _,tmparg,argnode,argtype,_,lastcalletype in izipargnodes(tmpargs, argnodes) do
-        -- set temporary values in sequence
-        if tmparg then
-          if lastcalletype then -- type for result of multiple return call
-            argtype = context:funcrettypename(lastcalletype)
-          end
-          emitter:add_indent_ln(argtype, ' ', tmparg, ' = ', argnode, ';')
-        end
-      end
-    end
-    if serialized then
-      emitter:add_indent()
-      if handlereturns then -- save the return type
-        local rettypename = context:funcrettypename(calleetype)
-        retvalname = upfuncscope:generate_name('_callret')
-        emitter:add(rettypename, ' ', retvalname, ' = ')
-      end
-    end
-    local ismethod = attr.ismethod
-    if ismethod then
-      local selftype = calleetype.argtypes[1]
-      if attr.calleesym then
-        emitter:add_value(context:declname(attr.calleesym))
-      else
-        assert(luatype(callee) == 'string')
-        emitter:add_converted_val(selftype, calleeobjnode)
-        emitter:add_value(selftype.is_pointer and '->' or '.')
-        emitter:add_value(callee)
-      end
-      emitter:add_value('(')
-      emitter:add_converted_val(selftype, calleeobjnode)
-    else
-      local ispointercall = attr.pointercall
-      if ispointercall then
-        emitter:add_text('(*')
-      end
-      if luatype(callee) ~= 'string' and attr.calleesym then
-        emitter:add_text(context:declname(attr.calleesym))
-      else
-        emitter:add_value(callee)
-      end
-      if ispointercall then
-        emitter:add_text(')')
-      end
-      emitter:add_text('(')
-    end
-    for i,funcargtype,argnode,argtype,lastcallindex in izipargnodes(callargtypes, argnodes) do
-      if not argnode and (funcargtype.is_cvarargs or funcargtype.is_varargs) then
-        break
-      end
-      if i > 1 or ismethod then
-        emitter:add_value(', ')
-      end
-      local arg = argnode
-      if sequential then
-        if lastcallindex then
-          arg = string.format('%s.r%d', lastcalltmp, lastcallindex)
-        elseif tmpargs[i] then
-          arg = tmpargs[i]
-        end
-      end
-      local callargattr = callargattrs[i]
-      if callargattr.comptime then -- compile time function argument
-        emitter:add_nil_literal()
-        if argnode and argnode.is_Function then -- force declaration of anonymous functions
-          emitter:fork():add(argnode)
-        end
-      else
-        emitter:add_converted_val(funcargtype, arg, argtype)
-      end
-    end
-    emitter:add_text(')')
-    if serialized then -- end sequential expression
-      emitter:add_ln(';')
-      if returnfirst then -- get just the first result in multiple return functions
-        assert(#calleetype.rettypes > 1)
-        emitter:add_indent_ln(retvalname, '.r1;')
-      end
-      emitter:dec_indent() emitter:add_indent('}')
-      if not isstatement then
-        emitter:add_value(')')
+      if tmpcount >= 2 or lastcallindex then
+        -- only need to evaluate in sequence mode if we have two or more temporaries
+        -- or the last argument is a multiple return call
+        sequential = true
+        serialized = true
       end
     end
   end
-  if isstatement then
-    emitter:add_text(";\n")
+  if not isstatement and #calleetype.rettypes > 1 and not attr.usemultirets then -- we are handling the returns
+    returnfirst = true
+  end
+  -- begin call block statement
+  if serialized then
+    if isstatement then
+      emitter:add_indent_ln('{')
+    else
+      emitter:add_ln('({')
+    end
+    emitter:inc_indent()
+  end
+  -- evaluate arguments in sequence
+  if sequential then
+    for _,tmparg,argnode,argtype,_,lastcalletype in izipargnodes(tmpargs, argnodes) do
+      if tmparg then -- evaluate temporary values in sequence
+        if lastcalletype then -- type for result of multiple return call
+          argtype = context:funcrettypename(lastcalletype)
+        end
+        emitter:add_indent_ln(argtype, ' ', tmparg, ' = ', argnode, ';')
+      end
+    end
+  end
+  if serialized or isstatement then
+    emitter:add_indent()
+  end
+  if attr.ismethod then
+    local selftype = calleetype.argtypes[1]
+    if attr.calleesym then
+      emitter:add_text(context:declname(attr.calleesym))
+    else
+      assert(luatype(callee) == 'string')
+      emitter:add_converted_val(selftype, calleeobjnode)
+      emitter:add_text(selftype.is_pointer and '->' or '.')
+      emitter:add_value(callee)
+    end
+    emitter:add_text('(')
+    emitter:add_converted_val(selftype, calleeobjnode)
+  else
+    if attr.pointercall then
+      emitter:add_text('(*')
+    end
+    if luatype(callee) ~= 'string' and attr.calleesym then
+      emitter:add_text(context:declname(attr.calleesym))
+    else
+      emitter:add_value(callee)
+    end
+    if attr.pointercall then
+      emitter:add_text(')')
+    end
+    emitter:add_text('(')
+  end
+  for i,funcargtype,argnode,argtype,lastcallindex in izipargnodes(callargtypes, argnodes) do
+    if not argnode and funcargtype.is_multipleargs then
+      break
+    end
+    if i > 1 or attr.ismethod then
+      emitter:add_text(', ')
+    end
+    local arg = argnode
+    if sequential then
+      if lastcallindex then
+        arg = lastcalltmp..'.r'..lastcallindex
+      elseif tmpargs[i] then
+        arg = tmpargs[i]
+      end
+    end
+    local callargattr = callargattrs[i]
+    if callargattr.comptime then -- compile time function argument
+      emitter:add_nil_literal()
+      if argnode and argnode.is_Function then -- force declaration of anonymous functions
+        emitter:fork():add(argnode)
+      end
+    else
+      emitter:add_converted_val(funcargtype, arg, argtype)
+    end
+  end
+  emitter:add_text(')')
+  if returnfirst then -- get just the first result in multiple return functions
+    emitter:add_text('.r1')
+  end
+  if serialized then -- end sequential expression
+    emitter:add_ln(';')
+    emitter:dec_indent()
+    if isstatement then
+      emitter:add_indent('}')
+    else
+      emitter:add_indent('})')
+    end
+  end
+  if isstatement then -- finish statement
+    emitter:add_ln(";")
   end
 end
 

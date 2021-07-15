@@ -1114,7 +1114,7 @@ local function iargnodes(argnodes)
         if not argtype then return nil end
         if callretindex > 1 and not argtype.is_niltype then
           -- mark node as multiple returns for usage later
-          lastargnode.attr.multirets = true
+          lastargnode.attr.usemultirets = true
         end
         return i, nil, argtype, callretindex
       end
@@ -1159,7 +1159,7 @@ local function izipargnodes(vars, argnodes)
               local callretindex = i - lastargindex + 1
               local argtype = calleetype:get_return_type(callretindex) or niltype
               if callretindex > 1 and not argtype.is_niltype then
-                lastargnode.attr.multirets = true
+                lastargnode.attr.usemultirets = true
               end
               return i, var, argnode, argtype, callretindex
             end

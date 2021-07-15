@@ -1,10 +1,11 @@
 require 'string'
 
-local islittle: boolean = (do
+local islittle: boolean
+do
   local s: string = string.pack('i2',1)
   defer s:destroy() end
-  return s == '\1\0'
-end)
+  islittle = s == '\1\0'
+end
 
 local function assert_check_pack_unpack(s: string, fmt: string <comptime>, ...: varargs): void
   local packed: string = string.pack(fmt, ...)

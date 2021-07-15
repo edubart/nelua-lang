@@ -10,7 +10,8 @@ local function assert_match(s: string, patt: string, res: overload(niltype,strin
   assert(status == true)
   assert(#captures == #res)
   for i:isize=1,#captures do
-    assert(captures[i] == res[i])
+    local a, b = captures[i], res[i]
+    assert(a == b)
   end
   res:destroy()
   ## end

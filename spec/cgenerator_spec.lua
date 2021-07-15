@@ -767,7 +767,7 @@ it("function multiple returns", function()
   end]], {
     "int64_t a = _asgnret_%d+%.r1;",
     "bool b = _asgnret_%d+%.r2;",
-    "int64_t c = %({%s+nlmulret_[%w_]+ _callret_%d = f.*_callret_%d.r1;%s+}%)",
+    "int64_t c = f%(%)%.r1",
   }, true)
   expect.run_c([[
     local function f(): (integer, boolean) return 1, true end
