@@ -146,8 +146,8 @@ it("boolean", function()
     local b1: boolean = f()
     local b2: boolean = not f()
   ]], {
-    "b1 = ((void)(f()), false);",
-    "b2 = (!((void)(f()), false));",
+    "b1 = ((void)f(), false);",
+    "b2 = (!((void)f(), false));",
   })
 
 end)
@@ -168,13 +168,13 @@ it("call", function()
   expect.generate_c("local f: function(integer,integer), a:integer, b:integer; f(a, b)", "f(a, b)")
   expect.generate_c("local f: function(integer): function(integer), a:integer, b:integer; f(a)(b)", "f(a)(b)")
   expect.generate_c("local a: record{f: function()}; a.f()", "a.f()")
-  expect.generate_c("local A=@record{f: function(*A)}; local a: A; a:f()", "(&a)->f(&a)")
+  expect.generate_c("local A=@record{f: function(*A)}; local a: A; a:f()", "(&a)->f((&a))")
   expect.generate_c("local f: function(); do f() end", "f();")
   expect.generate_c("local f: function(function()), g:function():function(); do f(g()) end", "f(g())")
   expect.generate_c("local f: function(integer,integer), a:integer, b:integer; do f(a, b) end", "f(a, b)")
   expect.generate_c("local f: function(integer): function(integer), a:integer, b:integer; do f(a)(b) end", "f(a)(b)")
   expect.generate_c("local a: record{f: function()}; do a.f() end", "a.f()")
-  expect.generate_c("local A=@record{f: function(*A)}; do local a: A; a:f() end", "(&a)->f(&a)")
+  expect.generate_c("local A=@record{f: function(*A)}; do local a: A; a:f() end", "(&a)->f((&a))")
 end)
 
 it("callbacks", function()
@@ -213,7 +213,7 @@ end)
 it("if", function()
   expect.generate_c("if nilptr then\nend","if(false) {\n")
   expect.generate_c("if nil then\nend","if(false) {\n")
-  expect.generate_c("if 1 then\nend","if(((void)(1), true)) {\n")
+  expect.generate_c("if 1 then\nend","if(((void)1, true)) {\n")
   expect.generate_c("local a: boolean; if a then\nend","if(a) {\n")
   expect.generate_c("if true then\nend","if(true) {\n  }")
   expect.generate_c("if true then\nelseif true then\nend", "if(true) {\n  } else if(true) {\n  }")
@@ -221,15 +221,15 @@ it("if", function()
   expect.generate_c([[
   local a: boolean, b: boolean
   if a and b then end]],
-  "if(a && b) {\n")
+  "if((a && b)) {\n")
   expect.generate_c([[
   local a: boolean, b: boolean, c: boolean
   if a and b or c then end]],
-  "if((a && b) || c) {\n")
+  "if(((a && b) || c)) {\n")
   expect.generate_c([[
   local a: boolean, b: boolean
   if a and not b then end]],
-  "if(a && (!b)) {\n")
+  "if((a && (!b))) {\n")
 end)
 
 it("switch", function()
@@ -922,13 +922,13 @@ it("unary operator `deref`", function()
     local x = &r
     local function f(a: R): void end
     f(x)
-  ]], {"R r = ", "x = (&r)", "f(*x)"})
+  ]], {"R r = ", "x = (&r)", "f((*x))"})
   expect.generate_c([[
     local R = @record{}
     function R:foo(alloc: auto) end
     local r = R()
     r:foo()
-  ]], {"r = (R){}", "(&r, NLNIL)"})
+  ]], {"r = (R){}", "((&r), NLNIL)"})
   expect.generate_c([[
     local a: *[0]integer
     local function f(x: [0]integer) end
@@ -938,8 +938,7 @@ it("unary operator `deref`", function()
 end)
 
 it("unary operator `bnot`", function()
-  expect.generate_c("local a = 1; local x = ~a", "(~a);")
-  expect.generate_c("local a = 2; local x=~a",      "x = (~a);")
+  expect.generate_c("local a = 1; local x = ~a", "x = (~a);")
   expect.generate_c("local x = ~1", "x = -2;")
   expect.generate_c("local x = ~-2", "x = 1;")
   expect.generate_c("local x = ~0x2_u8", "x = 253U;")
@@ -1060,8 +1059,8 @@ it("binary operator `idiv`", function()
   expect.generate_c("local x =  7 // -3.0",  "x = -3.0;")
   expect.generate_c("local x = -7 // -3.0",  "x = 2.0;")
   expect.generate_c("local a,b = 1_u,2_u; local x=a//b",      "x = (a / b);")
-  expect.generate_c("local a,b = 1,2; local x=a//b",      "x = (nelua_assert_idiv_nlint64(a, b));")
-  expect.generate_c("local a,b = 1.0,2.0; local x=a//b",  "x = (floor(a / b));")
+  expect.generate_c("local a,b = 1,2; local x=a//b",      "x = nelua_assert_idiv_nlint64(a, b);")
+  expect.generate_c("local a,b = 1.0,2.0; local x=a//b",  "x = floor(a / b);")
   expect.run_c([[
     do
       local a, b = 7, 3
@@ -1086,7 +1085,7 @@ it("binary operator `idiv`", function()
     end
   ]])
   config.pragmas.nochecks = true
-  expect.generate_c("local a,b = 1,2; local x=a//b",      "x = (nelua_idiv_nlint64(a, b));")
+  expect.generate_c("local a,b = 1,2; local x=a//b",      "x = nelua_idiv_nlint64(a, b);")
   config.pragmas.nochecks = nil
 end)
 
@@ -1108,7 +1107,7 @@ it("binary operator `tdiv`", function()
   expect.generate_c("local x =  7.0 /// -3.0",  "x = -2.0;")
   expect.generate_c("local x = -7.0 /// -3.0",  "x = 2.0;")
   expect.generate_c("local a,b = 1,2; local x=a///b",      "x = (a / b);")
-  expect.generate_c("local a,b = 1.0,2.0; local x=a///b",  "x = (trunc(a / b));")
+  expect.generate_c("local a,b = 1.0,2.0; local x=a///b",  "x = trunc(a / b);")
   expect.run_c([[
     do
       local a, b = 7, 3
@@ -1144,11 +1143,11 @@ it("binary operator `mod`", function()
   expect.generate_c("local x =  7 % -3.0",   "x = -2.0;")
   expect.generate_c("local x = -7 % -3.0",   "x = -1.0;")
   expect.generate_c("local x = -7.0 % 3.0",  "x = 2.0;")
-  expect.generate_c("local a, b = 3, 2;     local x = a % b", "x = (nelua_assert_imod_nlint64(a, b));")
+  expect.generate_c("local a, b = 3, 2;     local x = a % b", "x = nelua_assert_imod_nlint64(a, b);")
   expect.generate_c("local a, b = 3_u, 2_u; local x = a % b", "x = (a % b);")
-  expect.generate_c("local a, b = 3.0, 2;   local x = a % b", "x = (nelua_fmod(a, b));")
-  expect.generate_c("local a, b = 3, 2.0;   local x = a % b", "x = (nelua_fmod(a, b));")
-  expect.generate_c("local a, b = 3.0, 2.0; local x = a % b", "x = (nelua_fmod(a, b));")
+  expect.generate_c("local a, b = 3.0, 2;   local x = a % b", "x = nelua_fmod(a, b);")
+  expect.generate_c("local a, b = 3, 2.0;   local x = a % b", "x = nelua_fmod(a, b);")
+  expect.generate_c("local a, b = 3.0, 2.0; local x = a % b", "x = nelua_fmod(a, b);")
   expect.run_c([[
     do
       local a, b = 7, 3
@@ -1168,7 +1167,7 @@ it("binary operator `mod`", function()
     end
   ]])
   config.pragmas.nochecks = true
-  expect.generate_c("local a, b = 3, 2;     local x = a % b", "x = (nelua_imod_nlint64(a, b));")
+  expect.generate_c("local a, b = 3, 2;     local x = a % b", "x = nelua_imod_nlint64(a, b);")
   config.pragmas.nochecks = nil
 end)
 
@@ -1188,9 +1187,9 @@ it("binary operator `tmod`", function()
   expect.generate_c("local x = -7.0 %%% 3.0",  "x = -1.0;")
   expect.generate_c("local a, b = 3, 2;     local x = a %%% b", "x = (a % b);")
   expect.generate_c("local a, b = 3_u, 2_u; local x = a %%% b", "x = (a % b);")
-  expect.generate_c("local a, b = 3.0, 2;   local x = a %%% b", "x = (fmod(a, b));")
-  expect.generate_c("local a, b = 3, 2.0;   local x = a %%% b", "x = (fmod(a, b));")
-  expect.generate_c("local a, b = 3.0, 2.0; local x = a %%% b", "x = (fmod(a, b));")
+  expect.generate_c("local a, b = 3.0, 2;   local x = a %%% b", "x = fmod(a, b);")
+  expect.generate_c("local a, b = 3, 2.0;   local x = a %%% b", "x = fmod(a, b);")
+  expect.generate_c("local a, b = 3.0, 2.0; local x = a %%% b", "x = fmod(a, b);")
   expect.run_c([[
     do
       local a, b = 7, 3
@@ -1214,10 +1213,10 @@ end)
 
 it("binary operator `pow`", function()
   --expect.generate_c("local x = a ^ b")
-  expect.generate_c("local a,b = 2,2; local x = a ^ b", "x = (pow(a, b));")
+  expect.generate_c("local a,b = 2,2; local x = a ^ b", "x = pow(a, b);")
   expect.generate_c("local x = 2 ^ 2", "x = 4.0;")
   expect.generate_c("local x = 2_f32 ^ 2_f32", "x = 4.0f;")
-  expect.generate_c("local a,b = 2_f32,2_f32; local x = a ^ b", "x = (powf(a, b));")
+  expect.generate_c("local a,b = 2_f32,2_f32; local x = a ^ b", "x = powf(a, b);")
 end)
 
 it("binary operator `band`", function()
@@ -1488,8 +1487,8 @@ it("binary conditional operators", function()
     if p and a == b then end
     while p and a == b do end
   ]], {
-    "if((p != NULL) && (a == b))",
-    "while((p != NULL) && (a == b))"
+    "if(((p != NULL) && (a == b)))",
+    "while(((p != NULL) && (a == b)))"
   })
   expect.run_c([[
     local a = 2 or 3

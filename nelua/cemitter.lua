@@ -77,7 +77,7 @@ function CEmitter:add_val2boolean(val, valtype)
   else
     local status = not (valtype.is_niltype or valtype.is_nilptr)
     if needs_evaluation(val) then -- we need to evaluate
-      self:add('((void)(',val,'), ',status,')')
+      self:add('((void)',val,', ',status,')')
     else
       self:add_value(status)
     end
@@ -108,7 +108,7 @@ function CEmitter:add_deref(val, valtype)
   valtype = valtype or val.attr.type
   assert(valtype.is_pointer)
   local valsubtype = valtype.subtype
-  self:add_text('*')
+  self:add_text('(*')
   if valsubtype.is_array and valsubtype.length == 0 then
     self:add('(', valsubtype, '*)')
   end
@@ -118,6 +118,7 @@ function CEmitter:add_deref(val, valtype)
   else
     self:add_value(val)
   end
+  self:add_text(')')
 end
 
 --[[
@@ -168,7 +169,7 @@ function CEmitter:add_converted_val(type, val, valtype, explicit)
            (type.is_float or valtype.is_integral) then -- comptime scalar -> scalar
       self:add_scalar_literal(valattr.value, type, valattr.base)
     elseif type.is_pointer and valtype.is_aggregate and valtype == type.subtype then -- auto ref
-      self:add('&', val)
+      self:add('(&', val, ')')
     elseif type.is_aggregate and valtype.is_pointer and valtype.subtype == type then -- auto deref
       self:add_deref(val, valtype)
     else -- cast

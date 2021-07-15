@@ -776,7 +776,7 @@ local function operator_binary_op(op, _, node, emitter, lattr, rattr, lname, rna
     emitter:add('(',node.attr.type,')(', lname, ' ', op, ' ', rname, ')')
   else
     assert(ltype.is_arithmetic and rtype.is_arithmetic)
-    emitter:add(lname, ' ', op, ' ', rname)
+    emitter:add('(', lname, ' ', op, ' ', rname, ')')
   end
 end
 
@@ -815,7 +815,7 @@ function cbuiltins.operators.div(context, node, emitter, lattr, rattr, lname, rn
   local type, ltype, rtype = node.attr.type, lattr.type, rattr.type
   assert(ltype.is_arithmetic and rtype.is_arithmetic)
   if not rtype.is_float and not ltype.is_float and type.is_float then
-    emitter:add(lname, ' / (', type, ')', rname)
+    emitter:add('(', lname, ' / (', type, ')', rname, ')')
   else
     operator_binary_op('/', context, node, emitter, lattr, rattr, lname, rname)
   end
@@ -882,7 +882,7 @@ function cbuiltins.operators.shl(_, node, emitter, lattr, rattr, lname, rname)
   assert(ltype.is_integral and rtype.is_integral)
   if rattr.comptime and rattr.value >= 0 and rattr.value < ltype.bitsize then
     -- no overflow possible, can use plain C shift
-    emitter:add(lname, ' << ', rname)
+    emitter:add('(', lname, ' << ', rname, ')')
   else
     emitter:add_builtin('nelua_shl_', type)
     emitter:add('(', lname, ', ', rname, ')')
@@ -896,7 +896,7 @@ function cbuiltins.operators.shr(_, node, emitter, lattr, rattr, lname, rname)
   assert(ltype.is_integral and rtype.is_integral)
   if ltype.is_unsigned and rattr.comptime and rattr.value >= 0 and rattr.value < ltype.bitsize then
     -- no overflow possible, can use plain C shift
-    emitter:add(lname, ' >> ', rname)
+    emitter:add('(', lname, ' >> ', rname, ')')
   else
     emitter:add_builtin('nelua_shr_', type)
     emitter:add('(', lname, ', ', rname, ')')
@@ -910,7 +910,7 @@ function cbuiltins.operators.asr(_, node, emitter, lattr, rattr, lname, rname)
   assert(ltype.is_integral and rtype.is_integral)
   if rattr.comptime and rattr.value >= 0 and rattr.value < ltype.bitsize then
     -- no overflow possible, can use plain C shift
-    emitter:add(lname, ' >> ', rname)
+    emitter:add('(', lname, ' >> ', rname, ')')
   else
     emitter:add_builtin('nelua_asr_', type)
     emitter:add('(', lname, ', ', rname, ')')
@@ -933,7 +933,7 @@ function cbuiltins.operators.lt(_, _, emitter, lattr, rattr, lname, rname)
     emitter:add_builtin('nelua_lt_', ltype, rtype)
     emitter:add('(', lname, ', ', rname, ')')
   else
-    emitter:add(lname, ' < ', rname)
+    emitter:add('(', lname, ' < ', rname, ')')
   end
 end
 
@@ -945,7 +945,7 @@ function cbuiltins.operators.gt(_, _, emitter, lattr, rattr, lname, rname)
     emitter:add_builtin('nelua_lt_', rtype, ltype)
     emitter:add('(', rname, ', ', lname, ')')
   else
-    emitter:add(lname, ' > ', rname)
+    emitter:add('(', lname, ' > ', rname, ')')
   end
 end
 
@@ -958,7 +958,7 @@ function cbuiltins.operators.le(_, _, emitter, lattr, rattr, lname, rname)
     emitter:add_builtin('nelua_lt_', rtype, ltype)
     emitter:add('(', rname, ', ', lname, ')')
   else
-    emitter:add(lname, ' <= ', rname)
+    emitter:add('(', lname, ' <= ', rname, ')')
   end
 end
 
@@ -971,7 +971,7 @@ function cbuiltins.operators.ge(_, _, emitter, lattr, rattr, lname, rname)
     emitter:add_builtin('nelua_lt_', ltype, rtype)
     emitter:add('(', lname, ', ', rname, ')')
   else
-    emitter:add(lname, ' >= ', rname)
+    emitter:add('(', lname, ' >= ', rname, ')')
   end
 end
 
@@ -996,8 +996,9 @@ function cbuiltins.operators.eq(_, _, emitter, lattr, rattr, lname, rname)
   elseif ltype.is_array then
     assert(ltype == rtype)
     if lattr.lvalue and rattr.lvalue then
+      emitter:add('(')
       emitter:add_builtin('memcmp')
-      emitter:add('(&', lname, ', &', rname, ', sizeof(', ltype, ')) == 0')
+      emitter:add('(&', lname, ', &', rname, ', sizeof(', ltype, ')) == 0)')
     else
       emitter:add('({', ltype, ' a = ', lname, '; ',
                         rtype, ' b = ', rname, '; ')
@@ -1011,17 +1012,18 @@ function cbuiltins.operators.eq(_, _, emitter, lattr, rattr, lname, rname)
     emitter:add_builtin('nelua_eq_', ltype, rtype)
     emitter:add('(', lname, ', ', rname, ')')
   elseif ltype.is_scalar and rtype.is_scalar then
-    emitter:add(lname, ' == ', rname)
+    emitter:add('(', lname, ' == ', rname, ')')
   elseif ltype.is_niltype or rtype.is_niltype or
          ((ltype.is_boolean or rtype.is_boolean) and ltype ~= rtype) then
     emitter:add('((void)', lname, ', (void)', rname, ', ', ltype == rtype, ')')
   else
-    emitter:add(lname, ' == ')
+    emitter:add('(', lname, ' == ')
     if ltype ~= rtype then
       emitter:add_converted_val(ltype, rname, rtype)
     else
       emitter:add(rname)
     end
+    emitter:add(')')
   end
 end
 
@@ -1030,26 +1032,27 @@ function cbuiltins.operators.ne(_, _, emitter, lattr, rattr, lname, rname)
   local ltype, rtype = lattr.type, rattr.type
   if (ltype.is_string and (rtype.is_string or rtype.is_cstring)) or
      (ltype.is_cstring and rtype.is_string) then
-    emitter:add('!')
+    emitter:add('(!')
     emitter:add_builtin('nelua_eq_string')
     emitter:add('(')
     emitter:add_converted_val(primtypes.string, lname, ltype)
     emitter:add(', ')
     emitter:add_converted_val(primtypes.string, rname, rtype)
-    emitter:add(')')
+    emitter:add('))')
   elseif ltype.is_composite or rtype.is_composite then
     if ltype == rtype then
-      emitter:add('!')
+      emitter:add('(!')
       emitter:add_builtin('nelua_eq_', ltype)
-      emitter:add('(', lname, ', ', rname, ')')
+      emitter:add('(', lname, ', ', rname, '))')
     else
       emitter:add('((void)', lname, ', (void)', rname, ', ', true, ')')
     end
   elseif ltype.is_array then
     assert(ltype == rtype)
     if lattr.lvalue and rattr.lvalue then
+      emitter:add('(')
       emitter:add_builtin('memcmp')
-      emitter:add('(&', lname, ', &', rname, ', sizeof(', ltype, ')) != 0')
+      emitter:add('(&', lname, ', &', rname, ', sizeof(', ltype, ')) != 0)')
     else
       emitter:add('({', ltype, ' a = ', lname, '; ',
                         rtype, ' b = ', rname, '; ')
@@ -1060,60 +1063,66 @@ function cbuiltins.operators.ne(_, _, emitter, lattr, rattr, lname, rname)
     if ltype.is_unsigned then
       ltype, rtype, lname, rname = rtype, ltype, rname, lname -- swap
     end
-    emitter:add('!')
+    emitter:add('(!')
     emitter:add_builtin('nelua_eq_', ltype, rtype)
-    emitter:add('(', lname, ', ', rname, ')')
+    emitter:add('(', lname, ', ', rname, '))')
   elseif ltype.is_scalar and rtype.is_scalar then
-    emitter:add(lname, ' != ', rname)
+    emitter:add('(', lname, ' != ', rname, ')')
   elseif ltype.is_niltype or rtype.is_niltype or
          ((ltype.is_boolean or rtype.is_boolean) and ltype ~= rtype) then
     emitter:add('((void)', lname, ', (void)', rname, ', ', ltype ~= rtype, ')')
   else
-    emitter:add(lname, ' != ')
+    emitter:add('(', lname, ' != ')
     if ltype ~= rtype then
       emitter:add_converted_val(ltype, rname, rtype)
     else
       emitter:add(rname)
     end
+    emitter:add(')')
   end
 end
 
 -- Implementation of conditional OR operator (`or`).
 cbuiltins.operators["or"] = function(_, _, emitter, lattr, rattr, lname, rname)
+  emitter:add_text('(')
   emitter:add_val2boolean(lname, lattr.type)
-  emitter:add(' || ')
+  emitter:add_text(' || ')
   emitter:add_val2boolean(rname, rattr.type)
+  emitter:add_text(')')
 end
 
 -- Implementation of conditional AND operator (`and`).
 cbuiltins.operators["and"] = function(_, _, emitter, lattr, rattr, lname, rname)
+  emitter:add_text('(')
   emitter:add_val2boolean(lname, lattr.type)
-  emitter:add(' && ')
+  emitter:add_text(' && ')
   emitter:add_val2boolean(rname, rattr.type)
+  emitter:add_text(')')
 end
 
 -- Implementation of not operator (`not`).
 cbuiltins.operators["not"] = function(_, _, emitter, argattr, argname)
-  emitter:add('!')
+  emitter:add_text('(!')
   emitter:add_val2boolean(argname, argattr.type)
+  emitter:add_text(')')
 end
 
 -- Implementation of unary minus operator (`-`).
 function cbuiltins.operators.unm(_, _, emitter, argattr, argname)
   assert(argattr.type.is_arithmetic)
-  emitter:add('-', argname)
+  emitter:add('(-', argname, ')')
 end
 
 -- Implementation of bitwise not operator (`~`).
 function cbuiltins.operators.bnot(_, _, emitter, argattr, argname)
   assert(argattr.type.is_integral)
-  emitter:add('~', argname)
+  emitter:add('(~', argname, ')')
 end
 
 -- Implementation of reference operator (`&`).
 function cbuiltins.operators.ref(_, _, emitter, argattr, argname)
   assert(argattr.lvalue)
-  emitter:add('&', argname)
+  emitter:add('(&', argname, ')')
 end
 
 -- Implementation of dereference operator (`$`).

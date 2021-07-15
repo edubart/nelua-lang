@@ -75,8 +75,8 @@ aster.register('Pair', {
 -- Initializer list (e.g `{}`), used for initialing tables, records and arrays.
 aster.register('InitList',
   shaper.array_of(shaper.Pair + shaper.Node),  -- pair or exprs
-  {
-    is_unpackable = true,
+{
+  is_unpackable = true,
 })
 
 -- Indexing with `.`.
@@ -230,6 +230,8 @@ aster.register('CallMethod', {
 aster.register('UnaryOp', {
   shaper.one_of{"not", "unm", "len", "bnot", "ref", "deref"}, -- op name
   shaper.Node, -- right expr
+}, {
+  is_operator = true
 })
 
 -- Binary operator.
@@ -243,12 +245,14 @@ aster.register('BinaryOp', {
                 "mul", "div", "idiv", "tdiv", "mod", "tmod",
                 "pow"}, -- op name
   shaper.Node, -- right expr
+}, {
+  is_operator = true
 })
 
 -- Return statement.
 aster.register('Return',
   shaper.array_of(shaper.Node),  -- returned exprs
-  {
+{
   is_unpackable = true,
 })
 
@@ -256,8 +260,6 @@ aster.register('Return',
 aster.register('If', {
   shaper.array_of(shaper.Node + shaper.Block), -- ifs (expr followed by block)
   shaper.Block + shaper.falsy, -- else block
-}, {
-  is_surrounded = true
 })
 
 -- Switch statement.
@@ -281,16 +283,12 @@ aster.register('Defer', {
 aster.register('While', {
   shaper.Node, -- expr
   shaper.Block, -- statements block
-}, {
-  is_surrounded = true
 })
 
 -- Repeat statement.
 aster.register('Repeat', {
   shaper.Block, -- statements block
   shaper.Node, -- expr
-}, {
-  is_surrounded = true
 })
 
 -- Numeric for statement.

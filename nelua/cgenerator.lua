@@ -401,13 +401,13 @@ function visitors.InitList(context, node, emitter)
 end
 
 function visitors.Pair(_, node, emitter)
-  local namenode, valuenode = node[1], node[2]
+  local namenode, valnode = node[1], node[2]
   local parenttype = node.attr.parenttype
   if parenttype and parenttype.is_composite then
     assert(traits.is_string(namenode))
     local field = parenttype.fields[namenode]
     emitter:add('.', cdefs.quotename(field.name), ' = ')
-    emitter:add_converted_val(field.type, valuenode)
+    emitter:add_converted_val(field.type, valnode)
   else --luacov:disable
     error('not implemented yet')
   end --luacov:enable
@@ -499,15 +499,14 @@ function visitors.IdDecl(context, node, emitter)
 end
 
 local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjnode)
-  local isblockcall = context:get_visiting_node(1).is_Block
-  if isblockcall then
+  local isstatement = context:get_visiting_node(1).is_Block
+  if isstatement then
     emitter:add_indent()
   end
   local attr = node.attr
   local calleetype = attr.calleetype
   local upfuncscope = context.scope:get_up_function_scope()
-  if calleetype.is_procedure then
-    -- function call
+  if calleetype.is_procedure then -- function call
     local tmpargs
     local tmpcount = 0
     local lastcalltmp
@@ -537,48 +536,39 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
         end
       end
     end
-
     local handlereturns
     local retvalname
     local returnfirst
-    if #calleetype.rettypes > 1 and not isblockcall and not attr.multirets then
-      -- we are handling the returns
+    if #calleetype.rettypes > 1 and not isstatement and not attr.multirets then -- we are handling the returns
       returnfirst = true
       handlereturns = true
       serialized = true
     end
-
-    if serialized then
-      -- break apart the call into many statements
-      if not isblockcall then
+    if serialized then -- break apart the call into many statements
+      if not isstatement then
         emitter:add_value('(')
       end
       emitter:add_ln('{') emitter:inc_indent()
     end
-
     if sequential then
       for _,tmparg,argnode,argtype,_,lastcalletype in izipargnodes(tmpargs, argnodes) do
         -- set temporary values in sequence
         if tmparg then
-          if lastcalletype then
-            -- type for result of multiple return call
+          if lastcalletype then -- type for result of multiple return call
             argtype = context:funcrettypename(lastcalletype)
           end
           emitter:add_indent_ln(argtype, ' ', tmparg, ' = ', argnode, ';')
         end
       end
     end
-
     if serialized then
       emitter:add_indent()
-      if handlereturns then
-        -- save the return type
+      if handlereturns then -- save the return type
         local rettypename = context:funcrettypename(calleetype)
         retvalname = upfuncscope:generate_name('_callret')
         emitter:add(rettypename, ' ', retvalname, ' = ')
       end
     end
-
     local ismethod = attr.ismethod
     if ismethod then
       local selftype = calleetype.argtypes[1]
@@ -586,9 +576,7 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
         emitter:add_value(context:declname(attr.calleesym))
       else
         assert(luatype(callee) == 'string')
-        emitter:add_value('(')
         emitter:add_converted_val(selftype, calleeobjnode)
-        emitter:add_value(')')
         emitter:add_value(selftype.is_pointer and '->' or '.')
         emitter:add_value(callee)
       end
@@ -609,10 +597,13 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
       end
       emitter:add_text('(')
     end
-
     for i,funcargtype,argnode,argtype,lastcallindex in izipargnodes(callargtypes, argnodes) do
-      if not argnode and (funcargtype.is_cvarargs or funcargtype.is_varargs) then break end
-      if i > 1 or ismethod then emitter:add_value(', ') end
+      if not argnode and (funcargtype.is_cvarargs or funcargtype.is_varargs) then
+        break
+      end
+      if i > 1 or ismethod then
+        emitter:add_value(', ')
+      end
       local arg = argnode
       if sequential then
         if lastcallindex then
@@ -621,12 +612,9 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
           arg = tmpargs[i]
         end
       end
-
       local callargattr = callargattrs[i]
-      if callargattr.comptime then
-        -- compile time function argument
+      if callargattr.comptime then -- compile time function argument
         emitter:add_nil_literal()
-
         if argnode and argnode.is_Function then -- force declaration of anonymous functions
           emitter:fork():add(argnode)
         end
@@ -635,22 +623,19 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
       end
     end
     emitter:add_text(')')
-
-    if serialized then
-      -- end sequential expression
+    if serialized then -- end sequential expression
       emitter:add_ln(';')
-      if returnfirst then
-        -- get just the first result in multiple return functions
+      if returnfirst then -- get just the first result in multiple return functions
         assert(#calleetype.rettypes > 1)
         emitter:add_indent_ln(retvalname, '.r1;')
       end
       emitter:dec_indent() emitter:add_indent('}')
-      if not isblockcall then
+      if not isstatement then
         emitter:add_value(')')
       end
     end
   end
-  if isblockcall then
+  if isstatement then
     emitter:add_text(";\n")
   end
 end
@@ -761,7 +746,8 @@ function visitors.Return(context, node, emitter)
   local retscope = scope:get_up_return_scope()
   cgenerator.emit_close_upscopes(context, deferemitter, scope, retscope)
   if retscope.is_doexpr then -- inside a do expression
-    emitter:add_indent_ln('_expr = ', node[1], ';')
+    local retnode = node[1]
+    emitter:add_indent_ln('_expr = ', retnode, ';')
     emitter:add(deferemitter)
     local needgoto = true
     if context:get_visiting_node(2).is_DoExpr then
@@ -1313,11 +1299,8 @@ function visitors.UnaryOp(context, node, emitter)
     return
   end
   local opname, argnode = node[1], node[2]
-  local surround = not context:get_visiting_node(1).is_surrounded
-  if surround then emitter:add_text('(') end
   local builtin = cbuiltins.operators[opname]
   builtin(context, node, emitter, argnode.attr, argnode)
-  if surround then emitter:add_text(')') end
 end
 
 -- Emits operation between two expressions.
@@ -1332,17 +1315,17 @@ function visitors.BinaryOp(context, node, emitter)
     return
   end
   local lnode, opname, rnode = node[1], node[2], node[3]
-  local surround = not context:get_visiting_node(1).is_surrounded
-  if surround then emitter:add_text('(') end
   if attr.dynamic_conditional then
     if attr.ternaryor then -- lua style "ternary" operator
       local anode, bnode, cnode = lnode[1], lnode[3], rnode
       if anode.attr.type.is_boolean and not bnode.attr.type.is_falseable then -- use C ternary operator
+        emitter:add('(')
         emitter:add_val2boolean(anode)
         emitter:add(' ? ')
         emitter:add_converted_val(type, bnode)
         emitter:add(' : ')
         emitter:add_converted_val(type, cnode)
+        emitter:add(')')
       else
         emitter:add_ln('({') emitter:inc_indent()
         emitter:add_indent_ln(type, ' t_;')
@@ -1423,7 +1406,6 @@ function visitors.BinaryOp(context, node, emitter)
       emitter:dec_indent() emitter:add_indent('})')
     end
   end
-  if surround then emitter:add_text(')') end
 end
 
 -- Emits defers before exiting scope `scope`.
