@@ -157,7 +157,7 @@ function PPContext.inject_value(self, value, dest, destpos, orignode)
       dest[destpos+i-1] = aster.value(value[i], orignode)
     end
   else -- a single value
-    if valueluatype == 'function' and dest.tag == 'Call' then
+    if valueluatype == 'function' and dest.is_Call then
       -- parse arguments to compile-time values where possible
       local argnodes = dest[1]
       self.context:traverse_nodes(argnodes)

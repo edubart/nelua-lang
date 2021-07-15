@@ -24,7 +24,7 @@ local function izipargnodes(vars, argnodes)
   local lastargindex = #argnodes
   local lastargnode = argnodes[#argnodes]
   local calleetype = lastargnode and lastargnode.attr.calleetype
-  if lastargnode and lastargnode.tag:find('^Call') and (not calleetype or not calleetype.is_type) then
+  if lastargnode and lastargnode.is_call and (not calleetype or not calleetype.is_type) then
     -- last arg is a runtime call
     assert(calleetype)
     -- we know the callee type
@@ -261,7 +261,7 @@ local function can_use_initializer(childnodes)
   local hassideeffect = false
   for _,childnode in ipairs(childnodes) do
     local childvalnode
-    if childnode.tag == 'Pair' then
+    if childnode.is_Pair then
       childvalnode = childnode[2]
     else
       childvalnode = childnode
@@ -314,7 +314,7 @@ function visitors.InitList(context, node, emitter)
         local named = false
         local childvalnode
         local field
-        if childnode.tag == 'Pair' then
+        if childnode.is_Pair then
           childvalnode = childnode[2]
           field = type.fields[childnode[1]]
           named = true
@@ -499,7 +499,7 @@ function visitors.IdDecl(context, node, emitter)
 end
 
 local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjnode)
-  local isblockcall = context:get_visiting_node(1).tag == 'Block'
+  local isblockcall = context:get_visiting_node(1).is_Block
   if isblockcall then
     emitter:add_indent()
   end
@@ -627,7 +627,7 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
         -- compile time function argument
         emitter:add_nil_literal()
 
-        if argnode and argnode.tag == 'Function' then -- force declaration of anonymous functions
+        if argnode and argnode.is_Function then -- force declaration of anonymous functions
           emitter:fork():add(argnode)
         end
       else
@@ -660,12 +660,7 @@ function visitors.Call(context, node, emitter)
   local argnodes, calleenode = node[1], node[2]
   local attr = node.attr
   if attr.calleetype.is_type then -- is a type cast?
-    local type = attr.type
-    if #argnodes == 0 then -- no arguments? then it's a zeroed type initialization
-      emitter:add_zeroed_type_literal(type, true)
-    else -- explicit type cast
-      emitter:add_converted_val(type, argnodes[1], nil, true)
-    end
+    emitter:add_converted_val(attr.type, argnodes[1], nil, true)
   else -- usual function call
     local callee = calleenode
     local calleeattr = calleenode.attr
@@ -729,7 +724,7 @@ function visitors.KeyIndex(context, node, emitter)
   end
   if objtype.is_array then -- array indexing
     if (pointer and objtype.length == 0) or -- unbounded array
-       (objnode.tag == 'DotIndex' and objnode[2].attr.type.is_composite) then -- record/union array field
+       (objnode.is_DotIndex and objnode[2].attr.type.is_composite) then -- record/union array field
       objattr.arrayindex = true
       emitter:add(objnode, '[')
     elseif pointer then -- pointer to bounded array
@@ -769,7 +764,7 @@ function visitors.Return(context, node, emitter)
     emitter:add_indent_ln('_expr = ', node[1], ';')
     emitter:add(deferemitter)
     local needgoto = true
-    if context:get_visiting_node(2).tag == 'DoExpr' then
+    if context:get_visiting_node(2).is_DoExpr then
       local blockstats = context:get_visiting_node(1)
       if node == blockstats[#blockstats] then -- last statement does not need goto
         needgoto = false
@@ -798,7 +793,7 @@ function visitors.Return(context, node, emitter)
     elseif numrets == 1 then -- one return
       local retnode = node[1]
       local rettype = retscope.is_root and primtypes.cint or functype:get_return_type(1)
-      if not deferemitter:empty() and retnode and retnode.tag ~= 'Id' and not retnode.attr.comptime then
+      if not deferemitter:empty() and retnode and not retnode.is_Id and not retnode.attr.comptime then
         local retname = funcscope:generate_name('_ret')
         emitter:add_indent(rettype, ' ', retname, ' = ')
         emitter:add_converted_val(rettype, retnode)
@@ -922,7 +917,7 @@ end
 -- Emits `(do end)` expression.
 function visitors.DoExpr(context, node, emitter)
   local attr = node.attr
-  local isstatement = context:get_visiting_node(1).tag == 'Block'
+  local isstatement = context:get_visiting_node(1).is_Block
   if isstatement then -- a macros could have replaced a statement with do exprs
     if attr.noop then -- skip macros without operations
       return true
@@ -930,7 +925,7 @@ function visitors.DoExpr(context, node, emitter)
     emitter:add_indent('(void)')
   end
   local blocknode = node[1]
-  if blocknode[1].tag == 'Return' then -- single statement
+  if blocknode[1].is_Return then -- single statement
     emitter:add(blocknode[1][1])
   else -- multiple statements
     emitter:add_ln("({") emitter:inc_indent()
@@ -1212,11 +1207,10 @@ function visitors.FuncDef(context, node, emitter)
   local funcname = varnode
   -- handle function variable assignment
   if not varscope then
-    local vartag = varnode.tag
-    if vartag == 'Id' then
+    if varnode.is_Id then
       funcname = context.rootscope:generate_name(context:declname(varnode.attr))
       emitter:add_indent_ln(varnode, ' = ', funcname, ';')
-    elseif vartag == 'ColonIndex' or vartag == 'DotIndex' then
+    elseif varnode.is_index then
       local fieldname, objtype = varnode[1], varnode[2].attr.type
       if objtype.is_record then
         funcname = context.rootscope:generate_name(objtype.codename..'_funcdef_'..fieldname)
@@ -1246,7 +1240,7 @@ function visitors.FuncDef(context, node, emitter)
   -- add function arguments
   local argsemitter = CEmitter(context)
   argsemitter:add('(')
-  if varnode.tag == 'ColonIndex' then -- need to inject first argument `self`
+  if varnode.is_ColonIndex then -- need to inject first argument `self`
     local selftype = type.argtypes[1]
     argsemitter:add(selftype, ' self')
     if #argnodes > 0 then -- extra arguments?
@@ -1319,7 +1313,7 @@ function visitors.UnaryOp(context, node, emitter)
     return
   end
   local opname, argnode = node[1], node[2]
-  local surround = not cdefs.surrounded_node_tags[context:get_visiting_node(1).tag]
+  local surround = not context:get_visiting_node(1).is_surrounded
   if surround then emitter:add_text('(') end
   local builtin = cbuiltins.operators[opname]
   builtin(context, node, emitter, argnode.attr, argnode)
@@ -1338,7 +1332,7 @@ function visitors.BinaryOp(context, node, emitter)
     return
   end
   local lnode, opname, rnode = node[1], node[2], node[3]
-  local surround = not cdefs.surrounded_node_tags[context:get_visiting_node(1).tag]
+  local surround = not context:get_visiting_node(1).is_surrounded
   if surround then emitter:add_text('(') end
   if attr.dynamic_conditional then
     if attr.ternaryor then -- lua style "ternary" operator
@@ -1516,13 +1510,13 @@ end
 
 -- Emits `nelua_main`.
 function cgenerator.emit_nelua_main(context, ast, emitter)
-  assert(ast.tag == 'Block') -- ast is expected to be a Block
+  assert(ast.is_Block) -- ast is expected to be a Block
   local rollbackpos = emitter:get_pos()
   emitter:add_text("int nelua_main(int nelua_argc, char** nelua_argv) {\n") -- begin block
   local startpos = emitter:get_pos() -- save current emitter position
   context:traverse_node(ast, emitter) -- emit ast statements
   if context.hookmain or emitter:get_pos() ~= startpos then -- main is used or statements were added
-    if #ast == 0 or ast[#ast].tag ~= 'Return' then -- last statement is not a return
+    if #ast == 0 or not ast[#ast].is_Return then -- last statement is not a return
       emitter:add_indent_ln("  return 0;") -- ensures that an int is always returned
     end
     emitter:add_ln("}") -- end bock

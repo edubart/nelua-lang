@@ -115,7 +115,7 @@ end
 
 function visitors.Call(context, node, emitter)
   local args, callee = node[1], node[2]
-  local isblockcall = context:get_visiting_node(1).tag == 'Block'
+  local isblockcall = context:get_visiting_node(1).is_Block
   if isblockcall then emitter:add_indent() end
   emitter:add(callee, '(', args, ')')
   if isblockcall then emitter:add_ln() end
@@ -123,7 +123,7 @@ end
 
 function visitors.CallMethod(context, node, emitter)
   local name, args, callee = node[1], node[2], node[3]
-  local isblockcall = context:get_visiting_node(1).tag == 'Block'
+  local isblockcall = context:get_visiting_node(1).is_Block
   if isblockcall then emitter:add_indent() end
   emitter:add(callee, ':', name, '(', args, ')')
   if isblockcall then emitter:add_ln() end

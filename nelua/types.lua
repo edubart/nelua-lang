@@ -2538,7 +2538,7 @@ function types.overload_concept(...)
     ss:addlist(errs, '\n    ')
     return nil, ss:tostring()
   end, function(node)
-    if node.tag == 'InitList' then
+    if node.is_InitList then
       -- try to infer to the first accepted table or record type
       for i=1,#acceptedtypes do
         local type = acceptedtypes[i]

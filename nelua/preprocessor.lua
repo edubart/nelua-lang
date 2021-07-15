@@ -86,7 +86,7 @@ function visitors.Block(ppcontext, node, emitter)
     local statregidx = ppcontext:get_registry_index(statnode)
     ppcontext:traverse_node(statnode, emitter)
     statnodes[i] = nil
-    if statnode.tag ~= 'Preprocess' then
+    if not statnode.is_Preprocess then
       emitter:add_indent_ln('ppcontext:inject_statement(ppregistry[', statregidx, '])')
     end
   end
@@ -108,7 +108,7 @@ function visitors.FuncDef(ppcontext, node, emitter)
       local retnode = retnodes[i]
       local needpreprocess
       for subnode in retnode:walk_nodes() do
-        if preprocess_tags[subnode.tag] then
+        if subnode.is_preprocess then
           needpreprocess = true
           break
         end
@@ -144,7 +144,7 @@ local function mark_preprocessing_nodes(ast)
     -- mark nearest parent block above
     for i=#parents,1,-1 do
       local pnode = parents[i]
-      if pnode.tag == 'Block' then
+      if pnode.is_Block then
         pnode.needprocess = true
         break
       end
@@ -155,7 +155,7 @@ end
 
 -- Preprocess AST `ast` using analyzer context `context`.
 function preprocessor.preprocess(context, ast)
-  assert(ast.tag == 'Block')
+  assert(ast.is_Block)
   -- begin tracking time
   local timer
   if config.more_timing or config.timing then

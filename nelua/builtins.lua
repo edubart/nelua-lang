@@ -94,7 +94,7 @@ end
 
 function builtins.assert(context, node, argnodes)
   local attr = node.attr
-  local statement = attr.checkbuiltin or context:get_visiting_node(1).tag == 'Block'
+  local statement = attr.checkbuiltin or context:get_visiting_node(1).is_Block
   if statement then
     local firstargnode = argnodes[1]
     if firstargnode then

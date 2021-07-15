@@ -46,16 +46,22 @@ aster.register('DoExpr', {
 -- Preprocess code to be executed and removed.
 aster.register('Preprocess', {
   shaper.string -- code
+}, {
+  is_preprocess = true
 })
 
 -- Preprocess expression to be replaced by an ASTNode containing an expression.
 aster.register('PreprocessExpr', {
   shaper.string -- code
+}, {
+  is_preprocess = true
 })
 
 -- Preprocess expression to be replaced by a string containing a name.
 aster.register('PreprocessName', {
   shaper.string -- code
+}, {
+  is_preprocess = true
 })
 
 local name = shaper.string + shaper.PreprocessName
@@ -67,24 +73,34 @@ aster.register('Pair', {
 })
 
 -- Initializer list (e.g `{}`), used for initialing tables, records and arrays.
-aster.register('InitList', shaper.array_of(shaper.Pair + shaper.Node)) -- pair or exprs
+aster.register('InitList',
+  shaper.array_of(shaper.Pair + shaper.Node),  -- pair or exprs
+  {
+    is_unpackable = true,
+})
 
 -- Indexing with `.`.
 aster.register('DotIndex', {
   name, -- name
   shaper.Node, -- expr
+}, {
+  is_index = true
 })
 
 -- Indexing with `:`.
 aster.register('ColonIndex', {
   name, -- name
   shaper.Node, -- expr
+}, {
+  is_index = true
 })
 
 -- Indexing with brackets (e.g `[key]`).
 aster.register('KeyIndex', {
   shaper.Node, -- key expr
   shaper.Node, -- expr
+}, {
+  is_index = true
 })
 
 -- Annotation used in a variable, type or function declaration.
@@ -187,12 +203,17 @@ aster.register('Function', {
   shaper.array_of(shaper.Node) + shaper.falsy, -- typed returns
   shaper.array_of(shaper.Annotation) + shaper.falsy,
   shaper.Node, -- block
+}, {
+  is_function = true
 })
 
 -- Call.
 aster.register('Call', {
   shaper.array_of(shaper.Node), -- arguments exprs
   shaper.Node, -- caller expr
+}, {
+  is_call = true,
+  is_unpackable = true,
 })
 
 -- Call a method.
@@ -200,6 +221,9 @@ aster.register('CallMethod', {
   name, -- method name
   shaper.array_of(shaper.Node), -- arguments exprs
   shaper.Node, -- caller expr
+}, {
+  is_call = true,
+  is_unpackable = true,
 })
 
 -- Unary operator.
@@ -222,12 +246,18 @@ aster.register('BinaryOp', {
 })
 
 -- Return statement.
-aster.register('Return', shaper.array_of(shaper.Node)) -- returned exprs
+aster.register('Return',
+  shaper.array_of(shaper.Node),  -- returned exprs
+  {
+  is_unpackable = true,
+})
 
 -- If statement.
 aster.register('If', {
   shaper.array_of(shaper.Node + shaper.Block), -- ifs (expr followed by block)
   shaper.Block + shaper.falsy, -- else block
+}, {
+  is_surrounded = true
 })
 
 -- Switch statement.
@@ -251,12 +281,16 @@ aster.register('Defer', {
 aster.register('While', {
   shaper.Node, -- expr
   shaper.Block, -- statements block
+}, {
+  is_surrounded = true
 })
 
 -- Repeat statement.
 aster.register('Repeat', {
   shaper.Block, -- statements block
   shaper.Node, -- expr
+}, {
+  is_surrounded = true
 })
 
 -- Numeric for statement.
@@ -297,12 +331,16 @@ aster.register('VarDecl', {
   shaper.one_of{"local","global"}, -- scope
   shaper.array_of(shaper.IdDecl), -- var names with types
   shaper.array_of(shaper.Node) + shaper.falsy, -- exprs of initial values
+}, {
+  is_unpackable = true,
 })
 
 -- Variable assignment statement.
 aster.register('Assign', {
   shaper.array_of(shaper.Node), -- var exprs
   shaper.array_of(shaper.Node), -- values exprs
+}, {
+  is_unpackable = true,
 })
 
 -- Function definition statement.
@@ -313,6 +351,8 @@ aster.register('FuncDef', {
   shaper.array_of(shaper.Node) + shaper.falsy, -- typed returns
   shaper.array_of(shaper.Annotation) + shaper.falsy,
   shaper.Block, -- statements block
+}, {
+  is_function = true,
 })
 
 -- This is used only internally.

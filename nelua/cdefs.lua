@@ -2,12 +2,6 @@ local metamagic = require 'nelua.utils.metamagic'
 
 local cdefs = {}
 
-cdefs.surrounded_node_tags = {
-  While = true,
-  Repeat = true,
-  If = true,
-}
-
 cdefs.types_printf_format = {
   nlfloat32     = '"%.7g"',
   nlfloat64     = '"%.14g"',

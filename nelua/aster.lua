@@ -119,7 +119,7 @@ function aster.unpack(t)
 end
 
 -- Register a new AST node with name `tag` described by shape `shape`.
-function aster.register(tag, shape)
+function aster.register(tag, shape, props)
   if not getmetatable(shape) then -- not a shape yet
     tabler.update(shape, ASTNode.baseshape.shape)
     shape = shaper.shape(shape)
@@ -127,7 +127,11 @@ function aster.register(tag, shape)
   -- create a new class for the AST Node
   local klass = class(ASTNode)
   klass.tag = tag
+  klass['is_'..tag] = true
   klass.shape = shape
+  if props then
+    tabler.update(klass, props)
+  end
   astklasses[tag] = klass
   astshaper[tag] = shaper.ast_node_of(klass) -- shape checker used in astdefs
   -- allow calling the aster for creating any AST node.

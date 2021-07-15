@@ -25,7 +25,7 @@ local function needs_evaluation(val)
       return false
     end
   elseif traits.is_astnode(val) then
-    if val.tag == 'Nil' or val.tag == 'Nilptr' or val.tag == 'Id' then
+    if val.is_Nil or val.is_Nilptr or val.is_Id then
       return false
     end
   end

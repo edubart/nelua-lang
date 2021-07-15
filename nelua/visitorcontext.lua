@@ -211,7 +211,7 @@ function VisitorContext:get_visiting_traceback(level)
   local nodestack = self.nodestack
   for i=1,#nodestack-(level or 0) do
     local node = nodestack[i]
-    if node._astnode and node.tag ~= 'Block' then
+    if node._astnode and node.is_Block then
       ss:add(node:format_message('from', 'AST node %s', node.tag))
     end
   end

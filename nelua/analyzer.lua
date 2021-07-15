@@ -132,9 +132,7 @@ function visitors.Varargs(context, node)
   if polyeval and polyeval.varargsnodes then -- unpack arguments of a polymorphic function
     local parentnode = context:get_visiting_node(1)
     local nvarargs = #polyeval.varargsnodes
-    local varargs_unpack_tags = {Call=true, CallMethod=true, VarDecl=true,
-                                 Assign=true, Return=true, InitList=true}
-    if varargs_unpack_tags[parentnode.tag] then -- can unpack all arguments
+    if parentnode.is_unpackable then -- can unpack all arguments
       local parent, pindex = parentnode:recursive_find_child(node)
       if nvarargs > 0 then -- unpack many arguments
         local ret
@@ -235,7 +233,7 @@ local function visitor_Array_literal(context, node, littype)
   local nchildnodes = #childnodes
   do -- need to unpack last varargs first
     local lastchildnode = nchildnodes > 0 and childnodes[nchildnodes]
-    if lastchildnode and lastchildnode.tag == 'Varargs' then
+    if lastchildnode and lastchildnode.is_Varargs then
       context:traverse_node(lastchildnode)
       nchildnodes = #childnodes
     end
@@ -248,7 +246,7 @@ local function visitor_Array_literal(context, node, littype)
   local sideeffect
   for i=1,nchildnodes do
     local childnode = childnodes[i]
-    if childnode.tag == 'Pair' then
+    if childnode.is_Pair then
       childnode:raisef("fields are disallowed for array literals")
     end
     context:traverse_node(childnode, {desiredtype=subtype})
@@ -289,7 +287,7 @@ local function visitor_Record_literal(context, node, littype)
     local childnode = childnodes[i]
     local parent, parentindex
     local fieldname, fieldvalnode, field, fieldindex
-    if childnode.tag == 'Pair' then
+    if childnode.is_Pair then
       fieldname, fieldvalnode = childnode[1], childnode[2]
       if luatype(fieldname) ~= 'string' then
         childnode:raisef("only string literals are allowed in record's field names")
@@ -363,7 +361,7 @@ local function visitor_Union_literal(context, node, littype)
   end
   local childnode = childnodes[1]
   if childnode then
-    if childnode.tag ~= 'Pair' then
+    if not childnode.is_Pair then
       childnode:raisef("union field is missing a name")
     end
     local fieldname, fieldvalnode = childnode[1], childnode[2]
@@ -502,7 +500,7 @@ function visitors.Annotation(context, node, opts)
     symboltype = symbol.type
     istypedecl = symboltype and symboltype.is_type
     local parentnode = context:get_visiting_node(1)
-    local isfuncdecl = parentnode and (parentnode.tag == 'Function' or parentnode.tag == 'FuncDef')
+    local isfuncdecl = parentnode and parentnode.is_function
     if not isfuncdecl and not symboltype or (istypedecl and not symbol.value) then
       if name == 'cimport' and context.state.anyphase then
         node:raisef('imported variables from C must have an explicit type')
@@ -618,7 +616,7 @@ function visitors.Annotation(context, node, opts)
     end
     return -- we want to skip node.done = true
   elseif name == 'close' then
-    if context:get_visiting_node(2).tag ~= 'VarDecl' then
+    if not context:get_visiting_node(2).is_VarDecl then
       node:raisef("annotation 'close' is only allowed in variable declarations")
     end
   end
@@ -703,7 +701,7 @@ function visitors.IdDecl(context, node)
     end
   else
     -- global record field
-    assert(namenode.tag == 'DotIndex')
+    assert(namenode.is_DotIndex)
     context:push_forked_state{inglobaldecl=node}
     symbol = context:traverse_node(namenode)
     context:pop_state()
@@ -774,7 +772,7 @@ function visitors.FuncType(context, node)
   for i=1,#argnodes do
     local argnode = argnodes[i]
     local argattr
-    if argnode.tag == 'IdDecl' then
+    if argnode.is_IdDecl then
       argattr = argnode.attr
     else
       local argtype = argnode.attr.value
@@ -982,25 +980,25 @@ function visitors.ArrayType(context, node)
     local pnode2 = context:get_visiting_node(2)
     local pnode3 = context:get_visiting_node(3)
     local valnode
-    if pnode1.tag == 'IdDecl' and
-       pnode2 and pnode2.tag == 'VarDecl' then -- typed declaration
+    if pnode1.is_IdDecl and
+       pnode2 and pnode2.is_VarDecl then -- typed declaration
       local varnodes, valnodes = pnode2[2], pnode2[3]
       if valnodes then
         local varindex = tabler.ifind(varnodes, pnode1)
         valnode = valnodes[varindex]
       end
-    elseif pnode1.tag == 'Type' and
-           pnode2 and pnode2.tag == 'Paren' and
-           pnode3 and pnode3.tag == 'Call' then -- inline type initialization
+    elseif pnode1.is_Type and
+           pnode2 and pnode2.is_Paren and
+           pnode3 and pnode3.is_Call then -- inline type initialization
       valnode = pnode3[1][1]
     else
       node:raisef("cannot infer array size, use a fixed size")
     end
-    if not (valnode and valnode.tag == 'InitList') then
+    if not (valnode and valnode.is_InitList) then
       node:raisef("cannot infer array size in this context")
     end
     length = #valnode
-    if length > 0 and valnode[length].tag == 'Varargs' then
+    if length > 0 and valnode[length].is_Varargs then
       local polyeval = context.state.inpolyeval
       if polyeval then
         length = length - 1 + #polyeval.varargsnodes
@@ -1038,7 +1036,7 @@ end
 function visitors.GenericType(context, node)
   local attr = node.attr
   local namenode, argnodes = node[1], node[2]
-  assert(namenode.tag == 'Id')
+  assert(namenode.is_Id)
   local name = namenode[1]
   local symbol = context:traverse_node(namenode)
   if not symbol.type or not symbol.type.is_type then
@@ -1101,7 +1099,7 @@ local function iargnodes(argnodes)
   local lastargindex = #argnodes
   local lastargnode = argnodes[#argnodes]
   local calleetype = lastargnode and lastargnode.attr.calleetype
-  if lastargnode and lastargnode.tag:find('^Call') and calleetype and
+  if lastargnode and lastargnode.is_call and calleetype and
     not calleetype.is_type and not calleetype.is_any then
     -- last arg is a runtime call with known return type at compile time
     return function()
@@ -1139,7 +1137,7 @@ local function izipargnodes(vars, argnodes)
   local lastargnode = argnodes[lastargindex]
   local lastcalleetype = lastargnode and lastargnode.attr.calleetype
   local niltype = primtypes.niltype
-  if lastargnode and lastargnode.tag:find('^Call') and
+  if lastargnode and lastargnode.is_call and
      (not lastcalleetype or not lastcalleetype.is_type) then
     -- last arg is a runtime call
     return function()
@@ -1289,7 +1287,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
         table.remove(pseudoargattrs, 1)
       end
       if not mulargstype and #argnodes > #pseudoargattrs then
-        if not (#argnodes == #pseudoargattrs+1 and argnodes[#argnodes].tag == 'Varargs') then
+        if not (#argnodes == #pseudoargattrs+1 and argnodes[#argnodes].is_Varargs) then
           node:raisef("in call of function '%s': expected at most %d arguments but got %d",
             calleename, #pseudoargattrs, #argnodes)
         end
@@ -1608,7 +1606,7 @@ local function visitor_RecordType_FieldIndex(context, node, objtype, name)
     if infuncdef then
       -- declaration of record global function
       symbol.metafunc = true
-      if node.tag == 'ColonIndex' then
+      if node.is_ColonIndex then
         symbol.metafuncselftype = types.PointerType(objtype)
       end
     elseif inglobaldecl then
@@ -1808,7 +1806,7 @@ function visitors.Block(context, node)
     local done = true
     for i=1,#statnodes do
       local statnode = statnodes[i]
-      if not (statnode.done or statnode.tag == 'Directive') then
+      if not (statnode.done or statnode.is_Directive) then
         done = nil
         break
       end
@@ -2148,7 +2146,7 @@ local function visit_close(context, declnode, varnode, symbol)
   local callnode = aster.Defer{aster.Block{aster.CallMethod{'__close', {}, idnode}}}
   -- inject defer call after variable declaration
   local blocknode = context:get_visiting_node(1) -- get parent block node
-  assert(blocknode.tag == 'Block')
+  assert(blocknode.is_Block)
   local statindex = tabler.ifind(blocknode, declnode) -- find this node index
   assert(statindex)
   local declattr = declnode.attr
@@ -2182,7 +2180,7 @@ function visitors.VarDecl(context, node)
     local symbol = context:traverse_node(varnode)
     assert(symbol)
     local inscope = false
-    if valnode and valnode.tag == 'Type' then
+    if valnode and valnode.is_Type then
       symbol.scope:add_symbol(symbol)
       inscope = true
     end
@@ -2408,11 +2406,10 @@ local function block_endswith_return(blocknode)
   local statnodes = blocknode
   local laststat = statnodes[#statnodes]
   if not laststat then return false end
-  local laststattag = laststat.tag
-  if laststattag == 'Return' then
+  if laststat.is_Return then
     blocknode.attr.returnending = true
     return true
-  elseif laststattag == 'Call' or laststattag == 'CallMethod' then
+  elseif laststat.is_Call then
     local lastattr = laststat.attr
     local calleesym = lastattr.calleesym
     if not calleesym and not lastattr.type then
@@ -2423,9 +2420,9 @@ local function block_endswith_return(blocknode)
       return true
     end
     return false
-  elseif laststattag == 'Do' then
+  elseif laststat.is_Do then
     return block_endswith_return(laststat[1])
-  elseif laststattag == 'If' then
+  elseif laststat.is_If then
     local pairs, elseblock = laststat[1], laststat[2]
     for i=1,#pairs,2 do
       local block = pairs[i+1]
@@ -2436,7 +2433,7 @@ local function block_endswith_return(blocknode)
     if elseblock then
       return block_endswith_return(elseblock)
     end
-  elseif laststattag == 'Switch' then
+  elseif laststat.is_Switch then
     local pairs, elseblock = laststat[2], laststat[3]
     for i=1,#pairs,2 do
       local block = pairs[i+1]
@@ -2476,7 +2473,7 @@ function visitors.DoExpr(context, node)
       node:raisef("a return statement is missing inside do expression block")
     end
     local firstnode = blocknode[1]
-    if firstnode.tag == 'Return' then -- forward attr from first expression
+    if firstnode.is_Return then -- forward attr from first expression
       local exprattr = firstnode[1].attr
       attr.sideeffect = exprattr.sideeffect
       attr.comptime = exprattr.comptime
@@ -2694,14 +2691,14 @@ local function visitor_function_polyevals(context, node, symbol, varnode, type)
       if symbol.type:has_varargs() and not polyeval.varargsnodes then
         varargsnodes = {}
       end
-      local ismethod = varnode.tag == 'ColonIndex'
+      local ismethod = varnode.is_ColonIndex
       for j=1,#polyevalargs do
         local polyevalarg = polyevalargs[j]
         if ismethod then
           j = j - 1
         end
         local polyargnode = polyargnodes[j]
-        if polyargnode and polyargnode.tag == 'VarargsType' then
+        if polyargnode and polyargnode.is_VarargsType then
           invarargs = true
         end
         if invarargs then -- replace varargs arguments with IdDecl nodes
@@ -2825,7 +2822,7 @@ function visitors.FuncDef(context, node, opts)
 
   -- detect the self type
   local selftype
-  if varnode.tag == 'ColonIndex' then
+  if varnode.is_ColonIndex then
     if varsym and varsym.metafunc then
       selftype = varsym.metafuncselftype
     else
@@ -3149,7 +3146,7 @@ function visitors.BinaryOp(context, node, opts)
   if isbinaryconditional and desiredtype and desiredtype.is_boolean then
     argopts = {desiredtype=primtypes.boolean}
     wantsboolean = true
-  elseif isor and lnode[2] == 'and' and lnode.tag == 'BinaryOp' then
+  elseif isor and lnode[2] == 'and' and lnode.is_BinaryOp then
     lnode.attr.ternaryand = true
     attr.ternaryor = true
   end
