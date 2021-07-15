@@ -1065,21 +1065,20 @@ function visitors.VarDecl(context, node, emitter)
       local declared, defined
       if varattr.staticstorage then -- declare variables in the top scope
         local decemitter = CEmitter(context)
+        local custominit = valnode and valnode.attr.initializer
+        declared = true
+        defined = custominit or (not valnode and not lastcallindex)
+        varnode.attr.ignoreconst = not defined
         decemitter:add_indent(varnode)
-        if valnode and valnode.attr.initializer then -- initialize to const values
+        if custominit then -- initialize to const values
           assert(not lastcallindex)
           decemitter:add(' = ')
           context:push_forked_state{ininitializer = true}
           decemitter:add_converted_val(vartype, valnode)
           context:pop_state()
-          defined = true
-        elseif zeroinit then -- pre initialize with zeros
-          -- C static storage variables are always initialized to zeros already
-          defined = not valnode and not lastcallindex
         end
         decemitter:add_ln(';')
         context:add_declaration(decemitter:generate())
-        declared = true
       end
       if varattr:must_define_at_runtime() then
         local asgnvalname, asgnvaltype = valnode, valtype

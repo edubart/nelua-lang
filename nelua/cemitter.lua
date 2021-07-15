@@ -393,7 +393,7 @@ function CEmitter:add_qualified_declaration(attr, type, name)
     self:add(context:ensure_builtin('nelua_noreturn'), ' ')
   end
   -- type qualifiers
-  if attr.const then
+  if attr.const and not attr.ignoreconst then
     if traits.is_type(type) and (type.is_pointer or type.is_scalar or type.is_boolean) then
        -- only allow const on some basic types
       self:add('const ')
