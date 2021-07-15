@@ -37,7 +37,7 @@ local typedefs = {
 types.set_typedefs(typedefs)
 
 -- Basic types.
-primtypes.niltype     = types.NiltypeType('niltype') -- must be defined first, to have id 0
+primtypes.niltype     = types.NiltypeType('niltype', typedefs.emptysize) -- must be defined first
 primtypes.nilptr      = types.NilptrType('nilptr', ptrsize)
 primtypes.type        = types.TypeType('type', 0)
 primtypes.typetype    = primtypes.type

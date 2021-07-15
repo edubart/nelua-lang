@@ -96,6 +96,17 @@ function cbuiltins.nelua_inline(context)
 ]], 'directives')
 end
 
+-- Used by `<register>`.
+function cbuiltins.nelua_register(context)
+  context:define_builtin_macro('nelua_register', [[
+#ifdef __STDC_VERSION__
+  #define nelua_register register
+#else
+  #define nelua_register
+#endif
+]], 'directives')
+end
+
 -- Used by `<noreturn>`.
 function cbuiltins.nelua_noreturn(context)
   context:define_builtin_macro('nelua_noreturn', [[
@@ -279,18 +290,15 @@ function cbuiltins.nelua_assert_bounds_(context, indextype)
 end
 
 -- Used to check dereference of pointers.
-function cbuiltins.nelua_assert_deref_(context, pointertype)
-  local name = 'nelua_assert_deref_'..pointertype.codename
-  if context.usedbuiltins[name] then return name end
+function cbuiltins.nelua_assert_deref(context)
   context:ensure_builtins('nelua_panic_cstring', 'nelua_unlikely', 'NULL')
-  context:define_function_builtin(name,
-    'nelua_inline', pointertype,  {{pointertype, 'p'}}, [[{
+  context:define_function_builtin('nelua_assert_deref',
+    'nelua_inline', primtypes.pointer,  {{primtypes.pointer, 'p'}}, [[{
   if(nelua_unlikely(p == NULL)) {
     nelua_panic_cstring("attempt to dereference a null pointer");
   }
   return p;
 }]])
-  return name
 end
 
 -- Used to convert a string to a C string.

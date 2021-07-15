@@ -1435,6 +1435,7 @@ function cgenerator.emit_warning_pragmas(context)
   emitter:add_ln('    #pragma GCC diagnostic ignored "-Wincompatible-pointer-types"')
   emitter:add_ln('  #else')
   emitter:add_ln('    #pragma GCC diagnostic ignored "-Wwrite-strings"')
+  emitter:add_ln('    #pragma GCC diagnostic ignored "-Wnarrowing"')
   emitter:add_ln('  #endif')
   -- C zero initialization for anything
   emitter:add_ln('  #pragma GCC diagnostic ignored "-Wmissing-braces"')

@@ -908,7 +908,7 @@ it("unary operator `unm`", function()
 end)
 
 it("unary operator `deref`", function()
-  expect.generate_c("local a: *integer; local x = $a", "x = (*nelua_assert_deref_nlint64_ptr(a));")
+  expect.generate_c("local a: *integer; local x = $a", "x = (*(int64_t*)nelua_assert_deref(a));")
   config.pragmas.nochecks = true
   expect.generate_c("local a: *integer; local x = $a", "x = (*a);")
   expect.generate_c([[

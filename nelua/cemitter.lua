@@ -109,11 +109,11 @@ function CEmitter:add_deref(val, valtype)
   assert(valtype.is_pointer)
   local valsubtype = valtype.subtype
   self:add_text('(*')
-  if valsubtype.is_array and valsubtype.length == 0 then
+  if  not self.context.pragmas.nochecks or (valsubtype.is_array and valsubtype.length == 0) then
     self:add('(', valsubtype, '*)')
   end
   if not self.context.pragmas.nochecks then -- check
-    self:add_builtin('nelua_assert_deref_', valtype)
+    self:add_builtin('nelua_assert_deref')
     self:add('(', val, ')')
   else
     self:add_value(val)
@@ -381,7 +381,7 @@ function CEmitter:add_qualified_declaration(attr, type, name)
     (attr.staticstorage and not attr.entrypoint and not attr.nostatic and not pragmas.nostatic) then
     self:add('static ')
   elseif attr.register then
-    self:add('register ')
+    self:add(context:ensure_builtin('nelua_register'), ' ')
   end
   -- function specifiers
   if attr.inline and not pragmas.nocinlines then

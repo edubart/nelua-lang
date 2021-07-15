@@ -721,8 +721,8 @@ NiltypeType.is_nilable = true
 NiltypeType.is_falseable = true
 NiltypeType.is_unpointable = true
 
-function NiltypeType:_init(name)
-  Type._init(self, name, 0)
+function NiltypeType:_init(name, size)
+  Type._init(self, name, size)
 end
 
 -- Negation operator for niltype type.
