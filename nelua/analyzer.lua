@@ -836,7 +836,9 @@ function visitors.RecordType(context, node, opts)
   attr.value = recordtype
   if symbol and not symbol.value then
     -- must populate this type symbol early in case its used in the records fields
-    assert(not symbol.type or symbol.type == primtypes.type)
+    if symbol.type and not symbol.type.is_type then
+      node:raisef("attempt to assign a type to a symbol of type '%s'", symbol.type)
+    end
     symbol.type = primtypes.type
     symbol.value = recordtype
     context:choose_type_symbol_names(symbol)
