@@ -11,7 +11,6 @@ local CContext = require 'nelua.ccontext'
 local types = require 'nelua.types'
 local ccompiler = require 'nelua.ccompiler'
 local primtypes = typedefs.primtypes
-local luatype = type
 local izip2 = iters.izip2
 local emptynext = function() end
 
@@ -572,9 +571,8 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
   -- add callee
   if selftype then
     if calleesym then
-      emitter:add_text(context:declname(calleesym))
+      emitter:add_value(calleesym)
     else
-      assert(luatype(callee) == 'string')
       emitter:add_converted_val(selftype, calleeobj, calleeobjtype)
       emitter:add_text(selftype.is_pointer and '->' or '.')
       emitter:add_value(callee)
@@ -582,17 +580,7 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
     emitter:add_text('(')
     emitter:add_converted_val(selftype, calleeobj, calleeobjtype)
   else
-    if attr.pointercall then
-      emitter:add_text('(*')
-    end
-    if luatype(callee) ~= 'string' and calleesym then
-      emitter:add_text(context:declname(calleesym))
-    else
-      emitter:add_value(callee)
-    end
-    if attr.pointercall then
-      emitter:add_text(')')
-    end
+    emitter:add_value(callee)
     emitter:add_text('(')
   end
   -- add call arguments
@@ -652,6 +640,8 @@ function visitors.Call(context, node, emitter)
     if calleeattr.builtin then -- is a builtin call?
       local builtin = cbuiltins.calls[calleeattr.name]
       callee = builtin(context, node, emitter)
+    elseif attr.calleesym then
+      callee = attr.calleesym
     end
     if callee then -- call not omitted?
       visitor_Call(context, node, emitter, argnodes, callee)

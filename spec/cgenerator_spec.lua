@@ -2367,7 +2367,7 @@ it("function pointers", function()
     local g = &f
     assert(g() == 1)
     local pg = &g
-    assert(pg() == 1)
+    assert(($pg)() == 1)
   ]])
 end)
 

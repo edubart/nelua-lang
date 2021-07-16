@@ -1476,11 +1476,6 @@ function visitors.Call(context, node)
   if calleesym and calleesym.comptime and calleesym.value then -- handle comptime function argument
     calleesym = calleesym.value
   end
-  if calleetype and calleetype.is_pointer then
-    calleetype = calleetype.subtype
-    assert(calleetype)
-    attr.pointercall = true
-  end
 
   if calleetype and calleetype.is_type then
     visitor_Call_type_cast(context, node, argnodes, calleeattr.value)
@@ -1529,7 +1524,6 @@ function visitors.CallMethod(context, node)
   if calleetype then
     if calleetype.is_pointer then
       calleetype = calleetype.subtype
-      attr.pointercall = true
     end
 
     if calleetype.is_record then
