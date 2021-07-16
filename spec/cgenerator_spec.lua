@@ -2083,6 +2083,17 @@ it("record methods", function()
     function r:f(x: integer) return x end
     assert(r:f(1) == 1)
   ]])
+
+  expect.run_c([[
+    local Foo = @record{x: integer, g: function(*Foo): integer}
+    local foo: Foo
+    function foo:g() return self.x end
+    local function f() foo.x = foo.x + 1 return &foo end
+
+    assert(foo.x == 0)
+    f():g()
+    assert(foo.x == 1)
+  ]])
 end)
 
 it("record metametods", function()

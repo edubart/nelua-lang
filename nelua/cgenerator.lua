@@ -504,11 +504,15 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
   local calleetype = attr.calleetype
   assert(calleetype.is_procedure) -- a function call is expected
   local sequential = false -- whether arguments need to be evaluated sequentially
-  local serialized = false -- weather the call need to be break into multiple statements
-  local returnfirst = false
-  local lastcalltmp = nil
+  local returnfirst = false -- whether to return just the first of a multiple return
+  local tmpcallee = false -- weather callee object should be evaluated temporary
+  local lastcalltmp = nil -- name of the last argument call temporary multiple return
   local tmpcount = 0
   local tmpargs = {}
+  local calleesym = attr.calleesym
+  local calleeobj = calleeobjnode
+  local calleeobjtype
+  local selftype = attr.ismethod and calleetype.argtypes[1]
   local callargtypes = attr.pseudoargtypes or calleetype.argtypes
   local callargattrs = attr.pseudoargattrs or calleetype.argattrs
   for i,funcargtype,argnode,_,lastcallindex in izipargnodes(callargtypes, argnodes) do
@@ -519,33 +523,33 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
       -- expressions with side effects need to be evaluated in sequence
       -- and expressions with multiple returns needs to be stored in a temporary
       tmpcount = tmpcount + 1
-      local tmpname = '_tmp'..tmpcount
-      tmpargs[i] = tmpname
+      tmpargs[i] = '_tmp'..tmpcount
       if lastcallindex == 1 then
-        lastcalltmp = tmpname
+        lastcalltmp = tmpargs[i]
       end
       if tmpcount >= 2 or lastcallindex then
         -- only need to evaluate in sequence mode if we have two or more temporaries
         -- or the last argument is a multiple return call
         sequential = true
-        serialized = true
       end
     end
   end
   if not isstatement and #calleetype.rettypes > 1 and not attr.usemultirets then -- we are handling the returns
     returnfirst = true
   end
-  -- begin call block statement
-  if serialized then
+  if selftype and not calleesym and not calleeobjnode.is_Id then
+    tmpcallee = true
+    sequential = true
+  end
+  -- begin call
+  if sequential then -- begin sequential expression
     if isstatement then
       emitter:add_indent_ln('{')
     else
       emitter:add_ln('({')
     end
     emitter:inc_indent()
-  end
-  -- evaluate arguments in sequence
-  if sequential then
+    -- evaluate arguments in sequence
     for _,tmparg,argnode,argtype,_,lastcalletype in izipargnodes(tmpargs, argnodes) do
       if tmparg then -- evaluate temporary values in sequence
         if lastcalletype then -- type for result of multiple return call
@@ -554,28 +558,35 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
         emitter:add_indent_ln(argtype, ' ', tmparg, ' = ', argnode, ';')
       end
     end
-  end
-  if serialized or isstatement then
+    if tmpcallee then -- temporary callee
+      emitter:add_indent(selftype, ' _calleobj = ')
+      emitter:add_converted_val(selftype, calleeobjnode)
+      emitter:add_ln(';')
+      calleeobj = '_calleobj'
+      calleeobjtype = selftype
+    end
+    emitter:add_indent()
+  elseif isstatement then -- begin statement
     emitter:add_indent()
   end
-  if attr.ismethod then
-    local selftype = calleetype.argtypes[1]
-    if attr.calleesym then
-      emitter:add_text(context:declname(attr.calleesym))
+  -- add callee
+  if selftype then
+    if calleesym then
+      emitter:add_text(context:declname(calleesym))
     else
       assert(luatype(callee) == 'string')
-      emitter:add_converted_val(selftype, calleeobjnode)
+      emitter:add_converted_val(selftype, calleeobj, calleeobjtype)
       emitter:add_text(selftype.is_pointer and '->' or '.')
       emitter:add_value(callee)
     end
     emitter:add_text('(')
-    emitter:add_converted_val(selftype, calleeobjnode)
+    emitter:add_converted_val(selftype, calleeobj, calleeobjtype)
   else
     if attr.pointercall then
       emitter:add_text('(*')
     end
-    if luatype(callee) ~= 'string' and attr.calleesym then
-      emitter:add_text(context:declname(attr.calleesym))
+    if luatype(callee) ~= 'string' and calleesym then
+      emitter:add_text(context:declname(calleesym))
     else
       emitter:add_value(callee)
     end
@@ -584,11 +595,12 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
     end
     emitter:add_text('(')
   end
+  -- add call arguments
   for i,funcargtype,argnode,argtype,lastcallindex in izipargnodes(callargtypes, argnodes) do
     if not argnode and funcargtype.is_multipleargs then
       break
     end
-    if i > 1 or attr.ismethod then
+    if i > 1 or selftype then
       emitter:add_text(', ')
     end
     local arg = argnode
@@ -610,19 +622,20 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
     end
   end
   emitter:add_text(')')
-  if returnfirst then -- get just the first result in multiple return functions
+  -- add returns
+  if returnfirst then -- get just the first result from a multiple return
     emitter:add_text('.r1')
   end
-  if serialized then -- end sequential expression
+  -- end call
+  if sequential then -- end sequential expression
     emitter:add_ln(';')
     emitter:dec_indent()
     if isstatement then
-      emitter:add_indent('}')
+      emitter:add_indent_ln('}')
     else
       emitter:add_indent('})')
     end
-  end
-  if isstatement then -- finish statement
+  elseif isstatement then -- finish statement
     emitter:add_ln(";")
   end
 end
