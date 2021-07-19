@@ -27,6 +27,16 @@ do -- write
   sb:destroy()
 end
 
+do -- resize
+  local sb: stringbuilder
+  assert(sb:write('abcd') == true)
+  assert(sb:resize(8) == true)
+  assert(#sb == 8 and sb:view() == 'abcd\0\0\0\0')
+  assert(sb:resize(2) == true)
+  assert(#sb == 2 and sb:view() == 'ab')
+  sb:destroy()
+end
+
 do -- using a custom allocator
   local allocator: ArenaAllocator(256, 1)
   local sb = (@stringbuilder(*ArenaAllocator(256, 1))).make(&allocator)

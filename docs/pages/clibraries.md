@@ -2122,7 +2122,7 @@ see [C signal documentation](https://www.cplusplus.com/reference/csignal/).
 ### C.signal
 
 ```nelua
-function C.signal(sig: cint, handler: function(cint)): function(cint)
+function C.signal(sig: cint, handler: function(cint)): function(cint): void
 ```
 
 
@@ -2138,7 +2138,7 @@ function C.raise(sig: cint): cint
 ### C.SIG_DFL
 
 ```nelua
-global C.SIG_DFL: function(cint)
+global C.SIG_DFL: function(cint): void
 ```
 
 
@@ -2146,7 +2146,7 @@ global C.SIG_DFL: function(cint)
 ### C.SIG_IGN
 
 ```nelua
-global C.SIG_IGN: function(cint)
+global C.SIG_IGN: function(cint): void
 ```
 
 
@@ -2154,7 +2154,7 @@ global C.SIG_IGN: function(cint)
 ### C.SIG_ERR
 
 ```nelua
-global C.SIG_ERR: function(cint)
+global C.SIG_ERR: function(cint): void
 ```
 
 
@@ -2234,7 +2234,7 @@ function C.va_end(ap: cvalist): void
 ### C.va_arg
 
 ```nelua
-function C.va_arg(ap: *cvalist, T: type)
+function C.va_arg(ap: *cvalist, T: type): auto
 ```
 
 

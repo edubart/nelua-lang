@@ -47,11 +47,13 @@ cemitdecl[=[
   #elif __has_feature(memory_sanitizer)
     #define NELUA_GC_NO_SANITIZE __attribute__((no_sanitize_memory))
   #endif
-#elif defined(__SANITIZE_ADDRESS__)
-  #define NELUA_GC_NO_SANITIZE __attribute__((no_sanitize_address))
 #endif
 #ifndef NELUA_GC_NO_SANITIZE
-  #define NELUA_GC_NO_SANITIZE
+  #if defined(__SANITIZE_ADDRESS__)
+    #define NELUA_GC_NO_SANITIZE __attribute__((no_sanitize_address))
+  #else
+    #define NELUA_GC_NO_SANITIZE
+  #endif
 #endif
 ]=]
 ]]

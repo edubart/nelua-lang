@@ -101,6 +101,24 @@ end
   end
 
   --[[
+  Helper to accommodate at least `newsize + 1` bytes in internal writing buffer.
+  Returning true on success.
+  ]]
+  local function stringbuilderT_grow(self: *stringbuilderT, newsize: usize): boolean
+    -- add 1 additional byte to allow casting to cstring
+    local needed: usize = newsize + 1
+    local cap: usize = self.data.size
+    if needed <= cap then return true end
+    if cap == 0 then cap = INIT_CAPACITY end
+    repeat cap = cap * 2 until cap >= needed
+    self.data = self.allocator:spanrealloc0(self.data, cap)
+    if self.data.size ~= cap then -- reallocation failed, try to allocate the minimum
+      self.data = self.allocator:spanrealloc0(self.data, needed)
+    end
+    return needed <= self.data.size
+  end
+
+  --[[
   Prepares to append at least `n` bytes into the internal writing buffer.
   Returns a span that can be used to write bytes to.
   Typically the returned span length will have at least `n` bytes,
@@ -111,25 +129,10 @@ end
   the `commit` function must be called subsequently to advance the internal writing buffer.
   ]]
   function stringbuilderT:prepare(n: usize): span(byte)
-    -- allocate 1 additional byte to allow casting to cstring
-    local needed: usize = self.size + n + 1
-    local cap: usize = self.data.size
-    if unlikely(needed > cap) then
-      if cap == 0 then
-        cap = INIT_CAPACITY
-      end
-      repeat cap = cap * 2 until cap >= needed
-      self.data = self.allocator:spanrealloc0(self.data, cap)
-      if self.data.size ~= cap then
-        -- reallocation failed, try to allocate the minimum
-        self.data = self.allocator:spanrealloc0(self.data, needed)
-      end
-      cap = self.data.size
-      if needed > cap then
-        return (@span(byte)){}
-      end
+    if not stringbuilderT_grow(self, self.size + n) then
+      return (@span(byte)){}
     end
-    return (@span(byte)){data=&self.data[self.size], size=cap-self.size-1}
+    return (@span(byte)){data=&self.data[self.size], size=self.data.size-self.size-1}
   end
 
   --[[
@@ -141,6 +144,19 @@ end
     local newsize: usize = self.size + n
     check(newsize <= self.data.size, 'not enough space in string buffer')
     self.size = newsize
+  end
+
+  --[[
+  Resizes the internal writing buffer to `n` bytes, and sets the writing position to its end.
+  When growing new elements will be zeroed.
+  Returns `true` in case of success, otherwise `false` when out of buffer memory space.
+  ]]
+  function stringbuilderT:resize(n: usize): boolean
+    if not stringbuilderT_grow(self, n) then
+      return false
+    end
+    self.size = n
+    return true
   end
 
   --[[
@@ -360,6 +376,14 @@ end
     return (@string){data = data.data, size = size}
   end
   ## end
+
+  --[[
+  Returns the number of bytes in the internal writing buffer.
+  Used by the length operator (`#`).
+  ]]
+  function stringbuilderT:__len(): isize <inline>
+    return (@isize)(self.size)
+  end
 
   --[[
   Converts the string builder to a new `string`.

@@ -53,6 +53,8 @@ global function panic(message: string): void
 ```
 
 Terminate the application abnormally with message `message`.
+This function never returns.
+
 Use to raise unrecoverable errors.
 
 ### error
@@ -62,6 +64,7 @@ global function error(msg: string): void
 ```
 
 Raises an error with message `message`.
+This function never returns.
 
 Currently this is an alias to `panic` and terminates the application,
 but in the future, in case the language get an exception system,
@@ -138,7 +141,7 @@ The functions provided here can be used with the `for in` construction.
 ### ipairs
 
 ```nelua
-global function ipairs(a: contiguous_reference_concept)
+global function ipairs(a: contiguous_reference_concept): (auto, auto, integer)
 ```
 
 Returns values so that the construction
@@ -153,7 +156,7 @@ The container `a` must be contiguous, such as `array`, `span`, `vector` or `sequ
 ### mipairs
 
 ```nelua
-global function mipairs(a: contiguous_reference_concept)
+global function mipairs(a: contiguous_reference_concept): (auto, auto, integer)
 ```
 
 Like `ipairs` but yields reference to elements values so that you can modify them in-place.
@@ -161,7 +164,7 @@ Like `ipairs` but yields reference to elements values so that you can modify the
 ### next
 
 ```nelua
-global function next(a: container_reference_concept, k: auto)
+global function next(a: container_reference_concept, k: auto): (auto, auto, auto)
 ```
 
 Gets the next element after key `k` for the container `a`.
@@ -174,7 +177,7 @@ The container `a` must either have the metamethod `__next` or be a contiguous.
 ### mnext
 
 ```nelua
-global function mnext(a: container_reference_concept, k: auto)
+global function mnext(a: container_reference_concept, k: auto): (auto, auto, auto)
 ```
 
 Like `next` but returns reference to the next element value, so that you can modify it in-place.
@@ -182,7 +185,7 @@ Like `next` but returns reference to the next element value, so that you can mod
 ### pairs
 
 ```nelua
-global function pairs(a: container_reference_concept)
+global function pairs(a: container_reference_concept): (auto, auto, auto)
 ```
 
 Returns values so that the construction
@@ -198,7 +201,7 @@ Should work on any container, such as `array`, `span`, `vector`, `sequence` or `
 ### mpairs
 
 ```nelua
-global function mpairs(a: container_reference_concept)
+global function mpairs(a: container_reference_concept): (auto, auto, auto)
 ```
 
 Like `pairs` but yields reference to elements values so that you can modify them in-place.
@@ -379,7 +382,7 @@ Like `io.writef` but also flushes the standard output.
 ### io.type
 
 ```nelua
-function io.type(obj: auto)
+function io.type(obj: auto): auto
 ```
 
 Checks whether `obj` is a valid file handle.
@@ -390,7 +393,7 @@ or `nil` if `obj` is not a file handle.
 ### io.lines
 
 ```nelua
-function io.lines(filename: facultative(string), fmt: overload(integer,string,niltype))
+function io.lines(filename: facultative(string), fmt: overload(integer,string,niltype)): (auto, auto, string)
 ```
 
 Opens the given file name in read mode
@@ -591,7 +594,7 @@ Returns `true` on success, otherwise `false` plus an error message and a system-
 ### filestream:lines
 
 ```nelua
-function filestream:lines(fmt: overload(integer,string,niltype))
+function filestream:lines(fmt: overload(integer,string,niltype)): (auto, auto, string)
 ```
 
 Returns an iterator function that, each time it is called, reads the file according to the given format.
@@ -637,7 +640,7 @@ Namespace for math module.
 ### math.abs
 
 ```nelua
-function math.abs(x: an_scalar)
+function math.abs(x: an_scalar): auto
 ```
 
 Returns the absolute value of `x`, that is, the maximum value between `x` and `-x`.
@@ -647,7 +650,7 @@ The argument type is always preserved.
 ### math.floor
 
 ```nelua
-function math.floor(x: an_scalar)
+function math.floor(x: an_scalar): auto
 ```
 
 Returns the largest integral value less than or equal to `x`.
@@ -663,7 +666,7 @@ Like `math.floor`, but the result is always converted to an integer.
 ### math.ceil
 
 ```nelua
-function math.ceil(x: an_scalar)
+function math.ceil(x: an_scalar): auto
 ```
 
 Returns the smallest integral value greater than or equal to `x`.
@@ -679,7 +682,7 @@ Like `math.ceil`, but the result is always converted to an integer.
 ### math.round
 
 ```nelua
-function math.round(x: an_scalar)
+function math.round(x: an_scalar): auto
 ```
 
 Returns the rounded value of `x` towards the nearest integer.
@@ -688,7 +691,7 @@ Halfway cases are rounded away from zero.
 ### math.trunc
 
 ```nelua
-function math.trunc(x: an_scalar)
+function math.trunc(x: an_scalar): auto
 ```
 
 Returns the rounded value of `x` towards zero.
@@ -696,7 +699,7 @@ Returns the rounded value of `x` towards zero.
 ### math.sqrt
 
 ```nelua
-function math.sqrt(x: an_scalar)
+function math.sqrt(x: an_scalar): auto
 ```
 
 Returns the square root of `x`.
@@ -705,7 +708,7 @@ You can also use the expression `x^0.5` to compute this value.
 ### math.cbrt
 
 ```nelua
-function math.cbrt(x: an_scalar)
+function math.cbrt(x: an_scalar): auto
 ```
 
 Returns the cubic root of `x`.
@@ -714,7 +717,7 @@ You can also use the expression `x^(1/3)` to compute this value.
 ### math.exp
 
 ```nelua
-function math.exp(x: an_scalar)
+function math.exp(x: an_scalar): auto
 ```
 
 Returns the value of `e^x` (where `e` is the base of natural logarithms).
@@ -722,7 +725,7 @@ Returns the value of `e^x` (where `e` is the base of natural logarithms).
 ### math.exp2
 
 ```nelua
-function math.exp2(x: an_scalar)
+function math.exp2(x: an_scalar): auto
 ```
 
 Returns the value of `2^x`.
@@ -731,7 +734,7 @@ You can also use the expression `2^x` to compute this value.
 ### math.pow
 
 ```nelua
-function math.pow(x: an_scalar, y: an_scalar)
+function math.pow(x: an_scalar, y: an_scalar): auto
 ```
 
 Returns `x^y`.
@@ -740,7 +743,7 @@ You can also use the expression `x^y` to compute this value.
 ### math.log
 
 ```nelua
-function math.log(x: an_scalar, base: an_optional_scalar)
+function math.log(x: an_scalar, base: an_optional_scalar): auto
 ```
 
 Returns the logarithm of `x` in the given `base`.
@@ -749,7 +752,7 @@ The default for `base` is *e*, so that the function returns the natural logarith
 ### math.cos
 
 ```nelua
-function math.cos(x: an_scalar)
+function math.cos(x: an_scalar): auto
 ```
 
 Returns the cosine of `x` (assumed to be in radians).
@@ -757,7 +760,7 @@ Returns the cosine of `x` (assumed to be in radians).
 ### math.sin
 
 ```nelua
-function math.sin(x: an_scalar)
+function math.sin(x: an_scalar): auto
 ```
 
 Returns the sine of `x` (assumed to be in radians).
@@ -765,7 +768,7 @@ Returns the sine of `x` (assumed to be in radians).
 ### math.tan
 
 ```nelua
-function math.tan(x: an_scalar)
+function math.tan(x: an_scalar): auto
 ```
 
 Returns the tangent of `x` (assumed to be in radians).
@@ -773,7 +776,7 @@ Returns the tangent of `x` (assumed to be in radians).
 ### math.acos
 
 ```nelua
-function math.acos(x: an_scalar)
+function math.acos(x: an_scalar): auto
 ```
 
 Returns the arc cosine of `x` (in radians).
@@ -781,7 +784,7 @@ Returns the arc cosine of `x` (in radians).
 ### math.asin
 
 ```nelua
-function math.asin(x: an_scalar)
+function math.asin(x: an_scalar): auto
 ```
 
 Returns the arc sine of `x` (in radians).
@@ -789,7 +792,7 @@ Returns the arc sine of `x` (in radians).
 ### math.atan
 
 ```nelua
-function math.atan(y: an_scalar, x: an_optional_scalar)
+function math.atan(y: an_scalar, x: an_optional_scalar): auto
 ```
 
 Returns the arc tangent of `y/x` (in radians),
@@ -801,7 +804,7 @@ The default value for `x` is `1`, so that the call `math.atan(y)` returns the ar
 ### math.atan2
 
 ```nelua
-function math.atan2(y: an_scalar, x: an_optional_scalar)
+function math.atan2(y: an_scalar, x: an_optional_scalar): auto
 ```
 
 Returns the arc tangent of `y/x` (in radians),
@@ -811,7 +814,7 @@ It also handles correctly the case of `x` being zero.
 ### math.cosh
 
 ```nelua
-function math.cosh(x: an_scalar)
+function math.cosh(x: an_scalar): auto
 ```
 
 Returns the hyperbolic cosine of `x`.
@@ -819,7 +822,7 @@ Returns the hyperbolic cosine of `x`.
 ### math.sinh
 
 ```nelua
-function math.sinh(x: an_scalar)
+function math.sinh(x: an_scalar): auto
 ```
 
 Returns the hyperbolic sine of `x`.
@@ -827,7 +830,7 @@ Returns the hyperbolic sine of `x`.
 ### math.tanh
 
 ```nelua
-function math.tanh(x: an_scalar)
+function math.tanh(x: an_scalar): auto
 ```
 
 Returns the hyperbolic tangent of `x`.
@@ -835,7 +838,7 @@ Returns the hyperbolic tangent of `x`.
 ### math.log10
 
 ```nelua
-function math.log10(x: an_scalar)
+function math.log10(x: an_scalar): auto
 ```
 
 Returns the base-10 logarithm of `x`.
@@ -843,7 +846,7 @@ Returns the base-10 logarithm of `x`.
 ### math.log2
 
 ```nelua
-function math.log2(x: an_scalar)
+function math.log2(x: an_scalar): auto
 ```
 
 Returns the base-2 logarithm of `x`.
@@ -851,7 +854,7 @@ Returns the base-2 logarithm of `x`.
 ### math.acosh
 
 ```nelua
-function math.acosh(x: an_scalar)
+function math.acosh(x: an_scalar): auto
 ```
 
 Returns the inverse hyperbolic cosine of `x`.
@@ -859,7 +862,7 @@ Returns the inverse hyperbolic cosine of `x`.
 ### math.asinh
 
 ```nelua
-function math.asinh(x: an_scalar)
+function math.asinh(x: an_scalar): auto
 ```
 
 Returns the inverse hyperbolic sine of `x`.
@@ -867,7 +870,7 @@ Returns the inverse hyperbolic sine of `x`.
 ### math.atanh
 
 ```nelua
-function math.atanh(x: an_scalar)
+function math.atanh(x: an_scalar): auto
 ```
 
 Returns the inverse hyperbolic tangent of `x`.
@@ -875,7 +878,7 @@ Returns the inverse hyperbolic tangent of `x`.
 ### math.deg
 
 ```nelua
-function math.deg(x: an_scalar)
+function math.deg(x: an_scalar): auto
 ```
 
 Converts the angle `x` from radians to degrees.
@@ -883,7 +886,7 @@ Converts the angle `x` from radians to degrees.
 ### math.rad
 
 ```nelua
-function math.rad(x: an_scalar)
+function math.rad(x: an_scalar): auto
 ```
 
 Converts the angle `x` from degrees to radians.
@@ -891,7 +894,7 @@ Converts the angle `x` from degrees to radians.
 ### math.sign
 
 ```nelua
-function math.sign(x: an_scalar)
+function math.sign(x: an_scalar): auto
 ```
 
 Returns the sign of `x`, that is:
@@ -902,7 +905,7 @@ Returns the sign of `x`, that is:
 ### math.fract
 
 ```nelua
-function math.fract(x: an_scalar)
+function math.fract(x: an_scalar): auto
 ```
 
 Returns the fractional part of `x`.
@@ -912,7 +915,7 @@ Computed as `x - math.floor(x)`.
 ### math.mod
 
 ```nelua
-function math.mod(x: an_scalar, y: an_scalar)
+function math.mod(x: an_scalar, y: an_scalar): auto
 ```
 
 Returns the modulo operation of `x` by `y`, rounded towards minus infinity.
@@ -923,7 +926,7 @@ It's computed as `x - math.floor(x / y) * y`.
 ### math.modf
 
 ```nelua
-function math.modf(x: an_scalar)
+function math.modf(x: an_scalar): (auto, auto)
 ```
 
 Returns the integral part of `x` and the fractional part of `x`.
@@ -932,7 +935,7 @@ Its second result is always a float.
 ### math.fmod
 
 ```nelua
-function math.fmod(x: an_scalar, y: an_scalar)
+function math.fmod(x: an_scalar, y: an_scalar): auto
 ```
 
 Returns the remainder of the division of `x` by `y` that rounds the quotient towards zero.
@@ -941,7 +944,7 @@ The result can either be an integer or a float depending on the arguments.
 ### math.frexp
 
 ```nelua
-function math.frexp(x: an_scalar)
+function math.frexp(x: an_scalar): (auto, int32)
 ```
 
 Returns `m` and `e` such that `x = m*(2^e)`,
@@ -950,7 +953,7 @@ Returns `m` and `e` such that `x = m*(2^e)`,
 ### math.ldexp
 
 ```nelua
-function math.ldexp(m: an_scalar, e: int32)
+function math.ldexp(m: an_scalar, e: int32): auto
 ```
 
 Returns `m*(2^e)`, that is, `m` multiplied by an integral power of 2.
@@ -958,7 +961,7 @@ Returns `m*(2^e)`, that is, `m` multiplied by an integral power of 2.
 ### math.min
 
 ```nelua
-function math.min(...: varargs)
+function math.min(...: varargs): auto
 ```
 
 Returns the argument with the minimum value, according to the operator `<`.
@@ -966,7 +969,7 @@ Returns the argument with the minimum value, according to the operator `<`.
 ### math.max
 
 ```nelua
-function math.max(...: varargs)
+function math.max(...: varargs): auto
 ```
 
 Returns the argument with the maximum value, according to the operator `<`.
@@ -974,7 +977,7 @@ Returns the argument with the maximum value, according to the operator `<`.
 ### math.clamp
 
 ```nelua
-function math.clamp(x: an_scalar, min: an_scalar, max: an_scalar)
+function math.clamp(x: an_scalar, min: an_scalar, max: an_scalar): auto
 ```
 
 Returns the value of `x` clamped between `min` and `max`.
@@ -991,7 +994,7 @@ when they are compared as unsigned integers.
 ### math.tointeger
 
 ```nelua
-function math.tointeger(x: an_scalar)
+function math.tointeger(x: an_scalar): auto
 ```
 
 If the value `x` is convertible to an integer, returns that integer. Otherwise, returns `nil`.
@@ -999,7 +1002,7 @@ If the value `x` is convertible to an integer, returns that integer. Otherwise, 
 ### math.type
 
 ```nelua
-function math.type(x: auto)
+function math.type(x: auto): auto
 ```
 
 Returns `"integer"` if `x` is an integer, "float" if `x` is a float, or fail if `x` is not a number.
@@ -1027,7 +1030,7 @@ you should call `math.randomseed` with explicit arguments.
 ### math.random
 
 ```nelua
-function math.random(m: an_optional_scalar, n: an_optional_scalar)
+function math.random(m: an_optional_scalar, n: an_optional_scalar): auto
 ```
 
 When called without arguments, returns a pseudo-random float with uniform distribution in the range [`0`,`1`).
@@ -1632,7 +1635,7 @@ A value of true as a fourth, optional argument plain turns off the pattern match
 ### string.gmatch
 
 ```nelua
-function string.gmatch(s: string, pattern: string, init: facultative(isize))
+function string.gmatch(s: string, pattern: string, init: facultative(isize)): (auto, auto, string)
 ```
 
 Returns an iterator function that, each time it is called, returns the whole match plus a span of captures.
@@ -1641,7 +1644,7 @@ A third, optional argument specifies where to start the search, its default valu
 ### string.gmatchview
 
 ```nelua
-function string.gmatchview(s: string, pattern: string, init: facultative(isize))
+function string.gmatchview(s: string, pattern: string, init: facultative(isize)): (auto, auto, string)
 ```
 
 Like `string.gmatch` but uses sub string views (see also `string.subview`).
@@ -1961,7 +1964,7 @@ Convert a value to a string.
 ### tonumber
 
 ```nelua
-global function tonumber(x: auto, base: facultative(integer))
+global function tonumber(x: auto, base: facultative(integer)): auto
 ```
 
 Convert a value to a number.
@@ -2097,6 +2100,16 @@ Commits `n` previously written bytes effectively advancing the internal writing 
 A call to `prepare` must be preceded before calling this function, and its
 returned span length must have at least `n` bytes.
 
+### stringbuilderT:resize
+
+```nelua
+function stringbuilderT:resize(n: usize): boolean
+```
+
+Resizes the internal writing buffer to `n` bytes, and sets the writing position to its end.
+When growing new elements will be zeroed.
+Returns `true` in case of success, otherwise `false` when out of buffer memory space.
+
 ### stringbuilderT:writebyte
 
 ```nelua
@@ -2151,6 +2164,15 @@ and then the string builder is destroyed.
 This is typically used as an optimization to skip an extra allocating
 when finishing building a string.
 This method is only available for the default string builder.
+
+### stringbuilderT:__len
+
+```nelua
+function stringbuilderT:__len(): isize
+```
+
+Returns the number of bytes in the internal writing buffer.
+Used by the length operator (`#`).
 
 ### stringbuilderT:__tostring
 
@@ -3126,7 +3148,7 @@ Used with `mpairs()` iterator.
 ### listT:__pairs
 
 ```nelua
-function listT:__pairs()
+function listT:__pairs(): (auto, *listT, *listnodeT)
 ```
 
 Allow using `pairs()` to iterate the container.
@@ -3134,7 +3156,7 @@ Allow using `pairs()` to iterate the container.
 ### listT:__mpairs
 
 ```nelua
-function listT:__mpairs()
+function listT:__mpairs(): (auto, *listT, *listnodeT)
 ```
 
 Allow using `mpairs()` to iterate the container.
@@ -3353,7 +3375,7 @@ Returns the number of elements in the container.
 ### hashmapT:__pairs
 
 ```nelua
-function hashmapT:__pairs()
+function hashmapT:__pairs(): (auto, hashmap_iteratorT, K)
 ```
 
 Allow using `pairs()` to iterate the container.
@@ -3361,7 +3383,7 @@ Allow using `pairs()` to iterate the container.
 ### hashmapT:__mpairs
 
 ```nelua
-function hashmapT:__mpairs()
+function hashmapT:__mpairs(): (auto, hashmap_iteratorT, K)
 ```
 
 Allow using `mpairs()` to iterate the container.
@@ -3398,7 +3420,7 @@ the global `embed_default_allocator` is declared before this library is required
 ### new
 
 ```nelua
-global function new(what: auto, size: facultative(usize))
+global function new(what: auto, size: facultative(usize)): auto
 ```
 
 Shorthand for `default_allocator:new`.
@@ -3531,7 +3553,7 @@ Like `realloc0`, but raises an error in case the allocation fails.
 ### Allocator:spanalloc
 
 ```nelua
-function Allocator:spanalloc(T: type, size: usize)
+function Allocator:spanalloc(T: type, size: usize): auto
 ```
 
 Like `alloc`, but returns a span of `T` with `size` elements.
@@ -3542,7 +3564,7 @@ Like `alloc`, but returns a span of `T` with `size` elements.
 ### Allocator:xspanalloc
 
 ```nelua
-function Allocator:xspanalloc(T: type, size: usize)
+function Allocator:xspanalloc(T: type, size: usize): auto
 ```
 
 Like `spanalloc`, but raises an error in case the allocation fails.
@@ -3550,7 +3572,7 @@ Like `spanalloc`, but raises an error in case the allocation fails.
 ### Allocator:spanalloc0
 
 ```nelua
-function Allocator:spanalloc0(T: type, size: usize)
+function Allocator:spanalloc0(T: type, size: usize): auto
 ```
 
 Like `spanalloc`, but initializes added memory with zeros.
@@ -3558,7 +3580,7 @@ Like `spanalloc`, but initializes added memory with zeros.
 ### Allocator:xspanalloc0
 
 ```nelua
-function Allocator:xspanalloc0(T: type, size: usize)
+function Allocator:xspanalloc0(T: type, size: usize): auto
 ```
 
 Like `spanalloc0`, but raises an error in case the allocation fails.
@@ -3574,7 +3596,7 @@ Like `dealloc`, but operates over a span.
 ### Allocator:spanrealloc
 
 ```nelua
-function Allocator:spanrealloc(s: span_concept, size: usize)
+function Allocator:spanrealloc(s: span_concept, size: usize): auto
 ```
 
 Like `realloc`, but operate over a span.
@@ -3587,7 +3609,7 @@ if the returned span size is different than `size`.
 ### Allocator:xspanrealloc
 
 ```nelua
-function Allocator:xspanrealloc(s: span_concept, size: usize)
+function Allocator:xspanrealloc(s: span_concept, size: usize): auto
 ```
 
 Like `spanrealloc`, but raises an error in case the allocation fails.
@@ -3595,7 +3617,7 @@ Like `spanrealloc`, but raises an error in case the allocation fails.
 ### Allocator:spanrealloc0
 
 ```nelua
-function Allocator:spanrealloc0(s: span_concept, size: usize)
+function Allocator:spanrealloc0(s: span_concept, size: usize): auto
 ```
 
 Like `spanrealloc`, but initializes added memory with zeros.
@@ -3603,7 +3625,7 @@ Like `spanrealloc`, but initializes added memory with zeros.
 ### Allocator:xspanrealloc0
 
 ```nelua
-function Allocator:xspanrealloc0(s: span_concept, size: usize)
+function Allocator:xspanrealloc0(s: span_concept, size: usize): auto
 ```
 
 Like `spanrealloc0`, but raises an error in case the allocation fails.
@@ -3611,7 +3633,7 @@ Like `spanrealloc0`, but raises an error in case the allocation fails.
 ### Allocator:new
 
 ```nelua
-function Allocator:new(what: auto, size: facultative(usize))
+function Allocator:new(what: auto, size: facultative(usize)): auto
 ```
 
 Allocates a new value.
@@ -3973,7 +3995,7 @@ For more details see `Allocator:realloc`.
 function GCAllocator:spanalloc(T: type, size: usize,
                                flags: facultative(usize),
                                finalizer: facultative(function(pointer, pointer): void),
-                               userdata: facultative(pointer))
+                               userdata: facultative(pointer)): auto
 ```
 
 Like `alloc`, but returns a span of `T` with `size` elements.
@@ -3989,7 +4011,7 @@ For more details see `Allocator:spanalloc`.
 function GCAllocator:spanalloc0(T: type, size: usize,
                                 flags: facultative(usize),
                                 finalizer: facultative(function(pointer, pointer): void),
-                                userdata: facultative(pointer))
+                                userdata: facultative(pointer)): auto
 ```
 
 Like `spanalloc0`, but initializes added memory with zeros.
@@ -3997,7 +4019,7 @@ Like `spanalloc0`, but initializes added memory with zeros.
 ### GCAllocator:new
 
 ```nelua
-function GCAllocator:new(what: auto, size: facultative(usize))
+function GCAllocator:new(what: auto, size: facultative(usize)): auto
 ```
 
 Allocates a new value.
@@ -4362,7 +4384,7 @@ it must have been returned by an earlier allocation call from this allocator.
 ### HeapAllocatorT:deallocall
 
 ```nelua
-function HeapAllocatorT:deallocall()
+function HeapAllocatorT:deallocall(): void
 ```
 
 Deallocate all allocations from the heap.
