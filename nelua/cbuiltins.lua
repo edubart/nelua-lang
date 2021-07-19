@@ -434,7 +434,7 @@ function cbuiltins.nelua_idiv_(context, type, checked)
   end
   emitter:add_indent_ln(stype,' q = a / b;')
   emitter:add_indent_ln('return q * b == a ? q : q - ((a < 0) ^ (b < 0));')
-  emitter:dec_indent() emitter:add_ln('}')
+  emitter:dec_indent() emitter:add('}')
   context:define_function_builtin(name,
     'nelua_inline', type, {{type, 'a'}, {type, 'b'}}, emitter:generate())
   return name
@@ -454,7 +454,7 @@ function cbuiltins.nelua_imod_(context, type, checked)
   end
   emitter:add_indent_ln(type,' r = a % b;')
   emitter:add_indent_ln('return (r != 0 && (a ^ b) < 0) ? r + b : r;')
-  emitter:dec_indent() emitter:add_ln('}')
+  emitter:dec_indent() emitter:add('}')
   context:define_function_builtin(name,
     'nelua_inline', type, {{type, 'a'}, {type, 'b'}}, emitter:generate())
   return name

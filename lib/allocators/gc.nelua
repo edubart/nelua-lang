@@ -282,10 +282,13 @@ local function GC_registerroots(self: *GC): void
     local function search_scope(scope)
       for i=1,#scope.symbols do
         local sym = scope.symbols[i]
-        if sym:is_on_static_storage() and
-           sym.type:has_pointer() and
-           not sym.cimport and
-           sym.type.nickname ~= 'GC' then
+        local symtype = sym.type
+        if not symtype then -- force symbol type resolution
+          sym:resolve_type(primtypes.any)
+          symtype = sym.type
+        end
+        if sym:is_on_static_storage() and not sym.cimport and
+           symtype:has_pointer() and symtype.nickname ~= 'GC' then
           symbols[#symbols+1] = sym
         end
       end

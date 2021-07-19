@@ -683,7 +683,9 @@ Returns `true` in case of success.
 ]]
 global function tocstring(buf: *[0]cchar, buflen: usize, s: string): boolean
   if buf and buflen >= s.size + 1 then
-    memory.copy(buf, &s.data[0], s.size)
+    if s.size > 0 then
+      memory.copy(buf, &s.data[0], s.size)
+    end
     buf[s.size] = 0
     return true
   end

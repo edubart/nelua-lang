@@ -197,7 +197,7 @@ end
 typevisitors[types.Type] = function(context, type)
   local node = context:get_visiting_node()
   if type.is_any or type.is_varanys then
-    node:raisef("compiler deduced the type 'any' here, but it's not supported yet in the C backend")
+    node:raisef("compiler deduced type 'any' here, but it's not supported yet, please fix this variable type")
   else
     node:raisef("type '%s' is not supported yet in the C backend", type)
   end
@@ -504,7 +504,7 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
   assert(calleetype.is_procedure) -- a function call is expected
   local sequential = false -- whether arguments need to be evaluated sequentially
   local returnfirst = false -- whether to return just the first of a multiple return
-  local tmpcallee = false -- weather callee object should be evaluated temporary
+  local tmpcallee = false -- whether callee object should be evaluated temporary
   local lastcalltmp = nil -- name of the last argument call temporary multiple return
   local tmpcount = 0
   local tmpargs = {}
@@ -1279,7 +1279,7 @@ end
 function visitors.UnaryOp(context, node, emitter)
   local attr = node.attr
   if attr.type.is_any then
-    node:raisef("compiler deduced the type 'any' here, but it's not supported yet in the C backend")
+    node:raisef("compiler deduced type 'any' here, but it's not supported yet, please fix this variable type")
   end
   if attr.comptime then -- compile time constant
     emitter:add_literal(attr)
@@ -1295,7 +1295,7 @@ function visitors.BinaryOp(context, node, emitter)
   local attr = node.attr
   local type = attr.type
   if type.is_any then
-    node:raisef("compiler deduced the type 'any' here, but it's not supported yet in the C backend")
+    node:raisef("compiler deduced type 'any' here, but it's not supported yet, please fix this variable type")
   end
   if attr.comptime then -- compile time constant
     emitter:add_literal(attr)
