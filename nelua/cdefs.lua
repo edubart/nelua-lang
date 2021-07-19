@@ -1,4 +1,4 @@
-local metamagic = require 'nelua.utils.metamagic'
+local tabler = require 'nelua.utils.tabler'
 
 local cdefs = {}
 
@@ -115,13 +115,6 @@ cdefs.for_compare_ops = {
   eq = '==',
 }
 
-cdefs.compiler_base_flags = {
-  cflags_base = "-Wall -fwrapv",
-  cflags_release = "-O2 -fno-plt",
-  cflags_maximum_performance = "-Ofast -fno-plt -flto -march=native -DNDEBUG",
-  cflags_debug = "-g"
-}
-
 cdefs.search_compilers = {
   'gcc', 'clang',
   'x86_64-w64-mingw32-gcc', 'x86_64-w64-mingw32-clang',
@@ -129,17 +122,45 @@ cdefs.search_compilers = {
   'cc'
 }
 
-cdefs.compilers_flags = {
-  tcc = {
-    cflags_base = "-w"
-  }
-}
+local compilers_flags = {}
+cdefs.compilers_flags = compilers_flags
 
-do
-  for _,compiler_flags in pairs(cdefs.compilers_flags) do
-    metamagic.setmetaindex(compiler_flags, cdefs.compiler_base_flags)
-  end
-end
+-- Generic CC
+compilers_flags.cc = {
+  cflags_base = "",
+  cflags_release = "-O2 -DNDEBUG",
+  cflags_maximum_performance = "-O3 -DNDEBUG",
+  cflags_debug = "",
+  cflags_shared = "-shared -fPIC",
+  cflags_static = "-c",
+  cmd_defines = '$(cc) -x c -E -dM $(cflags) "$(cfile)"',
+  cmd_compile = '$(cc) "$(cfile)" -o "$(binfile)" $(cflags)',
+}
+-- GCC
+compilers_flags.gcc = tabler.update(tabler.copy(compilers_flags.cc), {
+  cflags_base = "-fwrapv",
+  cflags_release = "-O2 -fno-plt -DNDEBUG",
+  cflags_maximum_performance = "-Ofast -fno-plt -flto -march=native -DNDEBUG",
+  cflags_debug = "-g",
+})
+-- TCC
+compilers_flags.tcc = tabler.update(tabler.copy(compilers_flags.cc), {
+  cflags_base = "-w",
+})
+-- C2M
+compilers_flags.c2m = tabler.update(tabler.copy(compilers_flags.cc), {
+  cflags_base = "-w",
+  cmd_defines = '$(cc) -E $(cflags) "$(cfile)"',
+})
+-- GCC (C++)
+compilers_flags['g++'] = tabler.update(tabler.copy(compilers_flags.gcc), {
+  cmd_get_defines = '$(cc) -x c++ -E -dM $(cflags) "$(cfile)"',
+  cmd_compile = '$(cc) -x c++ "$(cfile)" -o "$(binfile)" $(cflags)',
+})
+-- Clang
+compilers_flags.clang = tabler.copy(compilers_flags.gcc)
+-- Clang (C++)
+compilers_flags['clang++'] = tabler.copy(compilers_flags['g++'])
 
 cdefs.reserverd_keywords = {
   -- C syntax keywords

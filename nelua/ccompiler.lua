@@ -6,6 +6,7 @@ local executor = require 'nelua.utils.executor'
 local tabler = require 'nelua.utils.tabler'
 local sstream = require 'nelua.utils.sstream'
 local console = require 'nelua.utils.console'
+local platform = require 'nelua.utils.platform'
 local config = require 'nelua.configer'.get()
 local cdefs = require 'nelua.cdefs'
 local memoize = require 'nelua.utils.memoize'
@@ -19,9 +20,18 @@ function compiler.has_source_extension(filename)
   return filename:find('%.[ch]$')
 end
 
+local function get_compiler_flags(cc)
+  for ccname,flags in pairs(cdefs.compilers_flags) do
+    if stringer.endswith(cc, ccname) then
+      return flags
+    end
+  end --luacov:disable
+  return cdefs.compiler_base_flags.cc
+end --luacov: enable
+
 local function get_compiler_cflags(compileopts)
   local ccinfo = compiler.get_cc_info()
-  local compiler_flags = cdefs.compilers_flags[config.cc] or cdefs.compiler_base_flags
+  local ccflags = get_compiler_flags(config.cc)
   local cflags = sstream()
   --luacov:disable
   for _,cfile in ipairs(compileopts.cfiles) do
@@ -30,27 +40,27 @@ local function get_compiler_cflags(compileopts)
   for _,incdir in ipairs(compileopts.incdirs) do
     cflags:add(' -I "'..incdir..'"')
   end
-  cflags:add(' '..compiler_flags.cflags_base)
+  cflags:add(' '..ccflags.cflags_base)
   if config.maximum_performance then
-    cflags:add(' '..compiler_flags.cflags_maximum_performance)
+    cflags:add(' '..ccflags.cflags_maximum_performance)
     if config.cflags_maximum_performance then
       cflags:add(' '..config.cflags_maximum_performance)
     end
   elseif config.release then
-    cflags:add(' '..compiler_flags.cflags_release)
+    cflags:add(' '..ccflags.cflags_release)
     if config.cflags_release then
       cflags:add(' '..config.cflags_release)
     end
   else
-    cflags:add(' '..compiler_flags.cflags_debug)
+    cflags:add(' '..ccflags.cflags_debug)
     if config.cflags_debug then
       cflags:add(' '..config.cflags_debug)
     end
   end
   if config.shared then
-    cflags:add(' -shared -fPIC')
+    cflags:add(' '..ccflags.cflags_shared)
   elseif config.static then
-    cflags:add(' -c')
+    cflags:add(' '..ccflags.cflags_static)
   end
   if #config.cflags > 0 then
     cflags:add(' '..config.cflags)
@@ -69,7 +79,7 @@ local function get_compiler_cflags(compileopts)
       cflags:add(' -l')
       cflags:addlist(compileopts.linklibs, ' -l')
     end
-    if ccinfo.is_linux then -- always link math library on linux
+    if ccinfo.is_linux and not ccinfo.is_c2m then -- always link math library on linux
       cflags:add(' -lm')
     end
   end
@@ -77,22 +87,31 @@ local function get_compiler_cflags(compileopts)
 end
 
 local function get_compile_args(cfile, binfile, cflags)
-  local env = { cfile = cfile, binfile = binfile, cflags = cflags, cc = config.cc }
-  return pegger.substitute('$(cc) "$(cfile)" -o "$(binfile)" $(cflags)', env)
+  local ccflags = get_compiler_flags(config.cc)
+  return pegger.substitute(ccflags.cmd_compile, {
+    cfile = cfile,
+    binfile = binfile,
+    cflags = cflags,
+    cc = config.cc
+  })
 end
 
-local function get_cc_defines(cc, ...)
-  local tmpname = fs.tmpname()
+local function get_cc_defines(cc, cflags, ...)
+  local cfile = fs.tmpname()
   local code = {}
   for i=1,select('#', ...) do
     local header = select(i, ...)
     code[#code+1] = '#include ' .. header
   end
-  fs.ewritefile(tmpname, table.concat(code))
-  local ext = cc:find('%+%+') and 'c++' or 'c'
-  local cccmd = string.format('%s -x %s -E -dM %s', cc, ext, tmpname)
+  fs.ewritefile(cfile, table.concat(code))
+  local ccflags = get_compiler_flags(cc)
+  local cccmd = pegger.substitute(ccflags.cmd_defines, {
+    cfile = cfile,
+    cflags = cflags,
+    cc = config.cc
+  })
   local ok, ret, stdout, stderr = executor.execex(cccmd)
-  fs.deletefile(tmpname)
+  fs.deletefile(cfile)
   if not ok or ret ~= 0 then
     except.raisef("failed to retrieve compiler information: %s", stderr or '')
   end
@@ -101,19 +120,13 @@ end
 get_cc_defines = memoize(get_cc_defines)
 
 function compiler.get_cc_defines(...)
-  local cc = config.cc
-  if config.cflags and #config.cflags > 0 then
-    cc = cc..' '..config.cflags
-  end
-  return get_cc_defines(cc, ...)
+  return get_cc_defines(config.cc, config.cflags, ...)
 end
 
 local function get_cc_info(cc, cflags)
   -- parse compiler defines to detect target features
-  if cflags and #cflags > 0 then
-    cc = cc..' '..config.cflags
-  end
-  local ccdefs = get_cc_defines(cc)
+  local ccdefs = get_cc_defines(cc, cflags)
+  local is_c2m = cc:match('c2m$')
   local ccinfo = {
     defines = ccdefs,
     is_win32 = not not (ccdefs.__WIN32__ or ccdefs.__WIN32 or ccdefs.WIN32),
@@ -135,8 +148,14 @@ local function get_cc_info(cc, cflags)
     is_arm64 = not not (ccdefs.__aarch64__),
     is_riscv = not not (ccdefs.__riscv),
     is_cpp = not not (ccdefs.__cplusplus),
+    is_c2m = is_c2m,
   }
   ccinfo.is_windows = ccinfo.is_win32
+  if is_c2m then
+    ccinfo.is_unix = platform.is_unix
+    ccinfo.is_linux = platform.is_linux
+    ccinfo.is_windows = platform.is_windows
+  end
   return ccinfo
 end
 get_cc_info = memoize(get_cc_info)
@@ -194,6 +213,8 @@ local function detect_binary_extension(outfile, ccinfo)
     else
       return '', true
     end
+  elseif ccinfo.is_c2m then
+    return '.bmir', true
   else
     if config.shared then
       return '.so'
@@ -268,7 +289,7 @@ function compiler.get_gdb_version() --luacov:disable
   end
 end --luacov:enable
 
-function compiler.get_run_command(binaryfile, runargs)
+function compiler.get_run_command(binaryfile, runargs, compileopts)
   binaryfile = fs.abspath(binaryfile)
   -- run with a gdb?
   if config.debug then --luacov:disable
@@ -296,6 +317,14 @@ function compiler.get_run_command(binaryfile, runargs)
   elseif binaryfile:match('%.wasm$') then
     exe = 'wasmer'
     args = tabler.insertvalues({binaryfile}, runargs)
+  elseif binaryfile:match('%.bmir') then
+    exe = 'c2m'
+    args = {}
+    for _,libname in ipairs(compileopts.linklibs) do
+      table.insert(args, '-l'..libname)
+    end
+    tabler.insertvalues(args, {binaryfile, '-el'})
+    tabler.insertvalues(args, runargs)
   else --luacov:enable
     exe = binaryfile
     args = tabler.icopy(runargs)
