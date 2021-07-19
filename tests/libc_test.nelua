@@ -15,8 +15,8 @@ do -- math
   assert(C.fabsf(-2.0_f32) == 2.0_f32)
   assert(C.fabsl(-3.0_clongdouble) == 3.0_clongdouble)
 
-  assert(C.isnan(C.NAN))
-  assert(C.isinf(C.INFINITY))
+  assert(C.isnan(C.NAN) ~= 0)
+  assert(C.isinf(C.INFINITY) ~= 0)
   assert(C.NAN ~= C.NAN)
 end
 

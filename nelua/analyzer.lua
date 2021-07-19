@@ -1464,7 +1464,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
   end
 end
 
-function visitors.Call(context, node)
+function visitors.Call(context, node, opts)
   local attr = node.attr
   local argnodes, calleenode = node[1], node[2]
 
@@ -1501,6 +1501,14 @@ function visitors.Call(context, node)
     end
 
     visitor_Call(context, node, argnodes, calleetype, calleesym)
+
+    if calleeattr.cimport then
+      local desiredtype = opts and opts.desiredtype
+      local type = attr.type
+      if desiredtype and type and desiredtype.is_boolean and not type.is_falseable then
+        node:raisef("call expression will always be true, maybe you want to do a comparison?")
+      end
+    end
 
     if attr.calleetype and not attr.requirename and calleenode.done and tabler.iallfield(argnodes, 'done') then
       node.done = true

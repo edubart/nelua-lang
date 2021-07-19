@@ -1642,6 +1642,9 @@ it("annotations", function()
   expect.analyze_error("local a <nodecl(1)>", "takes no arguments")
   expect.analyze_error("local a <entrypoint>", "is undefined for variables")
   expect.analyze_error("local a <codename(1)>", "arguments are invalid")
+  expect.analyze_error(
+    "local function f(): cint <cimport,nodecl> end local b: boolean = f()",
+    "expression will always be true")
 end)
 
 it("cimport", function()
