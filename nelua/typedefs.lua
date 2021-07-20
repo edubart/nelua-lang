@@ -430,4 +430,54 @@ typedefs.builtin_attrs = {
   _VERSION = {type = primtypes.string, value = version.NELUA_VERSION, comptime = true},
 }
 
+-- List oSymbols declared in standard library, used to give suggestion on error messages.
+typedefs.symbol_modules = {
+  arg = 'arg',
+  coroutine = 'coroutine',
+  filestream = 'filestream',
+  hash = 'hash',
+  hashmap = 'hashmap',
+  io = 'io',
+  vector = 'vector',
+  list = 'list',
+  math = 'math',
+  memory = 'memory',
+  os = 'os',
+  sequence = 'sequence',
+  span = 'span',
+  stringbuilder = 'stringbuilder',
+  traits = 'traits',
+  utf8 = 'utf8',
+  C = 'C',
+  -- globals in traits
+  type = 'traits',
+  -- globals in string
+  tocstring = 'string',
+  tostring = 'string',
+  tonumber = 'string',
+  tointeger = 'string',
+  -- globals in iterators
+  next = 'iterators', mnext = 'iterators',
+  ipairs = 'iterators', mipairs = 'iterators',
+  pairs = 'iterators', mpairs = 'iterators',
+  -- default allocator
+  DefaultAllocator = 'allocators.default',
+  default_allocator = 'allocators.default',
+  new = 'allocators.default',
+  delete = 'allocators.default',
+  -- gc allocator
+  GCAllocator = 'allocators.gc',
+  gc_allocator = 'allocators.gc',
+  GC = 'allocators.gc',
+  gc = 'allocators.gc',
+  collectgarbage = 'allocators.gc',
+  -- general allocator
+  GeneralAllocator = 'allocators.general',
+  general_allocator = 'allocators.general',
+  -- other allocators
+  ArenaAllocator = 'allocators.arena',
+  StackAllocator = 'allocators.stack',
+  PoolAllocator = 'allocators.pool',
+  HeapAllocator = 'allocators.heap',
+}
 return typedefs

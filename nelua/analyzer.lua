@@ -636,7 +636,13 @@ function visitors.Id(context, node)
   if not attr.forcesymbol then
     symbol = context.scope.symbols[name]
     if not symbol then
-      node:raisef("undeclared symbol '%s'", name)
+      local modname = typedefs.symbol_modules[name]
+      if modname then
+        node:raisef("undeclared symbol '%s', maybe you forget to require module '%s'?",
+          name, modname)
+      else
+        node:raisef("undeclared symbol '%s'", name)
+      end
     end
   else
     symbol = attr.forcesymbol
@@ -1541,7 +1547,12 @@ function visitors.CallMethod(context, node)
       else
         calleesym = calleetype.metafields[name]
         if not calleesym then
-          node:raisef("cannot index meta field '%s' in record '%s'", name, calleetype)
+          if calleetype.is_string and not calleetype.metafields.sub then
+            node:raisef("cannot index meta field '%s' in record '%s', \z
+              maybe you forget to require module 'string'?", name, calleetype)
+          else
+            node:raisef("cannot index meta field '%s' in record '%s'", name, calleetype)
+          end
         end
         if calleesym.deprecated then
           node:warnf("use of deprecated method '%s'", name)
@@ -1617,7 +1628,12 @@ local function visitor_RecordType_FieldIndex(context, node, objtype, name)
       -- declaration of record global variable
       symbol.metafield = true
     else
-      node:raisef("cannot index meta field '%s' in record '%s'", name, objtype)
+      if objtype.is_string and not objtype.metafields.sub then
+        node:raisef("cannot index meta field '%s' in record '%s', \z
+          maybe you forget to require module 'string'?", name, objtype)
+      else
+        node:raisef("cannot index meta field '%s' in record '%s'", name, objtype)
+      end
     end
     if not inpolydef then
       objtype:set_metafield(name, symbol)
