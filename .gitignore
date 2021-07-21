@@ -9,6 +9,8 @@ nelua_cache
 *.dylib
 *.o
 *.a
+*.bmir
+*.mir
 *.dll
 *.data
 *.old

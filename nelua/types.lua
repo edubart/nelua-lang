@@ -188,6 +188,9 @@ Type.shape = shaper.shape {
   is_void = shaper.optional_boolean,
   is_generic_pointer = shaper.optional_boolean,
   is_cstring = shaper.optional_boolean,
+  is_acstring = shaper.optional_boolean,
+  is_bytearray_pointer = shaper.optional_boolean,
+  is_unbounded_pointer = shaper.optional_boolean,
   is_cvalist = shaper.optional_boolean,
 
   -- Booleans for checking the underlying type (lib types).
@@ -2187,14 +2190,27 @@ function PointerType:_init(subtype)
     self.nickname = 'pointer'
     self.codename = 'nlpointer'
     self.is_generic_pointer = true
-  elseif subtype.name == 'cchar' then -- cstring
+  elseif subtype.is_cchar then -- cstring
     self.nodecl = true
     self.nickname = 'cstring'
     self.codename = 'nlcstring'
     self.is_cstring = true
     self.is_stringy = true
+  elseif subtype.is_array and subtype.subtype.is_cchar then -- array cstring
+    self.codename = subtype.codename .. '_ptr'
+    self.is_acstring = true
+    self.is_stringy = true
   else
     self.codename = subtype.codename .. '_ptr'
+  end
+  if subtype.is_array then
+    local subsubtype = subtype.subtype
+    if subsubtype.is_integral and subsubtype.size == 1 then
+      self.is_bytearray_pointer = true
+    end
+    if subtype.length == 0 then
+      self.is_unbounded_pointer = true
+    end
   end
   Type._init(self, 'pointer', typedefs.ptrsize)
   self.unary_operators['deref'] = subtype
@@ -2242,21 +2258,19 @@ function PointerType:get_convertible_from_type(type, explicit, autoref)
     else
       local selfsubtype = self.subtype
       local typesubtype = type.subtype
-      if typesubtype.is_array and typesubtype.length == 0 and
-             is_pointer_subtype_convertible(typesubtype.subtype, selfsubtype) then
+      if type.is_unbounded_pointer and
+         is_pointer_subtype_convertible(typesubtype.subtype, selfsubtype) then
         -- implicit casting from unbounded arrays pointers to pointers
         return self
-      elseif selfsubtype.is_array and selfsubtype.length == 0 and
+      elseif self.is_unbounded_pointer and
              is_pointer_subtype_convertible(selfsubtype.subtype, typesubtype) then
         -- implicit casting from pointers to unbounded arrays pointers
         return self
-      elseif selfsubtype.is_array and typesubtype.is_array and
-             selfsubtype.length == 0 and
+      elseif self.is_unbounded_pointer and typesubtype.is_array and
              is_pointer_subtype_convertible(selfsubtype.subtype, typesubtype.subtype) then
         -- implicit casting from checked arrays pointers to unbounded arrays pointers
         return self
-      elseif self.is_cstring and typesubtype.is_array and
-             is_pointer_subtype_convertible(typesubtype.subtype, primtypes.byte) then
+      elseif self.is_stringy and type.is_bytearray_pointer then
         -- implicit casting from pointer to a byte array to cstring
         return self
       elseif is_pointer_subtype_convertible(selfsubtype, typesubtype) then
@@ -2269,7 +2283,10 @@ function PointerType:get_convertible_from_type(type, explicit, autoref)
       end
     end
   elseif type.is_string then
-    if is_pointer_subtype_convertible(self.subtype, primtypes.byte) then
+    if self.is_bytearray_pointer then
+      -- implicit casting from string to a pointer to a byte array
+      return self
+    elseif is_pointer_subtype_convertible(self.subtype, primtypes.byte) then
       -- implicit casting a string to a cstring or an 8bit integral
       return self
     end
@@ -2368,7 +2385,7 @@ end
 
 -- Get the desired type when converting this type from another type.
 function StringType:get_convertible_from_type(type, explicit, autoref)
-  if type.is_cstring then -- implicit cast cstring to string
+  if type.is_stringy then -- implicit cast cstring/acstring to string
     return self
   end
   return RecordType.get_convertible_from_type(self, type, explicit, autoref)

@@ -695,6 +695,9 @@ function cbuiltins.calls.print(context, node)
     elseif argtype.is_cstring then
       context:ensure_builtins('fputs', 'stdout')
       defemitter:add_ln('fputs(a',i,', stdout);')
+    elseif argtype.is_acstring then
+      context:ensure_builtins('fputs', 'stdout')
+      defemitter:add_ln('fputs((char*)a',i,', stdout);')
     elseif argtype.is_niltype then
       context:ensure_builtins('fputs', 'stdout')
       defemitter:add_ln('fputs("nil", stdout);')
@@ -986,8 +989,7 @@ end
 -- Implementation of equal operator (`==`).
 function cbuiltins.operators.eq(_, _, emitter, lattr, rattr, lname, rname)
   local ltype, rtype = lattr.type, rattr.type
-  if (ltype.is_string and (rtype.is_string or rtype.is_cstring)) or
-     (ltype.is_cstring and rtype.is_string) then
+  if ltype.is_stringy and rtype.is_stringy then
     emitter:add_builtin('nelua_eq_string')
     emitter:add('(')
     emitter:add_converted_val(primtypes.string, lname, ltype)
@@ -1038,8 +1040,7 @@ end
 -- Implementation of not equal operator (`~=`).
 function cbuiltins.operators.ne(_, _, emitter, lattr, rattr, lname, rname)
   local ltype, rtype = lattr.type, rattr.type
-  if (ltype.is_string and (rtype.is_string or rtype.is_cstring)) or
-     (ltype.is_cstring and rtype.is_string) then
+  if ltype.is_stringy and rtype.is_string then
     emitter:add('(!')
     emitter:add_builtin('nelua_eq_string')
     emitter:add('(')

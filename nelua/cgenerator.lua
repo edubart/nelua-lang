@@ -80,7 +80,7 @@ typevisitors[types.PointerType] = function(context, type)
     -- offset declaration of pointers before records/unions
     index = #context.declarations+2
   end
-  if type.subtype.is_array and type.subtype.length == 0 then
+  if type.is_unbounded_pointer then
     decemitter:add_ln('typedef ', type.subtype.subtype, '* ', type.codename, ';')
   else
     decemitter:add_ln('typedef ', type.subtype, '* ', type.codename, ';')
@@ -220,7 +220,10 @@ function visitors.String(_, node, emitter)
   local attr = node.attr
   local type = attr.type
   if type.is_stringy then
-    emitter:add_string_literal(attr.value, type.is_cstring)
+    if type.is_acstring then
+      emitter:add('(', type, ')')
+    end
+    emitter:add_string_literal(attr.value, type.is_cstring or type.is_acstring)
   else -- an integral
     if type == primtypes.cchar then -- C character literal
       emitter:add(pegger.single_quote_c_string(string.char(bn.tointeger(attr.value))))

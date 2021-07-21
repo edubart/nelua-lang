@@ -26,7 +26,7 @@ local function get_compiler_flags(cc)
       return flags
     end
   end --luacov:disable
-  return cdefs.compiler_base_flags.cc
+  return cdefs.compilers_flags.cc
 end --luacov: enable
 
 local function get_compiler_cflags(compileopts)

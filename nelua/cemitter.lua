@@ -88,15 +88,22 @@ end
 Adds a value of type `string` converted to a `cstring`.
 The conversion may be check.
 ]]
-function CEmitter:add_text2cstring(val)
+function CEmitter:add_string2cstring(val)
   local check = not self.context.pragmas.nochecks and
                 not (traits.is_astnode(val) and val.attr.comptime)
   self:add_builtin('nelua_string2cstring_', check) self:add('(', val, ')')
 end
 
 -- Adds a value of type `cstring` converted to a `string`.
-function CEmitter:add_cstring2string(val)
-  self:add_builtin('nelua_cstring2string') self:add('(', val, ')')
+function CEmitter:add_cstring2string(val, valtype)
+  valtype = valtype or val.attr.type
+  self:add_builtin('nelua_cstring2string')
+  if valtype.is_cstring then
+    self:add_text('(')
+  else
+    self:add_text('((char*)')
+  end
+  self:add(val, ')')
 end
 
 --[[
@@ -107,10 +114,9 @@ The dereference may be check.
 function CEmitter:add_deref(val, valtype)
   valtype = valtype or val.attr.type
   assert(valtype.is_pointer)
-  local valsubtype = valtype.subtype
   self:add_text('(*')
-  if  not self.context.pragmas.nochecks or (valsubtype.is_array and valsubtype.length == 0) then
-    self:add('(', valsubtype, '*)')
+  if  not self.context.pragmas.nochecks or valtype.is_unbounded_pointer then
+    self:add('(', valtype.subtype, '*)')
   end
   if not self.context.pragmas.nochecks then -- check
     self:add_builtin('nelua_assert_deref')
@@ -161,10 +167,15 @@ function CEmitter:add_converted_val(type, val, valtype, explicit)
       self:add_value(val)
     elseif type.is_boolean then -- ? -> boolean
       self:add_val2boolean(val, valtype)
-    elseif type.is_pointer and valtype.is_string and type.subtype.size == 1 then -- cstring -> string
-      self:add_text2cstring(val)
-    elseif type.is_string and valtype.is_cstring then -- string -> cstring
-      self:add_cstring2string(val)
+    elseif type.is_pointer and valtype.is_string and
+          (type.is_cstring or type.is_bytearray_pointer) then -- cstring -> string
+      if not type.is_cstring then
+        self:add('(', type, ')')
+      end
+      self:add_string2cstring(val)
+    elseif type.is_string and
+          (valtype.is_cstring or valtype.is_bytearray_pointer) then -- string -> cstring
+      self:add_cstring2string(val, valtype)
     elseif valattr.comptime and type.is_scalar and valtype.is_scalar and
            (type.is_float or valtype.is_integral) then -- comptime scalar -> scalar
       self:add_scalar_literal(valattr.value, type, valattr.base)

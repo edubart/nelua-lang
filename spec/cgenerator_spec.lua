@@ -135,6 +135,20 @@ it("string", function()
     f(STR)
     f(STR)
   ]==], [[static char nelua_strlit_1[161] = "AAAA]])
+
+  expect.run_c([[
+    local Foo = @record{text: *[4]cchar}
+    local foo = Foo{text = 'asd'}
+    assert(foo.text == 'asd')
+
+    local texts: string = 'asd'
+    local textcs: *[4]cchar = texts
+    assert(textcs == 'asd')
+
+    local text: *[4]cchar = 'asd'
+    assert(text == 'asd')
+    print(text)
+  ]], [[asd]])
 end)
 
 it("boolean", function()

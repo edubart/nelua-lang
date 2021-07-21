@@ -79,9 +79,7 @@ function visitors.String(_, node, opts)
     if not type then
       node:raisef("literal suffix '%s' is undefined for strings", literal)
     end
-    if type.is_cstring then -- C string
-      type = primtypes.cstring
-    else -- is a byte/char literal
+    if not type.is_stringy then -- a byte/char literal
       if #value ~= 1 then
         node:raisef("literal suffix '%s' expects a string of length 1", literal)
       end
@@ -89,8 +87,8 @@ function visitors.String(_, node, opts)
     end
   else -- no literal suffix is set
     local desiredtype = opts and opts.desiredtype
-    if desiredtype and desiredtype.is_cstring then -- parent desires a C string
-      type = primtypes.cstring
+    if desiredtype and desiredtype.is_stringy then
+      type = desiredtype
     else
       type = primtypes.string
     end
@@ -193,7 +191,7 @@ local function visitor_convert(context, parent, parentindex, vartype, valnode, v
   end
   local objsym
   local objtype = vartype:implicit_deref_type()
-  if vartype.is_cstring or (vartype.is_string and not valtype.is_stringy) then
+  if vartype.is_stringy and not valtype.is_stringy then
     -- __convert not allowed on stringy types
     return valnode, valtype
   end
