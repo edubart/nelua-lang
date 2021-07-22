@@ -253,6 +253,7 @@ Unlike Lua, to declare a global variable you **must explicitly use** the
 `global` keyword.
 {:.alert.alert-info}
 
+<!---
 ### Symbols with special characters
 
 A symbol identifier, that is, the symbol name, can contain UTF-8 special characters:
@@ -261,6 +262,7 @@ A symbol identifier, that is, the symbol name, can contain UTF-8 special charact
 local π = 3.14
 print(π) -- outputs 3.14
 ```
+-->
 
 ## Control flow
 

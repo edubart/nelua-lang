@@ -150,6 +150,7 @@ compilers_flags.tcc = tabler.update(tabler.copy(compilers_flags.cc), {
 -- C2M
 compilers_flags.c2m = tabler.update(tabler.copy(compilers_flags.cc), {
   cflags_base = "-w",
+  cflags_shared = "-c",
   cmd_defines = '$(cc) -E $(cflags) "$(cfile)"',
 })
 -- GCC (C++)

@@ -68,7 +68,7 @@ do -- os.exit
   local function f(): integer
     os.exit(true)
     -- intentionally omit return, should not generate error because os.exit is <noreturn>
-    ## if ccinfo.is_tcc then -- on tcc we should return
+    ## if not ccinfo.is_gcc then -- on other compilers we should return
     return 0
     ## end
   end

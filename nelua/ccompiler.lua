@@ -113,7 +113,7 @@ local function get_cc_defines(cc, cflags, ...)
   local ok, ret, stdout, stderr = executor.execex(cccmd)
   fs.deletefile(cfile)
   if not ok or ret ~= 0 then
-    except.raisef("failed to retrieve compiler information: %s", stderr or '')
+    return nil
   end
   return pegger.parse_c_defines(stdout)
 end
@@ -125,7 +125,7 @@ end
 
 local function get_cc_info(cc, cflags)
   -- parse compiler defines to detect target features
-  local ccdefs = get_cc_defines(cc, cflags)
+  local ccdefs = get_cc_defines(cc, cflags) or {}
   local is_c2m = cc:match('c2m$')
   local ccinfo = {
     defines = ccdefs,

@@ -42,7 +42,7 @@ it("error on parsing an invalid program" , function()
   expect.run_error('--lint invalid', 'invalid: No such file or directory')
   --expect.run_error({'--eval', "f()"}, 'undefined')
   expect.run_error({'--generator', 'lua', '--eval', "local a = 1_x"}, "literal suffix '_x' is undefined")
-  expect.run_error(' --cc invgcc examples/helloworld.nelua', 'failed to retrieve compiler information')
+  expect.run_error('--no-cache --cc invgcc examples/helloworld.nelua')
 end)
 
 it("print correct generated AST" , function()
@@ -145,16 +145,20 @@ it("program arguments", function()
 end)
 
 it("shared libraries", function()
-  expect.run({'--shared', '-o', 'libmylib', 'tests/libmylib.nelua'})
-  expect.run({'-bo', 'mylib_test', 'tests/mylib_test.nelua'})
-  expect.execute('./mylib_test', [[mylib - init
+  local ccinfo = ccompiler.get_cc_info()
+  if ccinfo.is_gcc then
+    expect.run({'--shared', '-o', 'libmylib', 'tests/libmylib.nelua'})
+    expect.run({'-bo', 'mylib_test', 'tests/mylib_test.nelua'})
+    expect.execute('./mylib_test', [[
+mylib - init
 mylib - in top scope
 mylib - sum
 the sum is:
 3
 mylib - terminate]])
-  os.remove('libmylib.so') os.remove('libmylib.dll') os.remove('libmylib.dylib')
-  os.remove('mylib_test') os.remove('mylib_test.exe')
+    os.remove('libmylib.so') os.remove('libmylib.dll') os.remove('libmylib.dylib')
+    os.remove('mylib_test') os.remove('mylib_test.exe')
+  end
 end)
 
 it("bundled C libraries", function()
@@ -162,17 +166,21 @@ it("bundled C libraries", function()
 end)
 
 it("static libraries", function()
-  expect.run({'--static', '-o', 'libmylib', 'tests/libmylib.nelua'})
-  expect.run({'-bo', 'mylib_test', 'tests/mylib_test.nelua'})
-  expect.execute('./mylib_test', [[mylib - init
+  local ccinfo = ccompiler.get_cc_info()
+  if ccinfo.is_gcc then
+    expect.run({'--static', '-o', 'libmylib', 'tests/libmylib.nelua'})
+    expect.run({'-bo', 'mylib_test', 'tests/mylib_test.nelua'})
+    expect.execute('./mylib_test', [[
+mylib - init
 mylib - in top scope
 mylib - sum
 the sum is:
 3
 mylib - terminate]])
-  os.remove('libmylib.a')
-  os.remove('libmylib.o')
-  os.remove('mylib_test')
+    os.remove('libmylib.a')
+    os.remove('libmylib.o')
+    os.remove('mylib_test')
+  end
 end)
 
 it("verbose", function()

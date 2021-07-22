@@ -97,8 +97,8 @@ print '### Global symbol'
   print(global_f()) -- outputs: f
 
 do print '### Symbols with special characters'
-  local π = 3.14
-  print(π) -- outputs 3.14
+  -- local π = 3.14
+  -- print(π) -- outputs 3.14
 end
 
 do print '### If'
