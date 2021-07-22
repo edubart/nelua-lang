@@ -133,8 +133,10 @@ compilers_flags.cc = {
   cflags_debug = "",
   cflags_shared = "-shared -fPIC",
   cflags_static = "-c",
-  cmd_defines = '$(cc) -x c -E -dM $(cflags) "$(cfile)"',
   cmd_compile = '$(cc) "$(cfile)" -o "$(binfile)" $(cflags)',
+  cmd_info = '$(cc) -E "$(cfile)" $(cflags)',
+  cmd_defines = '$(cc) -E -dM $(cflags) "$(cfile)"',
+  ext = '.c',
 }
 -- GCC
 compilers_flags.gcc = tabler.update(tabler.copy(compilers_flags.cc), {
@@ -142,6 +144,9 @@ compilers_flags.gcc = tabler.update(tabler.copy(compilers_flags.cc), {
   cflags_release = "-O2 -fno-plt -DNDEBUG",
   cflags_maximum_performance = "-Ofast -fno-plt -flto -march=native -DNDEBUG",
   cflags_debug = "-g",
+  cmd_compile = '$(cc) -x c "$(cfile)" -o "$(binfile)" $(cflags)',
+  cmd_info = '$(cc) -x c -E "$(cfile)" $(cflags)',
+  cmd_defines = '$(cc) -x c -E -dM $(cflags) "$(cfile)"',
 })
 -- TCC
 compilers_flags.tcc = tabler.update(tabler.copy(compilers_flags.cc), {
@@ -151,17 +156,169 @@ compilers_flags.tcc = tabler.update(tabler.copy(compilers_flags.cc), {
 compilers_flags.c2m = tabler.update(tabler.copy(compilers_flags.cc), {
   cflags_base = "-w",
   cflags_shared = "-c",
-  cmd_defines = '$(cc) -E $(cflags) "$(cfile)"',
 })
 -- GCC (C++)
 compilers_flags['g++'] = tabler.update(tabler.copy(compilers_flags.gcc), {
-  cmd_get_defines = '$(cc) -x c++ -E -dM $(cflags) "$(cfile)"',
   cmd_compile = '$(cc) -x c++ "$(cfile)" -o "$(binfile)" $(cflags)',
+  cmd_info = '$(cc) -x c++ -E "$(cfile)" $(cflags)',
+  cmd_defines = '$(cc) -x c++ -E -dM $(cflags) "$(cfile)"',
+  ext = '.cpp',
 })
 -- Clang
 compilers_flags.clang = tabler.copy(compilers_flags.gcc)
 -- Clang (C++)
 compilers_flags['clang++'] = tabler.copy(compilers_flags['g++'])
+
+-- Code to detect target features.
+cdefs.target_info_code = [[
+/* OS */
+#if defined(__linux)
+is_linux = true;
+#endif
+#if defined(__WIN32__) || defined(__WIN32) || defined(WIN32)
+is_win32 = true;
+#endif
+#if defined(__WIN64__) || defined(__WIN64) || defined(WIN64)
+is_win64 = true;
+#endif
+#if defined(__WINNT__) || defined(__WINNT) || defined(WINNT)
+is_winnt = true;
+#endif
+#if defined(__linux__) || defined(__linux) ||  defined(linux)
+is_linux = true;
+#endif
+#if defined(__unix__) || defined(__unix) ||  defined(unix)
+is_unix = true;
+#endif
+#if defined(__gnu_linux__)
+is_gnu_linux = true;
+#endif
+#if defined(__APPLE__)
+is_apple = true;
+#endif
+#if defined(__MACH__)
+is_mach = true;
+#endif
+/* Compilers */
+#if defined(__clang__)
+is_clang = true;
+#endif
+#if defined(__GNUC__)
+is_gcc = true;
+gnuc = __GNUC__;
+gnuc_minor = __GNUC_MINOR__;
+gnuc_patchlevel = __GNUC_PATCHLEVEL__;
+#endif
+#if defined(__MINGW64__) || defined(__MINGW32__)
+is_mingw = true;
+#endif
+#if defined(_MSC_VER)
+is_msvc = true;
+#endif
+#if defined(__TINYC__)
+is_tcc = true;
+#endif
+#if defined(__EMSCRIPTEN__)
+is_emscripten = true;
+#endif
+#if defined(__mirc__)
+is_mirc = true;
+#endif
+#if defined(__COMPCERT__)
+is_ccomp = true;
+#endif
+/* Architectures */
+#if defined(__wasm__) || defined(__wasm)
+is_wasm = true;
+#endif
+#if defined(__x86_64__) || defined(__x86_64) || defined(__amd64__) || defined(__amd64) || defined(_M_X64) || defined(_M_AMD64)
+is_x86_64 = true;
+#endif
+#if defined(__i386__) || defined(__i386) || defined(_M_X86)
+is_x86_32 = true;
+#endif
+#if defined(__ARM_EABI__) || defined(__aarch64__)
+is_arm = true;
+#endif
+#if defined(__aarch64__)
+is_arm64 = true;
+#endif
+#if defined(__riscv)
+is_riscv = true;
+#endif
+/* C standard */
+#if defined(__STDC__)
+is_c = true
+stdc = true;
+#endif
+#if defined(__STDC_HOSTED__)
+stdc_hosted = true;
+#endif
+#if defined(__STDC_VERSION__)
+stdc_version = __STDC_VERSION__;
+#endif
+#if defined(__STDC_NO_THREADS__)
+stdc_no_threads = true;
+#endif
+#if defined(__STDC_NO_ATOMICS__)
+stdc_no_atomics = true;
+#endif
+#if defined(__STDC_NO_COMPLEX__)
+stdc_no_complex = true;
+#endif
+#if defined(__STDC_NO_VLA__)
+stdc_no_vla = true;
+#endif
+#if !defined(__cplusplus)
+is_c = true;
+#endif
+/* C++ standard */
+#if defined(__cplusplus)
+is_cpp = true;
+cplusplus = __cplusplus;
+#endif
+/* Primitive sizes */
+#if defined(__SIZEOF_DOUBLE__)
+sizeof_double = __SIZEOF_DOUBLE__;
+#endif
+#if defined(__SIZEOF_FLOAT__)
+sizeof_float = __SIZEOF_FLOAT__;
+#endif
+#if defined(__SIZEOF_INT__)
+sizeof_int = __SIZEOF_INT__;
+#endif
+#if defined(__SIZEOF_LONG_DOUBLE__)
+sizeof_long_double = __SIZEOF_LONG_DOUBLE__;
+#endif
+#if defined(__SIZEOF_LONG_LONG__)
+sizeof_long_long = __SIZEOF_LONG_LONG__;
+#endif
+#if defined(__SIZEOF_LONG__)
+sizeof_long = __SIZEOF_LONG__;
+#endif
+#if defined(__SIZEOF_POINTER__)
+sizeof_pointer = __SIZEOF_POINTER__;
+#endif
+#if defined(__SIZEOF_PTRDIFF_T__)
+sizeof_ptrdiff_t = __SIZEOF_PTRDIFF_T__;
+#endif
+#if defined(__SIZEOF_SHORT__)
+sizeof_short = __SIZEOF_SHORT__;
+#endif
+#if defined(__SIZEOF_SIZE_T__)
+sizeof_size_t = __SIZEOF_SIZE_T__;
+#endif
+/* Endianess */
+#if defined(__BYTE_ORDER__)
+byte_order = __BYTE_ORDER__;
+#endif
+#if defined(__ORDER_LITTLE_ENDIAN__)
+order_little_endian = __ORDER_LITTLE_ENDIAN__;
+#endif
+#if defined(__ORDER_BIG_ENDIAN__)
+order_big_endian = __ORDER_BIG_ENDIAN__;
+#endif
+]]
 
 cdefs.reserverd_keywords = {
   -- C syntax keywords

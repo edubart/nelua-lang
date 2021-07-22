@@ -79,7 +79,7 @@ local function get_compiler_cflags(compileopts)
       cflags:add(' -l')
       cflags:addlist(compileopts.linklibs, ' -l')
     end
-    if ccinfo.is_linux and not ccinfo.is_c2m then -- always link math library on linux
+    if ccinfo.is_linux and not ccinfo.is_mirc then -- always link math library on linux
       cflags:add(' -lm')
     end
   end
@@ -96,15 +96,24 @@ local function get_compile_args(cfile, binfile, cflags)
   })
 end
 
-local function get_cc_defines(cc, cflags, ...)
+local function gen_source_file(cc, code)
+  local ccflags = get_compiler_flags(cc)
   local cfile = fs.tmpname()
+  fs.deletefile(cfile)
+  cfile = cfile..ccflags.ext
+  fs.ewritefile(cfile, code)
+  return cfile
+end
+
+local function get_cc_defines(cc, cflags, ...)
+  local ccflags = get_compiler_flags(cc)
   local code = {}
   for i=1,select('#', ...) do
     local header = select(i, ...)
     code[#code+1] = '#include ' .. header
   end
-  fs.ewritefile(cfile, table.concat(code))
-  local ccflags = get_compiler_flags(cc)
+  code = table.concat(code, '\n')
+  local cfile = gen_source_file(cc, code)
   local cccmd = pegger.substitute(ccflags.cmd_defines, {
     cfile = cfile,
     cflags = cflags,
@@ -112,9 +121,9 @@ local function get_cc_defines(cc, cflags, ...)
   })
   local ok, ret, stdout, stderr = executor.execex(cccmd)
   fs.deletefile(cfile)
-  if not ok or ret ~= 0 then
-    return nil
-  end
+  if not ok or ret ~= 0 then --luacov:disable
+    except.raisef("failed to retrieve compiler defines: %s", stderr or '?')
+  end --luacov:enable
   return pegger.parse_c_defines(stdout)
 end
 get_cc_defines = memoize(get_cc_defines)
@@ -124,37 +133,29 @@ function compiler.get_cc_defines(...)
 end
 
 local function get_cc_info(cc, cflags)
-  -- parse compiler defines to detect target features
-  local ccdefs = get_cc_defines(cc, cflags) or {}
-  local is_c2m = cc:match('c2m$')
-  local ccinfo = {
-    defines = ccdefs,
-    is_win32 = not not (ccdefs.__WIN32__ or ccdefs.__WIN32 or ccdefs.WIN32),
-    is_win64 = not not (ccdefs.__WIN64__ or ccdefs.__WIN64 or ccdefs.WIN64),
-    is_mingw = not not (ccdefs.__MINGW64__ or ccdefs.__MINGW32__),
-    is_linux = not not (ccdefs.__linux__ or ccdefs.__linux or ccdefs.linux),
-    is_unix = not not (ccdefs.__unix__ or ccdefs.__unix or ccdefs.unix),
-    is_apple = not not (ccdefs.__APPLE__),
-    is_mach = not not (ccdefs.__MACH__),
-    is_gnu_linux = not not (ccdefs.__gnu_linux__),
-    is_clang = not not (ccdefs.__clang__),
-    is_gcc = not not (ccdefs.__GNUC__),
-    is_tcc = not not (ccdefs.__TINYC__),
-    is_emscripten = not not (ccdefs.__EMSCRIPTEN__),
-    is_wasm = not not (ccdefs.__wasm__ or ccdefs.__wasm),
-    is_x86_64 = not not (ccdefs.__x86_64__ or ccdefs.__x86_64 or ccdefs._M_X64),
-    is_x86_32 = not not (ccdefs.__i386__ or ccdefs.__i386 or ccdefs._M_X86),
-    is_arm = not not (ccdefs.__ARM_EABI__ or ccdefs.__aarch64__),
-    is_arm64 = not not (ccdefs.__aarch64__),
-    is_riscv = not not (ccdefs.__riscv),
-    is_cpp = not not (ccdefs.__cplusplus),
-    is_c2m = is_c2m,
-  }
-  ccinfo.is_windows = ccinfo.is_win32
-  if is_c2m then
-    ccinfo.is_unix = platform.is_unix
-    ccinfo.is_linux = platform.is_linux
-    ccinfo.is_windows = platform.is_windows
+  -- parse compiler information and target features
+  local cfile = gen_source_file(cc, cdefs.target_info_code)
+  local ccflags = get_compiler_flags(cc)
+  local cccmd = pegger.substitute(ccflags.cmd_info, {
+    cfile = cfile,
+    cflags = cflags,
+    cc = config.cc
+  })
+  local ok, ret, stdout, stderr = executor.execex(cccmd)
+  fs.deletefile(cfile)
+  if not ok or ret ~= 0 then
+    except.raisef("failed to retrieve compiler information: %s", stderr or '?')
+  end
+  local ccinfo = {}
+  for name,value in stdout:gmatch('([a-z_]+)%s*=%s*([^;\n]+);') do
+    if value:match('^[0-9]+L$') then
+      value = tonumber(value:sub(1,-2))
+    elseif value:match('^[0-9]+$') then
+      value = tonumber(value)
+    elseif value == 'true' then
+      value = true;
+    end
+    ccinfo[name] = value
   end
   return ccinfo
 end
@@ -213,7 +214,7 @@ local function detect_binary_extension(outfile, ccinfo)
     else
       return '', true
     end
-  elseif ccinfo.is_c2m then
+  elseif ccinfo.is_mirc then
     return '.bmir', true
   else
     if config.shared then

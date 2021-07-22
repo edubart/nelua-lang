@@ -14,16 +14,17 @@ local version = require 'nelua.version'
 
 -- Get C compiler defines.
 local ccinfo = ccompiler.get_cc_info()
-local ccdefs = ccinfo.defines
 
 -- CPU word size in bytes (size of a pointer).
-local ptrsize = ccdefs.__SIZEOF_POINTER__ or platform.cpu_bits // 8
+local ptrsize = ccinfo.sizeof_pointer or platform.cpu_bits // 8
 -- C int is at least 2 bytes and max 4 bytes.
-local cintsize = ccdefs.__SIZEOF_INT__ or math.max(math.min(ptrsize, 4), 2)
+local cintsize = ccinfo.sizeof_int or math.max(math.min(ptrsize, 4), 2)
+-- C short size is typically 2 bytes.
+local cshortsize = ccinfo.sizeof_short or 2
 -- C long is at least 4 bytes.
-local clongsize = ccdefs.__SIZEOF_LONG__ or math.max(ptrsize, 4)
+local clongsize = ccinfo.sizeof_long or math.max(ptrsize, 4)
 -- C long long is at least 8 bytes.
-local clonglongsize = ccdefs.__SIZEOF_LONG_LONG__ or 8
+local clonglongsize = ccinfo.sizeof_long_long or 8
 
 -- Map containing all primitive types.
 local primtypes = {}
@@ -32,7 +33,7 @@ local primtypes = {}
 local typedefs = {
   primtypes = primtypes,
   ptrsize = ptrsize,
-  emptysize = ccdefs.__cplusplus and 1 or 0,
+  emptysize = ccinfo.is_cpp and 1 or 0,
 }
 types.set_typedefs(typedefs)
 
@@ -67,14 +68,14 @@ primtypes.byte        = primtypes.uint8
 
 -- Types for C compatibility.
 primtypes.cschar      = types.IntegralType('cschar', 1)
-primtypes.cshort      = types.IntegralType('cshort', 2)
+primtypes.cshort      = types.IntegralType('cshort', cshortsize)
 primtypes.cint        = types.IntegralType('cint', cintsize)
 primtypes.clong       = types.IntegralType('clong', clongsize)
 primtypes.clonglong   = types.IntegralType('clonglong', clonglongsize)
 primtypes.cptrdiff    = types.IntegralType('cptrdiff', ptrsize)
 primtypes.cchar       = types.IntegralType('cchar', 1)
 primtypes.cuchar      = types.IntegralType('cuchar', 1, true)
-primtypes.cushort     = types.IntegralType('cushort', 2, true)
+primtypes.cushort     = types.IntegralType('cushort', cshortsize, true)
 primtypes.cuint       = types.IntegralType('cuint', cintsize, true)
 primtypes.culong      = types.IntegralType('culong', clongsize, true)
 primtypes.culonglong  = types.IntegralType('culonglong', clonglongsize, true)
@@ -396,8 +397,6 @@ typedefs.pp_constants = {
   primtypes = function() return primtypes end,
   -- Table with some C compiler information.
   ccinfo = function() return ccinfo end,
-  -- Table with C compiler defines.
-  ccdefs = function() return ccdefs end,
   -- Current analyzer context.
   context = function(ppcontext) return ppcontext.context end,
   -- AST of the file being compiled (the very first file parsed).
