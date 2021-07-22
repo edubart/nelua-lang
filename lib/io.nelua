@@ -77,21 +77,33 @@ function io.popen(prog: string, mode: facultative(string)) : (filestream, string
   assert(m.size == 1 and (m.data[0] == 'r' or m.data[0] == 'w') and m.data[1] == '\0', 'invalid mode')
   ## end
   ## if ccinfo.is_wasm then
-    return filestream{}, 'unsupported', 1
+  return filestream{}, 'unsupported', 1
   ## else
-    ## if ccinfo.is_windows then
-      local function popen(command: cstring, type: cstring): *FILE <cimport'_popen',cinclude'<stdio.h>',nodecl> end
-      local function pclose(fp: *FILE): cint <cimport'_pclose',cinclude'<stdio.h>',nodecl> end
-    ## else
-      local function popen(command: cstring, type: cstring): *FILE <cimport,cinclude'<stdio.h>',nodecl> end
-      local function pclose(fp: *FILE): cint <cimport,cinclude'<stdio.h>',nodecl> end
-      fflush(nilptr) -- flush all open streams
-    ## end
-    local fp: *FILE = popen(prog, mode)
-    if not fp then
-      return filestream{}, strerror(errno), errno
-    end
-    return filestream._fromfp(fp, pclose), '', 0
+  local modecs: cstring <nodce> = mode
+  local progcs: cstring <nodce> = prog
+  local fp: *FILE
+  local closef: function(fp: *FILE): cint
+  -- to output a portable C file, we emit C code here to support all platforms from a single C file
+##[==[
+  cinclude '<stdio.h>' -- for popen/pclose
+  cinclude '<stddef.h>' -- for NULL
+  cemit[[
+#ifdef _POSIX_C_SOURCE
+  fflush(NULL);
+  fp = popen(progcs, modecs);
+  closef = pclose;
+#elif _WIN32
+  fp = _popen(progcs, modecs);
+  closef = _pclose;
+#endif
+]]
+]==]
+  if not fp and not closef then
+    return filestream{}, 'unsupported', 1
+  elseif not fp then
+    return filestream{}, strerror(errno), errno
+  end
+  return filestream._fromfp(fp, closef), '', 0
   ## end
 end
 

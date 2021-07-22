@@ -266,37 +266,44 @@ You still have to open the file to use it and to remove it (even if you do not u
 When possible, you may prefer to use `io.tmpfile`, which automatically removes the file when the program ends.
 ]]
 function os.tmpname(): string
-  local TMPBUFSIZE <comptime> = 260 -- safe max value
-  ## if ccinfo.is_windows then
-    local function tmpnam(s: cstring): cstring <cimport,cinclude'<stdio.h>',nodecl> end
-  ## else
-    -- is not safe to use `tmpname` on POSIX, use mkstemp
-
-    local function mkstemp(s: cstring): cint <cimport,cinclude'<stdlib.h>',nodecl> end
-    local function strncat(dest: cstring, src: cstring, n: csize): cstring <cimport'strncat',cinclude'<string.h>',nodecl> end
-    local function strncpy(dest: cstring, src: cstring, n: usize): cstring <cimport,cinclude'<string.h>',nodecl> end
-    local function close(fd: cint): cint <cimport,cinclude'<unistd.h>',nodecl> end
-
-    local function tmpnam(buf: cstring): cstring
-      local tmpdir: cstring = getenv('TMPDIR')
-      if tmpdir then
-        strncpy(buf, tmpdir, TMPBUFSIZE)
-        strncat(buf, "/nelua_XXXXXX", TMPBUFSIZE - (#tmpdir + 1))
-      else
-        strncpy(buf, "/tmp/nelua_XXXXXX", TMPBUFSIZE)
-      end
-      local fd: cint = mkstemp(buf)
-      if fd == -1 then
-        return nilptr
-      end
-      close(fd)
-      return buf
-    end
-  ## end
-
-  local buf: [TMPBUFSIZE]cchar
-  if tmpnam(&buf[0]) ~= nilptr then
-    return string.copy(&buf[0])
+  local buf: [260]cchar
+  local bufcs: cstring = &buf[0]
+  local success: boolean
+  -- to output a portable C file, we emit C code here to support all platforms from a single C file
+##[==[
+  cinclude '<stddef.h>' -- for NULL
+  cinclude '<string.h>' -- for strncpy/strncat
+  cinclude '<stdlib.h>' -- for getenv
+  cinclude '<stdio.h>' -- for tmpnam
+  cinclude '<stdbool.h>' -- for true/false
+  cemitdecl[[
+#if defined(__unix)
+#include <unistd.h>
+#endif
+]]
+  cemit[[
+#if defined(_POSIX_C_SOURCE) && _POSIX_C_SOURCE >= 200809L
+  char* tmpdir = getenv("TMPDIR");
+  if(tmpdir != NULL) {
+    strncpy(bufcs, tmpdir, 260);
+    strncat(bufcs, "/nelua_XXXXXX", 260 - (strlen(tmpdir) + 1));
+  } else {
+    strncpy(bufcs, "/tmp/nelua_XXXXXX", 260);
+  }
+  int fd = mkstemp(bufcs);
+  if(fd == -1) {
+    success = false;
+    close(fd);
+  } else {
+    success = true;
+  }
+#else
+  success = tmpnam(bufcs) != NULL;
+#endif
+]]
+]==]
+  if success then
+    return string.copy(bufcs)
   else
     return (@string){}
   end

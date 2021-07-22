@@ -276,6 +276,8 @@ typedefs.variable_annots = {
   nodecl = true,
   -- Whether the compiler should skip zero initialization for the variable.
   noinit = true,
+  -- Whether the compiler should never omit unused variables.
+  nodce = true,
   -- Whether to export the variable in C, declaring it with the 'extern' C qualifier.
   cexport = true,
   -- Whether the variable should be only available and used at compile time.
