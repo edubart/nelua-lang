@@ -88,11 +88,11 @@ function io.popen(prog: string, mode: facultative(string)) : (filestream, string
   cinclude '<stdio.h>' -- for popen/pclose
   cinclude '<stddef.h>' -- for NULL
   cemit[[
-#ifdef _POSIX_C_SOURCE
+#ifndef _WIN32
   fflush(NULL);
   fp = popen(progcs, modecs);
   closef = pclose;
-#elif _WIN32
+#else
   fp = _popen(progcs, modecs);
   closef = _pclose;
 #endif

@@ -177,12 +177,15 @@ is_linux = true;
 #endif
 #if defined(__WIN32__) || defined(__WIN32) || defined(WIN32)
 is_win32 = true;
+is_windows = true;
 #endif
 #if defined(__WIN64__) || defined(__WIN64) || defined(WIN64)
 is_win64 = true;
+is_windows = true;
 #endif
 #if defined(__WINNT__) || defined(__WINNT) || defined(WINNT)
 is_winnt = true;
+is_windows = true;
 #endif
 #if defined(__linux__) || defined(__linux) ||  defined(linux)
 is_linux = true;
@@ -231,7 +234,9 @@ is_ccomp = true;
 #if defined(__wasm__) || defined(__wasm)
 is_wasm = true;
 #endif
-#if defined(__x86_64__) || defined(__x86_64) || defined(__amd64__) || defined(__amd64) || defined(_M_X64) || defined(_M_AMD64)
+#if defined(__x86_64__) || defined(__x86_64) || \
+    defined(__amd64__) || defined(__amd64) || \
+    defined(_M_X64) || defined(_M_AMD64)
 is_x86_64 = true;
 #endif
 #if defined(__i386__) || defined(__i386) || defined(_M_X86)

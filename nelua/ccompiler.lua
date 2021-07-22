@@ -6,7 +6,6 @@ local executor = require 'nelua.utils.executor'
 local tabler = require 'nelua.utils.tabler'
 local sstream = require 'nelua.utils.sstream'
 local console = require 'nelua.utils.console'
-local platform = require 'nelua.utils.platform'
 local config = require 'nelua.configer'.get()
 local cdefs = require 'nelua.cdefs'
 local memoize = require 'nelua.utils.memoize'
