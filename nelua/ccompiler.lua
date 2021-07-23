@@ -228,7 +228,10 @@ local function detect_binary_extension(outfile, ccinfo)
 end
 
 function compiler.compile_static_library(objfile, outfile)
-  local ar = config.cc:gsub('[a-z+]+$', 'ar')
+  local ar = config.cc..'-ar' -- try cc-ar first
+  if not fs.findbinfile(ar) then -- fallback to ar
+    ar = config.cc:gsub('%w+$', 'ar')
+  end
   local arcmd = string.format('%s rcs %s %s', ar, outfile, objfile)
   if config.verbose then console.info(arcmd) end
   -- compile the file
