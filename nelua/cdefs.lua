@@ -1,4 +1,5 @@
 local tabler = require 'nelua.utils.tabler'
+local platform = require 'nelua.utils.platform'
 
 local cdefs = {}
 
@@ -117,10 +118,15 @@ cdefs.for_compare_ops = {
 
 cdefs.search_compilers = {
   'gcc', 'clang',
-  'x86_64-w64-mingw32-gcc', 'x86_64-w64-mingw32-clang',
-  'i686-w64-mingw32-gcc', 'i686-w64-mingw32-clang',
   'cc'
 }
+
+if platform.is_windows then
+  cdefs.search_compilers = tabler.insertvalues({
+    'x86_64-w64-mingw32-gcc', 'x86_64-w64-mingw32-clang',
+    'i686-w64-mingw32-gcc', 'i686-w64-mingw32-clang',
+  }, cdefs.search_compilers)
+end
 
 local compilers_flags = {}
 cdefs.compilers_flags = compilers_flags
@@ -214,6 +220,9 @@ gnuc_patchlevel = __GNUC_PATCHLEVEL__;
 #endif
 #if defined(__MINGW64__) || defined(__MINGW32__)
 is_mingw = true;
+#endif
+#if defined(__CYGWIN__) || defined(__CYGWIN32__)
+is_cygwin = true;
 #endif
 #if defined(_MSC_VER)
 is_msvc = true;
@@ -324,7 +333,7 @@ order_little_endian = __ORDER_LITTLE_ENDIAN__;
 order_big_endian = __ORDER_BIG_ENDIAN__;
 #endif
 /* Features */
-#if defined(__wasm__)
+#if defined(__wasm__) || defined(_WIN32)
 is_align_double = true;
 #endif
 ]]

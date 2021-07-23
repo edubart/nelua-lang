@@ -58,12 +58,14 @@ if [ ! -f "$NELUA_LUALIB/nelua.lua" ]; then
 fi
 
 # determine nelua's lua package path
-if [ "$OSTYPE" = "msys" ]; then
+if [ "$OSTYPE" = "msys" ] || [ "$OSTYPE" = "cygwin" ]; then
   NELUA_PACKAGE_PATH="$(cygpath -w $NELUA_LUALIB/)"
   NELUA_PACKAGE_PATH="$(printf "%q\n" "$NELUA_PACKAGE_PATH")"
+  NELUA_NELUALUA="$(cygpath -w $NELUA_LUALIB/nelua.lua)"
 else
   NELUA_PACKAGE_PATH="$NELUA_LUALIB/"
+  NELUA_NELUALUA="$NELUA_LUALIB/nelua.lua"
 fi
 
 # execute nelua compiler
-exec $NELUA_LUA -e "package.path='${NELUA_PACKAGE_PATH}?.lua;'..package.path" $NELUA_LUALIB/nelua.lua "$@"
+exec $NELUA_LUA -e "package.path='${NELUA_PACKAGE_PATH}?.lua;'..package.path" $NELUA_NELUALUA "$@"

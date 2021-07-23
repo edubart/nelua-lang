@@ -38,6 +38,9 @@ endif
 ifneq (,$(findstring MSYS,$(SYS)))
 	SYS=Windows
 endif
+ifneq (,$(findstring CYGWIN,$(SYS)))
+	SYS=Windows
+endif
 
 ## Detect the lua interpreter to use.
 ifeq ($(SYS), Windows)

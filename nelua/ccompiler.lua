@@ -197,7 +197,7 @@ local function detect_binary_extension(outfile, ccinfo)
     else
       return '.html', true
     end
-  elseif ccinfo.is_windows then
+  elseif ccinfo.is_windows or ccinfo.is_cygwin then
     if config.shared then
       return '.dll'
     elseif config.static then

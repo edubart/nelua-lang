@@ -13,10 +13,14 @@ DEFS+=-DLUA_COMPAT_5_3 -DMAXRECLEVEL=400
 
 ## Host system detection.
 SYS:=$(shell uname -s)
+CPUARCH:=$(shell uname -m)
 ifneq (,$(findstring MINGW,$(SYS)))
 	SYS=Windows
 endif
 ifneq (,$(findstring MSYS,$(SYS)))
+	SYS=Windows
+endif
+ifneq (,$(findstring CYGWIN,$(SYS)))
 	SYS=Windows
 endif
 
@@ -35,13 +39,14 @@ ifeq ($(SYS), Linux)
 	LIBS+=-lm -ldl
 	DEFS+=-DLUA_USE_LINUX
 else ifeq ($(SYS), Windows)
-	CC=x86_64-w64-mingw32-gcc
+	CC=$(CPUARCH)-w64-mingw32-gcc
 	EXE=nelua-lua.exe
+	LDFLAGS+=-static
 	DEFS+=-D_CRT_SECURE_NO_WARNINGS # disable some warnings on MSVC
 else ifeq ($(SYS), Darwin)
 	CC=clang
-	LIBS=-lm
-	LDFLAGS=-rdynamic
+	LIBS+=-lm
+	LDFLAGS+=-rdynamic
 	DEFS+=-DLUA_USE_MACOSX
 else # probably POSIX
 	CC=cc
