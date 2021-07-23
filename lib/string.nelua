@@ -720,7 +720,7 @@ global function tostring(x: auto): string
     end
     ##[[ else
       tyformat = require'nelua.cdefs'.types_printf_format[xtype.codename]
-      static_assert(tyformat)
+      static_assert(tyformat, 'cannot handle this scalar type in `tostring`')
     end]]
     local tmpbuf: [48]byte <noinit> -- the output should not have more than 48 characters
     tmpbuf[47] = 0

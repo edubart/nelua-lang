@@ -41,7 +41,11 @@ function CEmitter:add_zeroed_type_literal(type, typed)
     self:add('(', type, ')')
   end
   local s
-  if type.is_float32 and not self.context.pragmas.nofloatsuffix then
+  if type.is_float128 and not self.context.pragmas.nofloatsuffix then
+    s = '0.0q'
+  elseif type.is_clongdouble and not self.context.pragmas.nofloatsuffix then
+    s = '0.0l'
+  elseif type.is_float32 and not self.context.pragmas.nofloatsuffix then
     s = '0.0f'
   elseif type.is_float then
     s = '0.0'
@@ -328,6 +332,7 @@ function CEmitter:add_scalar_literal(num, numtype, base)
       -- workaround C warning `integer constant is so large that it is unsigned`
       minusone = true
       num = num + 1
+      self:add_text('(')
     end
     if not base or base == 10 or num:isneg() then -- use decimal base
       self:add_text(bn.todecint(num))
@@ -336,13 +341,17 @@ function CEmitter:add_scalar_literal(num, numtype, base)
     end
   end
   -- add suffixes
-  if numtype.is_float32 and not self.context.pragmas.nofloatsuffix then
+  if numtype.is_float128 and not self.context.pragmas.nofloatsuffix then
+    self:add_text('q')
+  elseif numtype.is_clongdouble and not self.context.pragmas.nofloatsuffix then
+    self:add_text('l')
+  elseif numtype.is_float32 and not self.context.pragmas.nofloatsuffix then
     self:add_text('f')
   elseif numtype.is_unsigned then
     self:add_text('U')
   end
   if minusone then
-    self:add_text('-1')
+    self:add_text('-1)')
   end
 end
 

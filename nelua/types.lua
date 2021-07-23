@@ -1330,10 +1330,6 @@ FloatType.is_signed = true
 FloatType.shape = shaper.fork_shape(Type.shape, {
   -- Max decimal digits that this float can represent.
   maxdigits = shaper.integer,
-  -- Boolean to know the exactly underlying float type.
-  is_float32 = shaper.optional_boolean,
-  is_float64 = shaper.optional_boolean,
-  is_float128 = shaper.optional_boolean,
 })
 
 function FloatType:_init(name, size, maxdigits, align)
@@ -1342,7 +1338,7 @@ function FloatType:_init(name, size, maxdigits, align)
   end
   ScalarType._init(self, name, size)
   self.maxdigits = maxdigits
-  self['is_float'..self.bitsize] = true
+  self['is_'..self.name] = true
 end
 
 -- Get the desired type when converting this type from another type.

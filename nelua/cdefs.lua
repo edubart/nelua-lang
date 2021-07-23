@@ -121,12 +121,12 @@ cdefs.search_compilers = {
   'cc'
 }
 
-if platform.is_windows then
+if platform.is_windows then --luacov:disable
   cdefs.search_compilers = tabler.insertvalues({
     'x86_64-w64-mingw32-gcc', 'x86_64-w64-mingw32-clang',
     'i686-w64-mingw32-gcc', 'i686-w64-mingw32-clang',
   }, cdefs.search_compilers)
-end
+end --luacov:enable
 
 local compilers_flags = {}
 cdefs.compilers_flags = compilers_flags
@@ -209,8 +209,14 @@ is_apple = true;
 is_mach = true;
 #endif
 /* Compilers */
+#if defined(__VERSION__)
+version = __VERSION__;
+#endif
 #if defined(__clang__)
 is_clang = true;
+clang_major = __clang_major__;
+clang_minor = __clang_minor__;
+clang_patchlevel = __clang_patchlevel__;
 #endif
 #if defined(__GNUC__)
 is_gcc = true;
@@ -260,6 +266,12 @@ is_arm64 = true;
 #if defined(__riscv)
 is_riscv = true;
 #endif
+#if defined(__LP64__) || defined(__ILP64__) || defined(__LLP64__)
+is_64 = true;
+#endif
+#if defined(__LP32__) || defined(__ILP32__) || defined(__LLP32__)
+is_32 = true;
+#endif
 /* C standard */
 #if defined(__STDC__)
 is_c = true
@@ -292,6 +304,9 @@ is_cpp = true;
 cplusplus = __cplusplus;
 #endif
 /* Primitive sizes */
+#if defined(__CHAR_BIT__)
+char_bit = __CHAR_BIT__;
+#endif
 #if defined(__SIZEOF_DOUBLE__)
 sizeof_double = __SIZEOF_DOUBLE__;
 #endif
@@ -322,6 +337,12 @@ sizeof_short = __SIZEOF_SHORT__;
 #if defined(__SIZEOF_SIZE_T__)
 sizeof_size_t = __SIZEOF_SIZE_T__;
 #endif
+#if defined(__SIZEOF_FLOAT128__)
+sizeof_float128 = __SIZEOF_FLOAT128__;
+#endif
+#if defined(__SIZEOF_INT128__)
+sizeof_int128 = __SIZEOF_INT128__;
+#endif
 /* Endianess */
 #if defined(__BYTE_ORDER__)
 byte_order = __BYTE_ORDER__;
@@ -333,8 +354,11 @@ order_little_endian = __ORDER_LITTLE_ENDIAN__;
 order_big_endian = __ORDER_BIG_ENDIAN__;
 #endif
 /* Features */
-#if defined(__wasm__) || defined(_WIN32)
+#if defined(__wasm__) || defined(_WIN32) || defined(__CYGWIN__)
 is_align_double = true;
+#endif
+#if defined(__ELF__)
+is_elf = true;
 #endif
 ]]
 

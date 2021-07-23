@@ -25,6 +25,9 @@ local cshortsize = ccinfo.sizeof_short or 2
 local clongsize = ccinfo.sizeof_long or math.max(ptrsize, 4)
 -- C long long is at least 8 bytes.
 local clonglongsize = ccinfo.sizeof_long_long or 8
+-- C long double size is typically 16 bytes.
+local clongdoublesize = ccinfo.sizeof_long_double or 16
+-- Max alignment for double.
 local maxdoublealign = ccinfo.is_align_double and 16 or ptrsize
 
 -- Map containing all primitive types.
@@ -81,7 +84,7 @@ primtypes.cuint       = types.IntegralType('cuint', cintsize, true)
 primtypes.culong      = types.IntegralType('culong', clongsize, true, math.min(clongsize, maxdoublealign))
 primtypes.culonglong  = types.IntegralType('culonglong', clonglongsize, true, math.min(clonglongsize, maxdoublealign))
 primtypes.csize       = types.IntegralType('csize', ptrsize, true)
-primtypes.clongdouble = types.FloatType('clongdouble', 16, 36, math.min(16, maxdoublealign))
+primtypes.clongdouble = types.FloatType('clongdouble', clongdoublesize, 36, math.min(clongdoublesize, maxdoublealign))
 primtypes.cstring     = types.PointerType(primtypes.cchar)
 primtypes.cdouble     = primtypes.float64
 primtypes.cfloat      = primtypes.float32

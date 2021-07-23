@@ -229,9 +229,9 @@ end
 
 function compiler.compile_static_library(objfile, outfile)
   local ar = config.cc..'-ar' -- try cc-ar first
-  if not fs.findbinfile(ar) then -- fallback to ar
-    ar = config.cc:gsub('%w+$', 'ar')
-  end
+  if not fs.findbinfile(ar) then --luacov:disable
+    ar = config.cc:gsub('%w+$', 'ar') -- fallback to ar
+  end --luacov:enable
   local arcmd = string.format('%s rcs %s %s', ar, outfile, objfile)
   if config.verbose then console.info(arcmd) end
   -- compile the file

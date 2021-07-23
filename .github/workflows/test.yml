@@ -40,7 +40,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CFLAGS: -m32
-      NELUA_CPUBITS: 32
     steps:
     - uses: actions/checkout@master
     - name: Install dependencies
