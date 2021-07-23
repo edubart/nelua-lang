@@ -2,6 +2,9 @@ local lester = require 'nelua.thirdparty.lester'
 
 lester.seconds = require 'nelua.utils.nanotimer'.nanotime
 
+-- read environment configs
+require 'nelua.configer'
+
 require 'spec.except_spec'
 require 'spec.bn_spec'
 require 'spec.pegger_spec'

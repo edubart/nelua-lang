@@ -39,7 +39,7 @@ jobs:
   test-32bits:
     runs-on: ubuntu-latest
     env:
-      CFLAGS: -m32 -malign-double
+      CFLAGS: -m32
       NELUA_CPUBITS: 32
     steps:
     - uses: actions/checkout@master

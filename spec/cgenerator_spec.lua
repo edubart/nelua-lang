@@ -2793,10 +2793,10 @@ it("sizeof builtin", function()
     assert(#C == 8)
 
     local D = @record{
-      i: int64,   -- 8
+      i: int32,   -- 4
       c: cchar,   -- 1
     }
-    assert(#D == 16)
+    assert(#D == 8)
   ]])
 end)
 

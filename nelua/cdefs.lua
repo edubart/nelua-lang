@@ -323,6 +323,10 @@ order_little_endian = __ORDER_LITTLE_ENDIAN__;
 #if defined(__ORDER_BIG_ENDIAN__)
 order_big_endian = __ORDER_BIG_ENDIAN__;
 #endif
+/* Features */
+#if defined(__wasm__)
+is_align_double = true;
+#endif
 ]]
 
 cdefs.reserverd_keywords = {

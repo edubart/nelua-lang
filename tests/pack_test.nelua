@@ -214,8 +214,8 @@ do -- pack/unpack
   do -- padding
     assert_pack_string('\0\0\0\0', 'xxxx')
     assert_check_pack_unpack('\1\0', '!<bXi2',1)
-    assert_check_pack_unpack('\1\0\0\0\0\0\0\0', '!<bXi8',1)
-    assert_check_pack_unpack('\1\0\0\0\2\0\0\0', '!<bXi4 bXi8',1,2)
+    assert_check_pack_unpack('\1\0\0\0', '!<bXi4',1)
+    assert_check_pack_unpack('\1\0\2\0', '!<bXi2 bXi4',1,2)
   end
 end
 

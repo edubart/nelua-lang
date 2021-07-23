@@ -993,7 +993,10 @@ IntegralType.shape = shaper.fork_shape(Type.shape, {
   is_signed = shaper.optional_boolean, is_unsigned = shaper.optional_boolean,
 })
 
-function IntegralType:_init(name, size, is_unsigned)
+function IntegralType:_init(name, size, is_unsigned, align)
+  if align then
+    self.align = align
+  end
   ScalarType._init(self, name, size)
 
   -- compute the min and max values
@@ -1333,7 +1336,10 @@ FloatType.shape = shaper.fork_shape(Type.shape, {
   is_float128 = shaper.optional_boolean,
 })
 
-function FloatType:_init(name, size, maxdigits)
+function FloatType:_init(name, size, maxdigits, align)
+  if align then
+    self.align = align
+  end
   ScalarType._init(self, name, size)
   self.maxdigits = maxdigits
   self['is_float'..self.bitsize] = true
