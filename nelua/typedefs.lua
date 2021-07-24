@@ -8,7 +8,6 @@ It uses the types module to create them.
 
 local types = require 'nelua.types'
 local shaper = require 'nelua.utils.shaper'
-local platform = require 'nelua.utils.platform'
 local ccompiler = require 'nelua.ccompiler'
 local version = require 'nelua.version'
 
@@ -16,34 +15,40 @@ local version = require 'nelua.version'
 local ccinfo = ccompiler.get_cc_info()
 
 -- CPU word size in bytes (size of a pointer).
-local ptrsize = ccinfo.sizeof_pointer or platform.cpu_bits // 8
+local cptrsize = ccinfo.sizeof_pointer
 -- C int is at least 2 bytes and max 4 bytes.
-local cintsize = ccinfo.sizeof_int or math.max(math.min(ptrsize, 4), 2)
+local cintsize = ccinfo.sizeof_int
 -- C short size is typically 2 bytes.
-local cshortsize = ccinfo.sizeof_short or 2
+local cshortsize = ccinfo.sizeof_short
 -- C long is at least 4 bytes.
-local clongsize = ccinfo.sizeof_long or math.max(ptrsize, 4)
+local clongsize = ccinfo.sizeof_long
 -- C long long is at least 8 bytes.
-local clonglongsize = ccinfo.sizeof_long_long or 8
+local clonglongsize = ccinfo.sizeof_long_long
 -- C long double size is typically 16 bytes.
-local clongdoublesize = ccinfo.sizeof_long_double or 16
+local clongdoublesize = ccinfo.sizeof_long_double
+-- C float size is typically 4 bytes.
+local cfloatsize = ccinfo.sizeof_float
+-- C double size is typically 8 bytes (but can be 4 bytes on AVR).
+local cdoublesize = ccinfo.sizeof_double
+-- Max primitive alignment.
+local cmaxalign = ccinfo.biggest_alignment
 -- Max alignment for double.
-local maxdoublealign = ccinfo.is_align_double and 16 or ptrsize
-
+local cmaxdoublealign = math.min(ccinfo.is_align_double and clongdoublesize or cptrsize, cmaxalign)
 -- Map containing all primitive types.
 local primtypes = {}
 
 -- The typedefs module.
 local typedefs = {
   primtypes = primtypes,
-  ptrsize = ptrsize,
+  ptrsize = cptrsize,
+  maxalign = cmaxalign,
   emptysize = ccinfo.is_cpp and 1 or 0,
 }
 types.set_typedefs(typedefs)
 
 -- Basic types.
 primtypes.niltype     = types.NiltypeType('niltype', typedefs.emptysize) -- must be defined first
-primtypes.nilptr      = types.NilptrType('nilptr', ptrsize)
+primtypes.nilptr      = types.NilptrType('nilptr', cptrsize)
 primtypes.type        = types.TypeType('type', 0)
 primtypes.typetype    = primtypes.type
 primtypes.void        = types.VoidType('void', 0)
@@ -56,35 +61,35 @@ primtypes.pointer     = types.PointerType(primtypes.void)
 primtypes.int8        = types.IntegralType('int8', 1)
 primtypes.int16       = types.IntegralType('int16', 2)
 primtypes.int32       = types.IntegralType('int32', 4)
-primtypes.int64       = types.IntegralType('int64', 8, false, math.min(8, maxdoublealign))
+primtypes.int64       = types.IntegralType('int64', 8, false, math.min(8, cmaxdoublealign))
 primtypes.int128      = types.IntegralType('int128', 16)
-primtypes.isize       = types.IntegralType('isize', ptrsize)
+primtypes.isize       = types.IntegralType('isize', cptrsize)
 primtypes.uint8       = types.IntegralType('uint8', 1, true)
 primtypes.uint16      = types.IntegralType('uint16', 2, true)
 primtypes.uint32      = types.IntegralType('uint32', 4, true)
-primtypes.uint64      = types.IntegralType('uint64', 8, true, math.min(8, maxdoublealign))
+primtypes.uint64      = types.IntegralType('uint64', 8, true, math.min(8, cmaxdoublealign))
 primtypes.uint128     = types.IntegralType('uint128', 16, true)
-primtypes.usize       = types.IntegralType('usize', ptrsize, true)
-primtypes.float32     = types.FloatType('float32', 4, 9)
-primtypes.float64     = types.FloatType('float64', 8, 17, math.min(8, maxdoublealign))
+primtypes.usize       = types.IntegralType('usize', cptrsize, true)
+primtypes.float32     = types.FloatType('float32', cfloatsize, 9)
+primtypes.float64     = types.FloatType('float64', cdoublesize, 17, math.min(cdoublesize, cmaxdoublealign))
 primtypes.float128    = types.FloatType('float128', 16, 36)
 primtypes.byte        = primtypes.uint8
 
 -- Types for C compatibility.
+primtypes.cchar       = types.IntegralType('cchar', 1)
 primtypes.cschar      = types.IntegralType('cschar', 1)
 primtypes.cshort      = types.IntegralType('cshort', cshortsize)
 primtypes.cint        = types.IntegralType('cint', cintsize)
-primtypes.clong       = types.IntegralType('clong', clongsize, false, math.min(clongsize, maxdoublealign))
-primtypes.clonglong   = types.IntegralType('clonglong', clonglongsize, false, math.min(clonglongsize, maxdoublealign))
-primtypes.cptrdiff    = types.IntegralType('cptrdiff', ptrsize)
-primtypes.cchar       = types.IntegralType('cchar', 1)
+primtypes.clong       = types.IntegralType('clong', clongsize, false)
+primtypes.clonglong   = types.IntegralType('clonglong', clonglongsize, false, math.min(clonglongsize, cmaxdoublealign))
+primtypes.cptrdiff    = types.IntegralType('cptrdiff', cptrsize)
 primtypes.cuchar      = types.IntegralType('cuchar', 1, true)
 primtypes.cushort     = types.IntegralType('cushort', cshortsize, true)
 primtypes.cuint       = types.IntegralType('cuint', cintsize, true)
-primtypes.culong      = types.IntegralType('culong', clongsize, true, math.min(clongsize, maxdoublealign))
-primtypes.culonglong  = types.IntegralType('culonglong', clonglongsize, true, math.min(clonglongsize, maxdoublealign))
-primtypes.csize       = types.IntegralType('csize', ptrsize, true)
-primtypes.clongdouble = types.FloatType('clongdouble', clongdoublesize, 36, math.min(clongdoublesize, maxdoublealign))
+primtypes.culong      = types.IntegralType('culong', clongsize, true)
+primtypes.culonglong  = types.IntegralType('culonglong', clonglongsize, true, math.min(clonglongsize, cmaxdoublealign))
+primtypes.csize       = types.IntegralType('csize', cptrsize, true)
+primtypes.clongdouble = types.FloatType('clongdouble', clongdoublesize, 36, math.min(clongdoublesize, cmaxdoublealign))
 primtypes.cstring     = types.PointerType(primtypes.cchar)
 primtypes.cdouble     = primtypes.float64
 primtypes.cfloat      = primtypes.float32
@@ -99,7 +104,7 @@ primtypes.number      = primtypes.float64
 -- Complex types.
 primtypes.string      = types.StringType('string')
 primtypes.stringview  = primtypes.string -- deprecated
-primtypes.any         = types.AnyType('any', 2*ptrsize)
+primtypes.any         = types.AnyType('any', 2*cptrsize)
 primtypes.varanys     = types.VaranysType('varanys')
 primtypes.varargs     = types.VarargsType('varargs')
 

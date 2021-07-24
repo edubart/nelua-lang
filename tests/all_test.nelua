@@ -17,7 +17,9 @@ require 'tests.list_test'
 require 'tests.hash_test'
 require 'tests.hashmap_test'
 require 'tests.defer_test'
+## if ccinfo.is_emscripten then
 require 'tests.coroutine_test'
+## end
 
 -- must be the last test because it calls os.exit()
 require 'tests.os_test'

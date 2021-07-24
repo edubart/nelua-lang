@@ -178,36 +178,35 @@ compilers_flags['clang++'] = tabler.copy(compilers_flags['g++'])
 -- Code to detect target features.
 cdefs.target_info_code = [[
 /* OS */
-#if defined(__linux)
-is_linux = true;
-#endif
-#if defined(__WIN32__) || defined(__WIN32) || defined(WIN32)
-is_win32 = true;
-is_windows = true;
-#endif
-#if defined(__WIN64__) || defined(__WIN64) || defined(WIN64)
-is_win64 = true;
-is_windows = true;
-#endif
-#if defined(__WINNT__) || defined(__WINNT) || defined(WINNT)
-is_winnt = true;
-is_windows = true;
-#endif
-#if defined(__linux__) || defined(__linux) ||  defined(linux)
-is_linux = true;
-#endif
-#if defined(__unix__) || defined(__unix) ||  defined(unix)
+#if defined(__unix__) || defined(__unix)
 is_unix = true;
+#endif
+#if defined(__linux__) || defined(__linux)
+is_linux = true;
 #endif
 #if defined(__gnu_linux__)
 is_gnu_linux = true;
 #endif
+#if defined(__WIN32__) || defined(__WIN32) || defined(_WIN32)
+is_win32 = true;
+is_windows = true;
+#endif
+#if defined(__WIN64__) || defined(__WIN64) || defined(_WIN64)
+is_win64 = true;
+#endif
+#if defined(__WINNT__) || defined(__WINNT)
+is_winnt = true;
+#endif
 #if defined(__APPLE__)
 is_apple = true;
+#endif
+#if defined(__ANDROID__)
+is_android = true;
 #endif
 #if defined(__MACH__)
 is_mach = true;
 #endif
+
 /* Compilers */
 #if defined(__VERSION__)
 version = __VERSION__;
@@ -231,13 +230,19 @@ is_mingw = true;
 is_cygwin = true;
 #endif
 #if defined(_MSC_VER)
-is_msvc = true;
+is_msc = true;
+msc_ver = _MSC_VER;
+msc_full_ver = _MSC_FULL_VER;
 #endif
 #if defined(__TINYC__)
 is_tcc = true;
+tinyc = __TINYC__;
 #endif
 #if defined(__EMSCRIPTEN__)
 is_emscripten = true;
+emscripten_major = __EMSCRIPTEN_major__;
+emscripten_minor = __EMSCRIPTEN_minor__;
+emscripten_tiny = __EMSCRIPTEN_tiny__;
 #endif
 #if defined(__mirc__)
 is_mirc = true;
@@ -245,33 +250,38 @@ is_mirc = true;
 #if defined(__COMPCERT__)
 is_ccomp = true;
 #endif
+
 /* Architectures */
 #if defined(__wasm__) || defined(__wasm)
 is_wasm = true;
+#endif
+#if defined(__asmjs__)
+is_asmjs = true;
 #endif
 #if defined(__x86_64__) || defined(__x86_64) || \
     defined(__amd64__) || defined(__amd64) || \
     defined(_M_X64) || defined(_M_AMD64)
 is_x86_64 = true;
 #endif
-#if defined(__i386__) || defined(__i386) || defined(_M_X86)
+#if defined(__i386__) || defined(_M_X86)
 is_x86_32 = true;
 #endif
-#if defined(__ARM_EABI__) || defined(__aarch64__)
+#if defined(__arm__) || defined(_M_ARM)
 is_arm = true;
 #endif
-#if defined(__aarch64__)
+#if defined(__aarch64__) || defined(_M_ARM64)
 is_arm64 = true;
 #endif
 #if defined(__riscv)
 is_riscv = true;
 #endif
-#if defined(__LP64__) || defined(__ILP64__) || defined(__LLP64__)
-is_64 = true;
+#if defined(__AVR__) || defined(__AVR)
+is_avr = true;
 #endif
-#if defined(__LP32__) || defined(__ILP32__) || defined(__LLP32__)
-is_32 = true;
+#if defined(__BIGGEST_ALIGNMENT__)
+biggest_alignment = __BIGGEST_ALIGNMENT__;
 #endif
+
 /* C standard */
 #if defined(__STDC__)
 is_c = true
@@ -295,14 +305,13 @@ stdc_no_complex = true;
 #if defined(__STDC_NO_VLA__)
 stdc_no_vla = true;
 #endif
-#if !defined(__cplusplus)
-is_c = true;
-#endif
-/* C++ standard */
 #if defined(__cplusplus)
 is_cpp = true;
 cplusplus = __cplusplus;
+#else
+is_c = true;
 #endif
+
 /* Primitive sizes */
 #if defined(__CHAR_BIT__)
 char_bit = __CHAR_BIT__;
@@ -343,22 +352,29 @@ sizeof_float128 = __SIZEOF_FLOAT128__;
 #if defined(__SIZEOF_INT128__)
 sizeof_int128 = __SIZEOF_INT128__;
 #endif
-/* Endianess */
-#if defined(__BYTE_ORDER__)
-byte_order = __BYTE_ORDER__;
-#endif
-#if defined(__ORDER_LITTLE_ENDIAN__)
-order_little_endian = __ORDER_LITTLE_ENDIAN__;
-#endif
-#if defined(__ORDER_BIG_ENDIAN__)
-order_big_endian = __ORDER_BIG_ENDIAN__;
-#endif
+
 /* Features */
-#if defined(__wasm__) || defined(_WIN32) || defined(__CYGWIN__)
+#if defined(__LP64__) || defined(__ILP64__) || defined(__LLP64__)
+is_64 = true;
+#endif
+#if defined(__LP32__) || defined(__ILP32__) || defined(__LLP32__)
+is_32 = true;
+#endif
+#if defined(__EMSCRIPTEN__) || defined(_WIN32) || defined(__CYGWIN__)
 is_align_double = true;
 #endif
 #if defined(__ELF__)
 is_elf = true;
+#endif
+#if defined(__OPTIMIZE__)
+is_optimize = true;
+#endif
+#if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__)
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+is_little_endian = true;
+#else
+is_big_endian = true;
+#endif
 #endif
 ]]
 

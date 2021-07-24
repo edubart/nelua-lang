@@ -1,5 +1,3 @@
-## if not ccinfo.is_wasm then
-
 require 'coroutine'
 
 local counter = 0
@@ -134,5 +132,3 @@ do -- fibonacci example
 end
 
 print 'coroutine OK!'
-
-## end

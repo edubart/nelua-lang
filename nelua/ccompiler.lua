@@ -10,6 +10,7 @@ local config = require 'nelua.configer'.get()
 local cdefs = require 'nelua.cdefs'
 local memoize = require 'nelua.utils.memoize'
 local version = require 'nelua.version'
+local platform = require 'nelua.utils.platform'
 
 local compiler = {
   source_extension = '.c'
@@ -152,9 +153,28 @@ local function get_cc_info(cc, cflags)
     elseif value:match('^[0-9]+$') then
       value = tonumber(value)
     elseif value == 'true' then
-      value = true;
+      value = true
+    elseif value:match('^".*"$') then
+      value = value:sub(2,-2)
     end
     ccinfo[name] = value
+  end
+  ccinfo.sizeof_pointer = ccinfo.sizeof_pointer or platform.cpu_bits // 8
+  ccinfo.sizeof_int = ccinfo.sizeof_int or math.max(math.min(ccinfo.sizeof_pointer, 4), 2)
+  ccinfo.sizeof_short = ccinfo.sizeof_short or 2
+  ccinfo.sizeof_long = ccinfo.sizeof_long or math.max(ccinfo.sizeof_pointer, 4)
+  ccinfo.sizeof_long_long = ccinfo.sizeof_long_long or 8
+  ccinfo.sizeof_long_double = ccinfo.sizeof_long_double or 16
+  ccinfo.sizeof_float = ccinfo.sizeof_float or 4
+  ccinfo.sizeof_double = ccinfo.sizeof_double or 8
+  ccinfo.biggest_alignment = ccinfo.biggest_alignment or ccinfo.sizeof_long_double
+  if ccinfo.sizeof_pointer then -- ensure some primitive sizes3 have the expected sizes
+    except.assertraisef(not ccinfo.char_bit or ccinfo.char_bit == 8,
+      "target C 'char' is not 8 bits")
+    except.assertraisef(not ccinfo.sizeof_ptrdiff_t or ccinfo.sizeof_ptrdiff_t == ccinfo.sizeof_pointer,
+      "target C 'ptrdiff_t' size is different from the pointer size")
+    except.assertraisef(not ccinfo.sizeof_size_t or ccinfo.sizeof_size_t == ccinfo.sizeof_pointer,
+      "target C 'size_t' size is different from the pointer size")
   end
   return ccinfo
 end

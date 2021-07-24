@@ -228,6 +228,7 @@ function Type:_init(name, size)
   if not self.align and self.size then
     self.align = self.size
   end
+  self.align = math.min(self.align, typedefs.maxalign)
 
   -- generate a codename in case not set yet
   if not self.codename then
