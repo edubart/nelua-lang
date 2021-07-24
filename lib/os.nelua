@@ -237,7 +237,7 @@ function os.time(desc: facultative(os.timedesc)): integer
   local t: time_t
   ## if desc.type.is_niltype then
     t = time(nilptr)
-    assert(t ~= -1, 'time result cannot be represented in this installation')
+    assert(t > 0, 'time result cannot be represented in this installation')
   ## else
     --TODO: change desc to table and update fields with normalize values
     --TODO: make default hour 12
@@ -265,7 +265,7 @@ In POSIX systems, this function also creates a file with that name, to avoid sec
 You still have to open the file to use it and to remove it (even if you do not use it).
 When possible, you may prefer to use `io.tmpfile`, which automatically removes the file when the program ends.
 ]]
-function os.tmpname(): string
+function os.tmpname(): string <polymorphic>
   local buf: [260]cchar
   local bufcs: cstring = &buf[0]
   local success: boolean

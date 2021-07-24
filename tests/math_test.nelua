@@ -213,17 +213,6 @@ do -- math.exp
   asserteq(math.exp(1), e)
 end
 
-do -- math.exp2
-  asserteq(math.exp2(4.0), 16.0)
-  asserteq(math.exp2(1.0), 2.0)
-
-  asserteq(math.exp2(4.0_f32), 16.0_f32)
-  asserteq(math.exp2(1.0_f32), 2.0_f32)
-
-  asserteq(math.exp2(4), 16)
-  asserteq(math.exp2(1), 2)
-end
-
 do -- math.log
   asserteq(math.log(1.0), 0.0)
   asserteq(math.log(e), 1.0)
@@ -243,17 +232,6 @@ do -- math.log
   asserteq(math.log(e), 1)
   asserteq(math.log(100000000, 10), 8)
   asserteq(math.log(1024, 2), 10)
-end
-
-do -- math.log2
-  asserteq(math.log2(16.0), 4.0)
-  asserteq(math.log2(2.0), 1.0)
-
-  asserteq(math.log2(16.0_f32), 4.0_f32)
-  asserteq(math.log2(2.0_f32), 1.0_f32)
-
-  asserteq(math.log2(16), 4)
-  asserteq(math.log2(2), 1)
 end
 
 do -- math.log10
@@ -313,18 +291,27 @@ do -- math.atan2
   asserteq(math.atan2(-1, -1), -math.pi*3/4)
 end
 
-do -- math.cosh / math.sinh / math.tanh
-  asserteq(math.cosh(0.0), 1.0)
-  asserteq(math.sinh(0.0), 0.0)
-  asserteq(math.tanh(0.0), 0.0)
+## if not ccinfo.is_avr then
+do -- math.exp2
+  asserteq(math.exp2(4.0), 16.0)
+  asserteq(math.exp2(1.0), 2.0)
 
-  asserteq(math.cosh(0.0_f32), 1.0_f32)
-  asserteq(math.sinh(0.0_f32), 0.0_f32)
-  asserteq(math.tanh(0.0_f32), 0.0_f32)
+  asserteq(math.exp2(4.0_f32), 16.0_f32)
+  asserteq(math.exp2(1.0_f32), 2.0_f32)
 
-  asserteq(math.cosh(0), 1)
-  asserteq(math.sinh(0), 0)
-  asserteq(math.tanh(0), 0)
+  asserteq(math.exp2(4), 16)
+  asserteq(math.exp2(1), 2)
+end
+
+do -- math.log2
+  asserteq(math.log2(16.0), 4.0)
+  asserteq(math.log2(2.0), 1.0)
+
+  asserteq(math.log2(16.0_f32), 4.0_f32)
+  asserteq(math.log2(2.0_f32), 1.0_f32)
+
+  asserteq(math.log2(16), 4)
+  asserteq(math.log2(2), 1)
 end
 
 do -- math.acosh / math.asinh / math.atanh
@@ -339,6 +326,21 @@ do -- math.acosh / math.asinh / math.atanh
   asserteq(math.acosh(1), 0)
   asserteq(math.asinh(0), 0)
   asserteq(math.atanh(0), 0)
+end
+## end
+
+do -- math.cosh / math.sinh / math.tanh
+  asserteq(math.cosh(0.0), 1.0)
+  asserteq(math.sinh(0.0), 0.0)
+  asserteq(math.tanh(0.0), 0.0)
+
+  asserteq(math.cosh(0.0_f32), 1.0_f32)
+  asserteq(math.sinh(0.0_f32), 0.0_f32)
+  asserteq(math.tanh(0.0_f32), 0.0_f32)
+
+  asserteq(math.cosh(0), 1)
+  asserteq(math.sinh(0), 0)
+  asserteq(math.tanh(0), 0)
 end
 
 do -- math.pow

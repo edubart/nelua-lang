@@ -1578,7 +1578,7 @@ EnumType.shape = shaper.fork_shape(IntegralType.shape, {
 function EnumType:_init(subtype, fields, node)
   self.codename = types.gencodename('enum', node)
   self.node = node
-  IntegralType._init(self, 'enum', subtype.size, subtype.is_unsigned)
+  IntegralType._init(self, 'enum', subtype.size, subtype.is_unsigned, subtype.align)
   self.subtype = subtype
   self.fields = fields
   self:update_fields()

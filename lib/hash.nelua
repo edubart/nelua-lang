@@ -31,7 +31,7 @@ Hashes a span of bytes, iterating over all bytes.
 This function can be slow for long spans.
 ]]
 function hash.short(data: span(byte)): usize <inline>
-  return lhash(data.data, data.size, 0x9e3779b9_usize, 1)
+  return lhash(data.data, data.size, (@usize)(0x9e3779b9), 1)
 end
 
 --[[
@@ -39,12 +39,12 @@ Hashes a span of bytes, iterating at most 32 bytes evenly spaced.
 This function can be fast to hash long spans, at cost of hash quality.
 ]]
 function hash.long(data: span(byte)): usize <inline>
-  return lhash(data.data, data.size, 0x9e3779b9_usize, (data.size >> 5) + 1)
+  return lhash(data.data, data.size, (@usize)(0x9e3779b9), (data.size >> 5) + 1)
 end
 
 -- Returns the combination of the hashes `seed` and `value`.
 function hash.combine(seed: usize, value: usize): usize <inline>
-  return seed ~ (value + 0x9e3779b9_usize + (seed<<6) + (seed>>2))
+  return seed ~ (value + (@usize)(0x9e3779b9) + (seed<<6) + (seed>>2))
 end
 
 --[[

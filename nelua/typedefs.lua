@@ -97,9 +97,15 @@ primtypes.cvarargs    = types.CVarargsType('cvarargs')
 primtypes.cvalist     = types.CVaList('cvalist')
 
 -- The following types are predefined aliases, but can be customized by the user.
-primtypes.integer     = primtypes.int64
-primtypes.uinteger    = primtypes.uint64
-primtypes.number      = primtypes.float64
+if cptrsize >= 4 then
+  primtypes.integer   = primtypes.int64
+  primtypes.uinteger  = primtypes.uint64
+  primtypes.number    = primtypes.float64
+else -- probably a 8bit microcontroller like AVR
+  primtypes.integer   = primtypes.int32
+  primtypes.uinteger  = primtypes.uint32
+  primtypes.number    = primtypes.float32
+end
 
 -- Complex types.
 primtypes.string      = types.StringType('string')

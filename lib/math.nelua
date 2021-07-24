@@ -75,13 +75,18 @@ local an_optional_integral: type = #[concept(function(x) return x.type.is_integr
 -- Compile time utilities.
 ##[[
 local function choose_float_type(x)
+  local type
   if x.type.is_float32 or x.type.is_float64 then
-    return x.type
+    type = x.type
   elseif primtypes.number.is_float32 or primtypes.number.is_float64 then
-    return primtypes.number
+    type = primtypes.number
   else
-    return primtypes.float64
+    type = primtypes.float64
   end
+  if type.is_float64 and type.bitsize == 32 then -- demote (happens on AVR)
+    type = primtypes.float32
+  end
+  return type
 end
 
 local function choose_float_types(x, y)
@@ -204,9 +209,13 @@ function math.log(x: an_scalar, base: an_optional_scalar): auto <inline,nosideef
   ## local log = choose_cmath_float_function('log', x)
   ## if not base.type.is_niltype then
     local r: #[choose_float_type(x)]#
-    if base == 2 then
-      r = #|choose_cmath_float_function('log2', x)|#(x)
-    elseif base == 10 then
+    ## if not ccinfo.is_avr then -- AVR has no log2
+      if base == 2 then
+        r = #|choose_cmath_float_function('log2', x)|#(x)
+        return r
+      end
+    ## end
+    if base == 10 then
       r = #|choose_cmath_float_function('log10', x)|#(x)
     else
       r = #|log|#(x) / #|log|#(base)
@@ -510,13 +519,14 @@ function math.randomseed(x: an_optional_integral, y: an_optional_integral): (int
   ## if x.type.is_niltype and y.type.is_niltype then
   local time_t <cimport,nodecl> = #[types.IntegralType('time_t', primtypes.clong.size)]#
   local function time(tloc: *time_t): time_t <cimport,cinclude'<time.h>',nodecl> end
-  local x: integer = (@integer)(time(nilptr));
-  local y: integer = (@integer)(&x)
+  local x: uint64 = (@uint64)(time(nilptr))
+  local y: uint64 = (@usize)(&x)
   ## elseif y.type.is_niltype then
-  local y: integer = 0
+  local y: uint64 = 0
   ## end
-  default_random:seed((@uint64)(x), (@uint64)(y))
-  return x, y
+  local ix: integer, iy: integer = (@integer)(x), (@integer)(y)
+  default_random:seed((@uint64)(ix), (@uint64)(iy))
+  return ix, iy
 end
 
 --[[

@@ -12,13 +12,13 @@ do -- hash primitive types
 end
 
 do -- hash strings
-  assert(hash.hash('') == 0x9e3779b9_usize)
+  assert(hash.hash('') == (@usize)(0x9e3779b9))
   assert(hash.hash('test') ~= 0)
 end
 
 do -- hash spans
   local s: span(byte)
-  assert(hash.hash(s) == 0x9e3779b9_usize)
+  assert(hash.hash(s) == (@usize)(0x9e3779b9))
   s.data = 'test'_cstring s.size = 4
   assert(hash.hash(s) ~= 0)
 end

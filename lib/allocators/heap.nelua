@@ -42,7 +42,7 @@ This is necessary to break long loops in alloc for edge cases.
 ]]
 local BIN_MAX_LOOKUPS <comptime> = 16
 -- Cookie used to identify invalid realloc/dealloc on invalid pointers.
-local NODE_COOKIE: usize <comptime> = 0xA7512BCF_usize
+local NODE_COOKIE: usize <comptime> = (@usize)(0xA7512BCF)
 
 --[[
 Each chunk have this node as heading before its data.

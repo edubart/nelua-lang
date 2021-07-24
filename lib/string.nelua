@@ -24,6 +24,7 @@ require 'allocators.default'
 require 'detail.patternmatcher'
 
 local errno: cint <cimport,cinclude'<errno.h>',nodecl>
+local function strtol(str: cstring, endptr: *cstring, base: cint): clong <cimport,cinclude'<stdlib.h>',nodecl> end
 local function strtoll(str: cstring, endptr: *cstring, base: cint): clonglong <cimport,cinclude'<stdlib.h>',nodecl> end
 local function strtod(str: cstring, endptr: *cstring): float64 <cimport,cinclude'<stdlib.h>',nodecl> end
 local function strspn(s: cstring, accept: cstring): csize <cimport'strspn',cinclude'<string.h>',nodecl> end
@@ -780,7 +781,12 @@ global function tointeger(x: auto, base: facultative(integer)): integer
     local endptr: cstring, tmpbuf: [65]cchar
     assert(tocstring(&tmpbuf, #tmpbuf, x)) -- ensure it's zero terminated
     errno = 0
+    -- TODO: avoid using 'strtol'
+    ## if ccinfo.is_avr then
+    local i: clong = strtol(&tmpbuf, &endptr, 10)
+    ## else
     local i: clonglong = strtoll(&tmpbuf, &endptr, 10)
+    ## end
     local len: usize = (@usize)(endptr) - (@usize)(&tmpbuf)
     assert(len > 0 and len <= (@usize)(#x) and errno == 0, 'failed to convert string to integer')
     return i

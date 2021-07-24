@@ -49,7 +49,6 @@ do -- utf8.codepoint
   assert(utf8.codepoint("\u{DFFF}", 1, true) == 0xDFFF)
   assert(utf8.codepoint("\u{7FFFFFFF}", 1, true) == 0x7FFFFFFF)
   assert(utf8.codepoint("\u{10FFFF}", 1, true) == 0x10FFFF)
-  assert(utf8.codepoint("\u{7FFFFFFF}", 1, true) == (1<<31) - 1)
 end
 
 do -- utf8.offset

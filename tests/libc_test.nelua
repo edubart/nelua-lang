@@ -20,16 +20,16 @@ do -- math
 end
 
 do -- va_list
-  local function fill_numbers(numbers: *[0]number, n: integer, ...: cvarargs)
+  local function fill_numbers(numbers: *[0]float64, n: integer, ...: cvarargs)
     local vl: cvalist
     C.va_start(vl, n)
     for i=0,<n do
-      numbers[i] = C.va_arg(vl, @number)
+      numbers[i] = C.va_arg(vl, @float64)
     end
     C.va_end(vl)
   end
 
-  local numbers: [4]number
+  local numbers: [4]float64
   fill_numbers(&numbers, 0)
   fill_numbers(&numbers, 1, 0.5)
   assert(numbers[0] == 0.5)
@@ -39,19 +39,20 @@ do -- va_list
   assert(numbers[0] == 2.0 and numbers[1] == 1.0 and numbers[2] == 0.5)
 end
 
-do -- vsscanf
-  local function get_matches(str: cstring, format: cstring, ...: cvarargs)
+do -- vsnprintf
+  local function mysprintf(s: cstring, format: cstring, ...: cvarargs): cint
     local args: cvalist
     C.va_start(args, format)
-    C.vsscanf(str, format, args)
+    local ret: cint = C.vsprintf(s, format, args)
     C.va_end(args)
+    return ret
   end
 
-  local val: cint
-  local buf: [100]cchar
-  get_matches("99 bottles of water", "%d %s", &val, &buf[0]);
-  assert(val == 99)
-  assert(&buf[0] == 'bottles')
+  local hello: cstring = "hello"
+  local val: cint = 10
+  local buf: [256]cchar
+  mysprintf(&buf[0], "%s %d", hello, val);
+  assert(&buf[0] == 'hello 10')
 end
 
 print 'libc OK!'

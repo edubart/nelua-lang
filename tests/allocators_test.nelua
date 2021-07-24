@@ -94,7 +94,7 @@ do -- Pool
 end
 
 do -- Heap
-  local Allocator = @HeapAllocator(65536, true)
+  local Allocator = @HeapAllocator(4096, true)
   local IntVector = @vector(integer, *Allocator)
   local allocator: Allocator
   local va = IntVector.make(&allocator)

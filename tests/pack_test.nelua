@@ -70,48 +70,57 @@ do -- pack/unpack
     assert_check_pack_unpack('\xff', 'b', -1)
     assert_pack_string('\x00', 'b','0')
   end
-  if #@cshort == 2 then -- short
+  ## if primtypes.cshort.size == 2 then
+  do -- short
     assert_check_pack_unpack('\x00\x00\xff\xffPP', 'hhh', 0, -1, 0x5050)
     assert_check_pack_unpack('\x00\x00PP', 'HH', 0, 0x5050)
 
-    assert_pack_unpack('H', 0xffff)
+    assert_pack_unpack('H', 0xffff_u)
     assert_pack_unpack('h', 0x7fff)
     assert_pack_unpack('h', -0x8000)
   end
-  if #@cint == 4 then -- int
+  ## end
+  ## if primtypes.cint.size == 4 then
+  do -- int
     assert_check_pack_unpack('\x00\x00\x00\x00', 'i', 0)
     assert_check_pack_unpack('\xff\xff\xff\xff', 'i',-1)
     assert_check_pack_unpack('PPPP', 'i', 0x50505050)
     assert_check_pack_unpack('\x00\x00\x00\x00', 'I', 0)
     assert_check_pack_unpack('PPPP', 'I', 0x50505050)
 
-    assert_pack_unpack('I', 0xffffffff)
+    assert_pack_unpack('I', 0xffffffff_u)
     assert_pack_unpack('i', 0x7fffffff)
     assert_pack_unpack('i', -0x80000000)
   end
-  if #@clong == 8 then -- long
+  ## end
+  ## if primtypes.clong.size == 8 then
+  do -- long
     assert_check_pack_unpack('\x00\x00\x00\x00\x00\x00\x00\x00', 'l', 0)
     assert_check_pack_unpack('\xff\xff\xff\xff\xff\xff\xff\xff', 'l',-1)
-    assert_check_pack_unpack('PPPPPPPP', 'l', 0x5050505050505050)
+    assert_check_pack_unpack('PPPPPPPP', 'l', 0x5050505050505050_clong)
     assert_check_pack_unpack('\x00\x00\x00\x00\x00\x00\x00\x00', 'L', 0)
-    assert_check_pack_unpack('PPPPPPPP', 'L', 0x5050505050505050)
+    assert_check_pack_unpack('PPPPPPPP', 'L', 0x5050505050505050_culong)
 
-    assert_pack_unpack('L', 0xffffffffffffffff_u)
-    assert_pack_unpack('l', 0x7fffffffffffffff)
-    assert_pack_unpack('l',-0x8000000000000000)
+    assert_pack_unpack('L', 0xffffffffffffffff_culong)
+    assert_pack_unpack('l', 0x7fffffffffffffff_clong)
+    assert_pack_unpack('l',-0x7fffffffffffffff_clong-1)
   end
-  if #@usize == 8 then -- size
+  ## end
+  ## if primtypes.usize.size == 8 then
+  do -- size
     assert_check_pack_unpack('\x00\x00\x00\x00\x00\x00\x00\x00', 't', 0)
     assert_check_pack_unpack('\xff\xff\xff\xff\xff\xff\xff\xff', 't',-1)
-    assert_check_pack_unpack('PPPPPPPP', 't', 0x5050505050505050)
+    assert_check_pack_unpack('PPPPPPPP', 't', 0x5050505050505050_is)
     assert_check_pack_unpack('\x00\x00\x00\x00\x00\x00\x00\x00', 'T', 0)
-    assert_check_pack_unpack('PPPPPPPP', 'T', 0x5050505050505050)
+    assert_check_pack_unpack('PPPPPPPP', 'T', 0x5050505050505050_us)
 
-    assert_pack_unpack('T', 0xffffffffffffffff_u)
-    assert_pack_unpack('t', 0x7fffffffffffffff)
-    assert_pack_unpack('t',-0x8000000000000000)
+    assert_pack_unpack('T', 0xffffffffffffffff_us)
+    assert_pack_unpack('t', 0x7fffffffffffffff_us)
+    assert_pack_unpack('t',-0x7fffffffffffffff_us-1)
   end
-  if #@integer == 8 then -- integer
+  ## end
+  ## if primtypes.integer.size == 8 then
+  do -- integer
     assert_check_pack_unpack('\x00\x00\x00\x00\x00\x00\x00\x00', 'j', 0)
     assert_check_pack_unpack('\xff\xff\xff\xff\xff\xff\xff\xff', 'j',-1)
     assert_check_pack_unpack('PPPPPPPP', 'j', 0x5050505050505050)
@@ -125,6 +134,7 @@ do -- pack/unpack
     assert_pack_unpack('j', 0x7fffffffffffffff)
     assert_pack_unpack('j',-0x8000000000000000)
   end
+  ## end
   do -- sized integer
     assert_check_pack_unpack('\x01\x02\x02\x03\x03\x03', 'i1i2i3', 0x01, 0x0202, 0x030303)
     assert_check_pack_unpack('\x01\x02\x02\x03\x03\x03', 'I1I2I3', 0x01, 0x0202, 0x030303)
@@ -133,7 +143,7 @@ do -- pack/unpack
     assert_check_pack_unpack('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff', 'i10',-1)
     if islittle then
       assert_check_pack_unpack('\xff\xfe\xff\xfd\xff\xff', 'i1i2i3', -1, -2, -3)
-      assert_check_pack_unpack('PPPPPPPP\x00\x00', 'i10', 0x5050505050505050)
+      assert_check_pack_unpack('PPPPPPPP\x00\x00', 'i10', 0x5050505050505050_i64)
       assert_check_pack_unpack('\xfe\xff\xff\xff\xff\xff\xff\xff\xff\xff', 'i10',-2)
       assert_check_pack_unpack('\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00', 'i10', 1)
       assert_check_pack_unpack('\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00', 'I10', 1)
@@ -149,45 +159,49 @@ do -- pack/unpack
     assert_pack_unpack('i4', 0x7fffffff)
     assert_pack_unpack('i4',-0x80000000)
     assert_pack_unpack('i8', 0)
-    assert_pack_unpack('i8', 0x7fffffffffffffff)
-    assert_pack_unpack('i8',-0x8000000000000000)
+    assert_pack_unpack('i8', 0x7fffffffffffffff_i64)
+    assert_pack_unpack('i8',-0x7fffffffffffffff_i64-1)
     assert_pack_unpack('i16', 0)
-    assert_pack_unpack('i16', 0x7fffffffffffffff)
-    assert_pack_unpack('i16',-0x8000000000000000)
+    assert_pack_unpack('i16', 0x7fffffffffffffff_i64)
+    assert_pack_unpack('i16',-0x7fffffffffffffff_i64-1)
     -- unsigned
     assert_pack_unpack('I1', 0)
     assert_pack_unpack('I1', 0xff)
     assert_pack_unpack('I2', 0)
     assert_pack_unpack('I2', 0xffff)
     assert_pack_unpack('I4', 0)
-    assert_pack_unpack('I4', 0xffffffff)
+    assert_pack_unpack('I4', 0xffffffff_u)
     assert_pack_unpack('I8', 0)
-    assert_pack_unpack('I8', 0xffffffffffffffff_u)
+    assert_pack_unpack('I8', 0xffffffffffffffff_u64)
     assert_pack_unpack('I16', 0)
-    assert_pack_unpack('I16', 0xffffffffffffffff_u)
+    assert_pack_unpack('I16', 0xffffffffffffffff_u64)
   end
   do -- float32
     assert_check_pack_unpack('\x00\x00\x00\x00', 'f', 0.0)
-    assert_check_pack_unpack('PPPP', 'f', 0x1.a0a0ap+33)
+    assert_check_pack_unpack('PPPP', 'f', 0x1.a0a0ap+33_f32)
     assert_pack_string('\x00\x00\x00\x00', 'f', '0.0')
     assert_pack_unpack('f', 0.0)
     assert_pack_unpack('f', 1.0)
     assert_pack_unpack('f', #[math.huge]#)
   end
+  ## if primtypes.float64.size == 8 then
   do -- float64
     assert_check_pack_unpack('\x00\x00\x00\x00\x00\x00\x00\x00', 'd', 0.0)
-    assert_check_pack_unpack('PPPPPPPP', 'd', 0x1.050505050505p+262)
+    assert_check_pack_unpack('PPPPPPPP', 'd', 0x1.050505050505p+262_f64)
     assert_pack_unpack('d', 0.0)
     assert_pack_unpack('d', 1.0)
     assert_pack_unpack('d', #[math.huge]#)
   end
-  if #@number == 8 then -- number
+  ## end
+  ## if primtypes.number.size == 8 then
+  do -- number
     assert_check_pack_unpack('\x00\x00\x00\x00\x00\x00\x00\x00', 'n', 0.0)
     assert_check_pack_unpack('PPPPPPPP', 'n', 0x1.050505050505p+262)
     assert_pack_unpack('n', 0.0)
     assert_pack_unpack('n', 1.0)
     assert_pack_unpack('n', #[math.huge]#)
   end
+  ## end
   do -- zero terminated string
     assert_pack_string('1\x00', 'z', 1)
     assert_check_pack_unpack('\x00', 'z', '')

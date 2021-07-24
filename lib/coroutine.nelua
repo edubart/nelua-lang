@@ -2156,5 +2156,7 @@ minicoro_code = "/* begin minicoro.h */\n"..minicoro_code.."/* end minicoro.h */
 
 if ccinfo.is_emscripten then -- asyncify is required on emscripten
   cflags '-s ASYNCIFY=1'
+elseif ccinfo.is_avr then
+  static_error('coroutine is not supported for target platform')
 end
 ]]

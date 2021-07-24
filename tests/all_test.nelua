@@ -1,3 +1,7 @@
+-- ## primtypes.integer = primtypes.int32
+-- ## primtypes.uinteger = primtypes.uint32
+-- ## primtypes.number = primtypes.float32
+
 require 'tests.builtins_test'
 require 'tests.io_test'
 require 'tests.libc_test'

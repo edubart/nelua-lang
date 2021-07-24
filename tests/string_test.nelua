@@ -1,8 +1,8 @@
 require 'string'
 require 'span'
 
-local maxi: integer <comptime> = #[primtypes.isize.max]#
-local mini: integer <comptime> = #[primtypes.isize.min]#
+local maxi: isize <comptime> = #[primtypes.isize.max]#
+local mini: isize <comptime> = #[primtypes.isize.min]#
 
 local function assert_string_eq(a: string, b: string)
   assert(a == b)
@@ -423,11 +423,15 @@ do -- string format
   assert_string_eq(string.format('%c%c', 0x41, 0x42), 'AB')
   assert_string_eq(string.format('%x', 0xff), 'ff')
   assert_string_eq(string.format('%04x', 0xff), '00ff')
-  assert_string_eq(string.format('%u', -1), '18446744073709551615')
+  assert_string_eq(string.format('%u', 10), '10')
+  assert_string_eq(string.format('%i', 10), '10')
+  assert_string_eq(string.format('%d', 10), '10')
   assert_string_eq(string.format('%o', 0xff), '377')
   assert_string_eq(string.format('%X', 0xC001), 'C001')
-  assert_string_eq(string.format('%d', #[math.maxinteger]#), '9223372036854775807')
-  assert_string_eq(string.format('%i', #[math.mininteger]#), '-9223372036854775808')
+  ## if primtypes.integer.size == 8 then
+    assert_string_eq(string.format('%d', #[math.maxinteger]#), '9223372036854775807')
+    assert_string_eq(string.format('%i', #[math.mininteger]#), '-9223372036854775808')
+  ## end
   s = string.format('%a', 1) assert(s:find('p', 1, true) > 0) s:destroy()
   s = string.format('%A', 1) assert(s:find('P', 1, true) > 0) s:destroy()
   assert_string_eq(string.format('%f', 0.1), '0.100000')
@@ -437,7 +441,7 @@ do -- string format
   assert_string_eq(string.format('%g', 0.123), '0.123')
   assert_string_eq(string.format('%G', 0.123e-20):subview(1,6), '1.23E-')
   assert_string_eq(string.format('%p', nilptr), '(null)')
-  s = string.format('%p', (@pointer)(0xffffffff_usize)) assert(s:find('[fF]+', 1) > 0) s:destroy()
+  s = string.format('%p', (@pointer)(-1_isize)) assert(s:find('[fF]+', 1) > 0) s:destroy()
   assert_string_eq(string.format('%s', 'asd'), 'asd')
   assert_string_eq(string.format('%s: %d', 'test', 1), 'test: 1')
   s = string.rep('xuxu', 500) assert_string_eq(string.format('%s', s), s) s:destroy()
@@ -516,21 +520,23 @@ do -- tonumber
   assert(tonumber('f',16) == 15)
   assert(tonumber('-f',16) == -15)
   assert(tonumber('+f',16) == 15)
-  assert(tonumber('abcdef019',16) == 0xabcdef019)
-  assert(tonumber('+abcdef019',16) == 0xabcdef019)
-  assert(tonumber('-abcdef019',16) == -0xabcdef019)
+  assert(tonumber('19abcdef',16) == 0x19abcdef)
+  assert(tonumber('+19abcdef',16) == 0x19abcdef)
+  assert(tonumber('-19abcdef',16) == -0x19abcdef)
   assert(tonumber(' \f\n\r\t\vfe',16) == 254)
   assert(tonumber(' \f\n\r\t\vff \f\n\r\t\v',16) == 255)
   assert(tonumber('1111', 2) == 15)
-  assert(tonumber(#[tostring(primtypes.isize.max)]#, 10) == maxi)
-  assert(tonumber(#[tostring(primtypes.isize.min)]#, 10) == mini)
-  assert(tonumber(#[tostring(primtypes.isize.max+1)]#, 10) == maxi+1)
-  assert(tonumber(#[tostring(primtypes.isize.min+1)]#, 10) == mini+1)
-  assert(tonumber(#[tostring(primtypes.isize.max-1)]#, 10) == maxi-1)
-  assert(tonumber(#[tostring(primtypes.isize.min-1)]#, 10) == mini-1)
-  assert(tonumber(#[tostring(primtypes.isize.max)..'00']#, 10) == maxi * 100)
-  assert(tonumber(#[tostring(primtypes.isize.min)..'00']#, 10) == mini * 100)
-  assert(tonumber('thequickbrownfoxjumpsoverthelazydog', 36) == 447430708471575744)
+  ## if primtypes.integer.size == 8 then
+    assert(tonumber(#[tostring(primtypes.isize.max)]#, 10) == maxi)
+    assert(tonumber(#[tostring(primtypes.isize.min)]#, 10) == mini)
+    assert(tonumber(#[tostring(primtypes.isize.max+1)]#, 10) == maxi+1)
+    assert(tonumber(#[tostring(primtypes.isize.min+1)]#, 10) == mini+1)
+    assert(tonumber(#[tostring(primtypes.isize.max-1)]#, 10) == maxi-1)
+    assert(tonumber(#[tostring(primtypes.isize.min-1)]#, 10) == mini-1)
+    assert(tonumber(#[tostring(primtypes.isize.max)..'00']#, 10) == maxi * 100)
+    assert(tonumber(#[tostring(primtypes.isize.min)..'00']#, 10) == mini * 100)
+    assert(tonumber('thequickbrownfoxjumpsoverthelazydog', 36) == 447430708471575744)
+  ## end
 end
 
 do -- tointeger
