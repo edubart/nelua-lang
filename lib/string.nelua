@@ -407,20 +407,8 @@ local scalar_coercion_concept: type = #[concept(function(x)
   return false, string.format("type '%s' is not convertible to a scalar", x.type)
 end)]#
 
--- Concept to check if a value can possibly be a string.
-local string_coercion_concept: type = #[concept(function(x)
-  if x.type.is_stringy then
-    return primtypes.string
-  elseif x.type.is_integral then
-    return primtypes.integer
-  elseif x.type.is_float then
-    return primtypes.number
-  end
-  return false, string.format("type '%s' is not convertible to a string", x.type)
-end)]#
-
 -- Concatenate two strings. Used by the concatenation operator (`..`).
-function string.__concat(a: string_coercion_concept, b: string_coercion_concept): string
+function string.__concat(a: auto, b: auto): string
   ## if not a.type.is_string then
     local a: string = tostring(a)
     defer a:destroy() end

@@ -2276,7 +2276,7 @@ function PointerType:get_convertible_from_type(type, explicit, autoref)
              is_pointer_subtype_convertible(selfsubtype.subtype, typesubtype.subtype) then
         -- implicit casting from checked arrays pointers to unbounded arrays pointers
         return self
-      elseif self.is_stringy and type.is_bytearray_pointer then
+      elseif self.is_byte_pointer and type.is_bytearray_pointer then
         -- implicit casting from pointer to a byte array to cstring
         return self
       elseif is_pointer_subtype_convertible(selfsubtype, typesubtype) then
