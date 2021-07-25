@@ -189,6 +189,7 @@ Type.shape = shaper.shape {
   is_generic_pointer = shaper.optional_boolean,
   is_cstring = shaper.optional_boolean,
   is_acstring = shaper.optional_boolean,
+  is_byte_pointer = shaper.optional_boolean,
   is_bytearray_pointer = shaper.optional_boolean,
   is_unbounded_pointer = shaper.optional_boolean,
   is_cvalist = shaper.optional_boolean,
@@ -2214,6 +2215,8 @@ function PointerType:_init(subtype)
     if subtype.length == 0 then
       self.is_unbounded_pointer = true
     end
+  elseif subtype.is_integral and subtype.size == 1 then
+    self.is_byte_pointer = true
   end
   Type._init(self, 'pointer', typedefs.ptrsize)
   self.unary_operators['deref'] = subtype

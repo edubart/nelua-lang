@@ -172,13 +172,13 @@ function CEmitter:add_converted_val(type, val, valtype, explicit)
     elseif type.is_boolean then -- ? -> boolean
       self:add_val2boolean(val, valtype)
     elseif type.is_pointer and valtype.is_string and
-          (type.is_cstring or type.is_bytearray_pointer) then -- cstring -> string
+          (type.is_byte_pointer or type.is_bytearray_pointer) then -- cstring -> string
       if not type.is_cstring then
         self:add('(', type, ')')
       end
       self:add_string2cstring(val)
     elseif type.is_string and
-          (valtype.is_cstring or valtype.is_bytearray_pointer) then -- string -> cstring
+          (valtype.is_byte_pointer or valtype.is_bytearray_pointer) then -- string -> cstring
       self:add_cstring2string(val, valtype)
     elseif valattr.comptime and type.is_scalar and valtype.is_scalar and
            (type.is_float or valtype.is_integral) then -- comptime scalar -> scalar
