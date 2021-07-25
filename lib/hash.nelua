@@ -61,11 +61,7 @@ function hash.hash(v: auto): usize
     return (@usize)(v)
   ## elseif v.type.is_float then
     local ne: cint
-    ## if v.type.is_float32 then
-    v = frexp_f32(v, &ne) * -(@float32)(#[primtypes.isize.min]#)
-    ## else
-    v = frexp_f64(v, &ne) * -(@float64)(#[primtypes.isize.min]#)
-    ## end
+    v = #|'frexp_f'..(v.type.is_float32 and '32' or '64')|#(v, &ne) * -(@float32)(#[primtypes.isize.min]#)
     if v ~= v or v == #[math.huge]# or v == -#[math.huge]# then -- non finite
       return 0
     end

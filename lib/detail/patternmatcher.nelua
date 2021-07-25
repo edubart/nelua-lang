@@ -16,8 +16,6 @@ local function isxdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosid
 local function iscntrl(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
 local function isgraph(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
 local function isspace(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
-local function isblank(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
-local function isprint(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
 local function ispunct(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
 
 local MAX_MATCH_CALLS <comptime> = 32
