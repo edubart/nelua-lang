@@ -6,29 +6,30 @@ require 'vector'
 
 do -- Arena
   local allocator: ArenaAllocator(1024,8)
-  local i: *integer = (@*integer)(allocator:alloc0(#integer))
+  local i: *int64 = (@*int64)(allocator:alloc0(#int64))
+  local init: usize = allocator.prev_offset
   assert($i == 0)
   $i = 0xff
   assert($i == 0xff)
-  assert(allocator.prev_offset == 0 and allocator.curr_offset == 8)
+  assert(allocator.prev_offset == init and allocator.curr_offset == init+8)
   allocator:dealloc(i)
-  assert(allocator.prev_offset == 0 and allocator.curr_offset == 0)
-  local ni: *integer = (@*integer)(allocator:alloc0(#integer))
+  assert(allocator.prev_offset == init and allocator.curr_offset == init)
+  local ni: *int64 = (@*int64)(allocator:alloc0(#int64))
   assert(ni == i and $ni == 0)
-  assert(allocator.prev_offset == 0 and allocator.curr_offset == 8)
-  local a: *[0]integer = (@*[0]integer)(allocator:realloc0(i, 32 * #@integer, #@integer))
-  assert((@*integer)(a) == i)
-  assert(allocator.prev_offset == 0 and allocator.curr_offset == 8*32)
+  assert(allocator.prev_offset == init and allocator.curr_offset == init+8)
+  local a: *[0]int64 = (@*[0]int64)(allocator:realloc0(i, 32 * #@int64, #@int64))
+  assert((@*int64)(a) == i)
+  assert(allocator.prev_offset == init and allocator.curr_offset == init +8*32)
   for i=0,<32 do a[i] = 0xff end
-  a = (@*[0]integer)(allocator:realloc0(i, 8 * #@integer, 32 * #@integer))
-  assert(allocator.prev_offset == 0 and allocator.curr_offset == 8*8)
+  a = (@*[0]int64)(allocator:realloc0(i, 8 * #@int64, 32 * #@int64))
+  assert(allocator.prev_offset == init and allocator.curr_offset == init + 8*8)
   for i=0,<8 do assert(a[i] == 0xff) end
-  assert(allocator:realloc0(i, 0, 8 * #@integer) == nilptr)
+  assert(allocator:realloc0(i, 0, 8 * #@int64) == nilptr)
   for i=0,<32 do assert(a[i] == 0xff) end
-  assert(allocator.prev_offset == 0 and allocator.curr_offset == 0)
-  a = (@*[0]integer)(allocator:realloc0(nilptr, 1024, 0))
+  assert(allocator.prev_offset == init and allocator.curr_offset == init)
+  a = (@*[0]int64)(allocator:realloc0(nilptr, 1024-init, 0))
   assert(a ~= nilptr)
-  assert(allocator.prev_offset == 0 and allocator.curr_offset == 1024)
+  assert(allocator.prev_offset == init and allocator.curr_offset == 1024)
   assert(allocator:alloc0(1) == nilptr)
   allocator:deallocall()
   assert(allocator.prev_offset == 0 and allocator.curr_offset == 0)
@@ -63,10 +64,7 @@ do -- Stack
 end
 
 do -- Pool
-  local Object = @record{
-    x: integer,
-    y: integer
-  }
+  local Object = @record{x: int64, y: int64}
   local allocator: PoolAllocator(Object, 2)
   local o: *Object = (@*Object)(allocator:alloc0(#Object))
   assert(allocator.initialized == true)
@@ -84,24 +82,24 @@ do -- Pool
   -- free all
   allocator:deallocall()
   -- realloc
-  local i: *integer = (@*integer)(allocator:realloc0(nilptr, #integer, 0))
-  local ri: *integer = (@*integer)(allocator:realloc0(i, 2*#integer, #integer))
+  local i: *int64 = (@*int64)(allocator:realloc0(nilptr, #int64, 0))
+  local ri: *int64 = (@*int64)(allocator:realloc0(i, 2*#int64, #int64))
   -- should use the same address
   assert(i == ri)
   -- should deallocate
-  ri = (@*integer)(allocator:realloc(ri, 0, 2*#integer))
+  ri = (@*int64)(allocator:realloc(ri, 0, 2*#int64))
   assert(ri == nilptr)
 end
 
 do -- Heap
-  local Allocator = @HeapAllocator(4096, true)
-  local IntVector = @vector(integer, *Allocator)
+  local Allocator = @HeapAllocator(1024)
+  local IntVector = @vector(int64, *Allocator)
   local allocator: Allocator
   local va = IntVector.make(&allocator)
   local vb = IntVector.make(&allocator)
-  for i=1,100 do
+  for i=1,32 do
     va:push(1)
-    vb:push(1)
+    vb:push(2)
   end
   vb:destroy()
   va:destroy()

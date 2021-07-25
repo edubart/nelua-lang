@@ -7,8 +7,8 @@ or may not be supported.
 
 require 'string'
 
-local clock_t <cimport,nodecl> = #[types.IntegralType('clock_t', primtypes.clong.size)]#
-local time_t <cimport,nodecl> = #[types.IntegralType('time_t', primtypes.clong.size)]#
+local clock_t <cimport,nodecl> = #[types.IntegralType('clock_t', primtypes.clong.size, false, primtypes.clong.align)]#
+local time_t <cimport,nodecl> = #[types.IntegralType('time_t', primtypes.clong.size, false, primtypes.clong.align)]#
 
 local tm: type <cimport'tm',nodecl,ctypedef> = @record{
   tm_year: cint,

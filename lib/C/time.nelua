@@ -7,8 +7,10 @@ see [C time documentation](https://www.cplusplus.com/reference/ctime/).
 
 -- Types
 
-global C.clock_t: type <cimport'clock_t',cinclude'<time.h>',nodecl> = #[require'nelua.types'.IntegralType('clock_t', primtypes.clong.size)]#
-global C.time_t: type <cimport'time_t',cinclude'<time.h>',nodecl> = #[require'nelua.types'.IntegralType('time_t', primtypes.clong.size)]#
+global C.clock_t: type <cimport'clock_t',cinclude'<time.h>',nodecl>
+  = #[types.IntegralType('clock_t', primtypes.clong.size, false, primtypes.clong.align)]#
+global C.time_t: type <cimport'time_t',cinclude'<time.h>',nodecl>
+  = #[types.IntegralType('time_t', primtypes.clong.size, false, primtypes.clong.align)]#
 global C.tm: type <cimport'tm',cinclude'<time.h>',nodecl,ctypedef> = @record{
   tm_sec: cint,
   tm_min: cint,

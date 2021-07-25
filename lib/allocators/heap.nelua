@@ -16,7 +16,7 @@ or if the system does not have an allocator.
 
 Its memory cannot grow automatically, use the system's general purpose allocator for that.
 The allocator is not thread safe, it was designed to be used in single thread applications.
-Allocations are always 16 byte aligned.
+Allocations are always aligned to the platform max alignment, typically 16 bytes.
 
 *NOTE*: This is experimental, a bunch of tests were done but is not really battle tested.
 
@@ -27,7 +27,7 @@ and alignment.
 ]]
 
 -- Do not change this alignment, the implementation have this in mind.
-local ALLOC_ALIGN: usize <comptime> = 16
+local ALLOC_ALIGN: usize <comptime> = #[typedefs.maxalign]#
 -- The minimum allocation size for joining and splitting chunks.
 local MIN_ALLOC_SIZE: usize <comptime> = 16
 --[[
@@ -47,7 +47,7 @@ local NODE_COOKIE: usize <comptime> = (@usize)(0xA7512BCF)
 --[[
 Each chunk have this node as heading before its data.
 This node will be 32 bytes on 64bit systems,
-or 16 bytes on 32bit systems, perfect for the 16 byte alignment requirement
+or 16 bytes on 32bit systems, perfect for the 16 byte alignment requirement.
 ]]
 local HeapNode: type = @record{
   size: usize,

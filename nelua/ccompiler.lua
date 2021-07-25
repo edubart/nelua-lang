@@ -167,7 +167,8 @@ local function get_cc_info(cc, cflags)
   ccinfo.sizeof_long_double = ccinfo.sizeof_long_double or 16
   ccinfo.sizeof_float = ccinfo.sizeof_float or 4
   ccinfo.sizeof_double = ccinfo.sizeof_double or 8
-  ccinfo.biggest_alignment = ccinfo.biggest_alignment or ccinfo.sizeof_long_double
+  ccinfo.biggest_alignment = ccinfo.biggest_alignment or
+    math.max(ccinfo.sizeof_long_double, ccinfo.sizeof_long_long)
   if ccinfo.sizeof_pointer then -- ensure some primitive sizes3 have the expected sizes
     except.assertraisef(not ccinfo.char_bit or ccinfo.char_bit == 8,
       "target C 'char' is not 8 bits")

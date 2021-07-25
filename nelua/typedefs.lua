@@ -406,6 +406,8 @@ typedefs.pp_constants = {
   version = function() return version end,
   -- Types module.
   types = function() return types end,
+  -- Typedefs module.
+  typedefs = function() return typedefs end,
   -- Global configuration.
   config = function() return require 'nelua.configer'.get() end,
   -- List of primitive types.
