@@ -10,6 +10,7 @@ local config = require 'nelua.configer'.get()
 local cdefs = require 'nelua.cdefs'
 local memoize = require 'nelua.utils.memoize'
 local version = require 'nelua.version'
+local iterators = require 'nelua.utils.iterators'
 local platform = require 'nelua.utils.platform'
 
 local compiler = {
@@ -22,10 +23,16 @@ end
 
 local function get_compiler_flags(cc)
   for ccname,flags in pairs(cdefs.compilers_flags) do
+    if cc == ccname then
+      return flags
+    end
+  end
+  for ccname,flags in iterators.ospairs(cdefs.compilers_flags) do
     if stringer.endswith(cc, ccname) then
       return flags
     end
-  end --luacov:disable
+  end
+  --luacov:disable
   return cdefs.compilers_flags.cc
 end --luacov: enable
 

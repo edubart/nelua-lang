@@ -261,6 +261,7 @@ local function filter_ast_for_check(t)
       v.forcesymbol = nil
       v.pseudoargattrs = nil
       v.pseudoargtypes = nil
+      v.value = nil
     elseif k == 'pattr' then
       t[k] = nil
     end

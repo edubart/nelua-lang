@@ -495,7 +495,7 @@ it("operation on comptime variables", function()
   expect.generate_c([[
     local a <comptime> = 0xffffffffffffffff_u
     local c <const> = a + a
-  ]], "static const uint64_t c = 18446744073709551614U;")
+  ]], "static const uint64_t c = 18446744073709551614ULL;")
   expect.generate_c([[
     local a <comptime> = 0x7fffffffffffffff
     local c <const> = a + a
@@ -787,7 +787,7 @@ it("function return", function()
   ]], "int64_t f() {\n  return 0;")
   expect.generate_c([[
     local function f(): niltype return end
-  ]], "return (nlniltype)NLNIL;")
+  ]], "return NLNIL;")
   expect.generate_c([[
     local function f(): string return (@string){} end
   ]], "nlstring f() {\n  return (nlstring){0};")
@@ -929,6 +929,15 @@ it("call with side effects", function()
     assert(f(1) + f(2) + f(3) == 6)
     assert(g(f(4), f(5), f(6)) == 15)
   end]],"1\n2\n3\n4\n5\n6")
+
+  expect.run_c([[
+    local R = @record{x: integer, y: integer, z: integer}
+    local function f(x: integer): integer
+      print(x)
+      return x
+    end
+    local a: R = {f(1), f(2)}
+  ]], "1\n2")
 end)
 
 it("unary operator `not`", function()
@@ -1898,6 +1907,38 @@ it("arrays", function()
     do
       local message: [4]string = {'hello'_cstring}
       assert(message[0] == 'hello')
+    end
+  ]])
+  expect.run_c([[
+    local INT4: [4]integer <comptime> = {1,2,3,4}
+    local a: [4]integer = INT4
+    assert(a[0] == 1)
+
+    local R: [3]byte <comptime> = {0xff,0x00,0x00}
+    local G: [3]byte <comptime> = {0x00,0xff,0x00}
+    local B: [3]byte <comptime> = {0x00,0x00,0xff}
+    local Colors: [3][3]byte = {R,G,B}
+    assert(Colors[0] == R)
+    assert(Colors[1] == G)
+    assert(Colors[2] == B)
+
+
+    do
+      local a: [4]integer = INT4
+      assert(a[0] == 1)
+      local colors: [3][3]byte = {R,G,B}
+      assert(colors[0] == R)
+      assert(colors[1] == G)
+      assert(colors[2] == B)
+    end
+    do
+      local function gR() return (@[3]byte){0xff,0x00,0x00} end
+      local function gG() return (@[3]byte){0x00,0xff,0x00} end
+      local function gB() return (@[3]byte){0x00,0x00,0xff} end
+      local colors: [3][3]byte = {gR(),gG(),gB()}
+      assert(colors[0] == R)
+      assert(colors[1] == G)
+      assert(colors[2] == B)
     end
   ]])
 end)

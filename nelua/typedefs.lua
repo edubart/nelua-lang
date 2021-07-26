@@ -102,9 +102,11 @@ if cptrsize >= 4 then
   primtypes.uinteger  = primtypes.uint64
   primtypes.number    = primtypes.float64
 else -- probably a 8bit microcontroller like AVR
+  -- luacov:disable
   primtypes.integer   = primtypes.int32
   primtypes.uinteger  = primtypes.uint32
   primtypes.number    = primtypes.float32
+  -- luacov:enable
 end
 
 -- Complex types.

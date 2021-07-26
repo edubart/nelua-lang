@@ -268,6 +268,17 @@ local function visitor_Array_literal(context, node, littype)
     comptime = comptime and childattr.comptime
     done = done and childtype and childnode.done and true
   end
+  if comptime then
+    local value = {}
+    for i=1,#childnodes do
+      local childnode = childnodes[i]
+      local childattr = childnode.attr
+      assert(childattr.comptime)
+      value[#value+1] = childattr
+    end
+    value.type = littype
+    attr.value = value
+  end
   attr.type = littype
   attr.comptime = comptime
   attr.sideeffect = sideeffect
@@ -2283,9 +2294,6 @@ function visitors.VarDecl(context, node)
         end
       end
       if vartype then
-        if valnode and vartype:is_initializable_from_attr(valnode.attr) then
-          valnode.attr.initializer = true
-        end
         local ok, err = vartype:is_convertible_from(valnode or valtype)
         if not ok then
           varnode:raisef("in variable '%s' declaration: %s", symbol.name, err)

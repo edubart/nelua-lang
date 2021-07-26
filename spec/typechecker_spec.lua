@@ -24,7 +24,6 @@ it("analyzed ast transform", function()
         { n.Number{
           attr = {
             comptime=true,
-            initializer=true,
             base=10,
             type='int64',
             untyped=true,
@@ -1848,9 +1847,9 @@ end)
 
 it("generics", function()
   expect.analyze_ast([[
-    local myarray = #[generic(function(T, N) return types.ArrayType(T, N) end)]#
+    local myarray = #[generic(function(T, N, B) return types.ArrayType(T, N) end)]#
     local M: integer <comptime> = 4
-    local x = @myarray(integer, (M))
+    local x = @myarray(integer, (M), true)
   ]])
   expect.analyze_ast([[
     local int = @integer

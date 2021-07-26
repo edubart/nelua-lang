@@ -206,12 +206,8 @@ end
 local visitors = {}
 cgenerator.visitors = visitors
 
-function visitors.Number(context, node, emitter)
+function visitors.Number(_, node, emitter)
   local attr = node.attr
-  local type = attr.type
-  if not type.is_float and not attr.untyped and not context.state.ininitializer then
-    emitter:add('(', type, ')')
-  end
   emitter:add_scalar_literal(attr.value, attr.type, attr.base)
 end
 
@@ -268,9 +264,12 @@ local function can_use_initializer(childnodes)
     else
       childvalnode = childnode
     end
-    local childvaltype = childvalnode.attr.type
     local sideeffect = childvalnode:recursive_has_attr('sideeffect')
-    if childvaltype.is_array or (hassideeffect and sideeffect) then
+    if hassideeffect and sideeffect then
+      return false
+    end
+    local childvalattr = childvalnode.attr
+    if childvalattr.type.is_array and not childvalattr.comptime then
       return false
     end
     if sideeffect then hassideeffect = true end
@@ -282,134 +281,119 @@ function visitors.InitList(context, node, emitter)
   local attr = node.attr
   local childnodes, type = node, attr.type
   local len = #childnodes
+  local untyped = context.state.untypedinit
   if len == 0 and type.is_aggregate then
-    if not context.state.ininitializer then
-      emitter:add('(', type, ')')
-    end
-    emitter:add_zeroed_type_literal(type)
+    emitter:add_zeroed_type_literal(type, true)
   elseif type.is_composite then
-    if context.state.ininitializer then
-      context:push_forked_state{incompositeinitializer = true}
-      emitter:add('{')
-      emitter:add_list(childnodes)
-      emitter:add('}')
-      context:pop_state()
-    elseif type.cconstruct then -- used to construct vector types when generating GLSL code
+    if type.cconstruct then -- used to construct vector types when generating GLSL code
       --luacov:disable
       emitter:add(type,'(')
-      emitter:add('(')
       emitter:add_list(childnodes)
       emitter:add(')')
       --luacov:enable
     else
-      local useinitializer = can_use_initializer(childnodes)
-      if useinitializer then
-        emitter:add('(',type,'){')
+      if can_use_initializer(childnodes) then
+        if not untyped then
+          emitter:add('(',type,')')
+        end
+        emitter:add_text('{')
+        local lastfieldindex = 0
+        for i=1,#childnodes do
+          local childnode = childnodes[i]
+          if i > 1 then
+            emitter:add_text(', ')
+          end
+          local childvalnode, field
+          if childnode.is_Pair then
+            childvalnode = childnode[2]
+            field = type.fields[childnode[1]]
+            emitter:add('.', field.name, ' = ')
+          else
+            childvalnode = childnode
+            field = type.fields[lastfieldindex + 1]
+          end
+          lastfieldindex = field.index
+          assert(field)
+          local fieldtype = type.fields[field.name].type
+          if fieldtype.is_array then
+            assert(childvalnode.is_InitList)
+            emitter:add_text('{')
+            for j,arrchildnode in ipairs(childvalnode) do
+              if j > 1 then
+                emitter:add_text(', ')
+              end
+              emitter:add_converted_val(fieldtype.subtype, arrchildnode)
+            end
+            emitter:add_text('}')
+          else
+            emitter:add_converted_val(fieldtype, childvalnode)
+          end
+        end
+        emitter:add_text('}')
       else
         emitter:add_ln('({') emitter:inc_indent()
         emitter:add_indent(type, ' _tmp = ')
         emitter:add_zeroed_type_literal(type)
         emitter:add_ln(';')
-      end
-      local lastfieldindex = 0
-      for i,childnode in ipairs(childnodes) do
-        local named = false
-        local childvalnode
-        local field
-        if childnode.is_Pair then
-          childvalnode = childnode[2]
-          field = type.fields[childnode[1]]
-          named = true
-        else
-          childvalnode = childnode
-          field = type.fields[lastfieldindex + 1]
-        end
-        lastfieldindex = field.index
-        assert(field)
-        if useinitializer then
-          if i > 1 then
-            emitter:add(', ')
+        local lastfieldindex = 0
+        for i=1,#childnodes do
+          local childnode = childnodes[i]
+          local childvalnode, field
+          if childnode.is_Pair then
+            childvalnode = childnode[2]
+            field = type.fields[childnode[1]]
+          else
+            childvalnode = childnode
+            field = type.fields[lastfieldindex + 1]
           end
-          if named then
-            emitter:add('.', field.name, ' = ')
-          end
-        else
+          lastfieldindex = field.index
+          assert(field)
           local childvaltype = childvalnode.attr.type
           if childvaltype.is_array then
             emitter:add_indent('(*(', childvaltype, '*)_tmp.', field.name, ') = ')
           else
             emitter:add_indent('_tmp.', field.name, ' = ')
           end
-        end
-        local fieldtype = type.fields[field.name].type
-        assert(fieldtype)
-        emitter:add_converted_val(fieldtype, childvalnode)
-        if not useinitializer then
+          local fieldtype = type.fields[field.name].type
+          emitter:add_converted_val(fieldtype, childvalnode)
           emitter:add_ln(';')
         end
-      end
-      if useinitializer then
-        emitter:add('}')
-      else
         emitter:add_indent_ln('_tmp;')
         emitter:dec_indent() emitter:add_indent('})')
       end
     end
   elseif type.is_array then
-    if context.state.ininitializer then
-      if context.state.incompositeinitializer then
-        emitter:add('{')
-        emitter:add_list(childnodes)
-        emitter:add('}')
+    local subtype = type.subtype
+    if can_use_initializer(childnodes) then
+      if untyped then
+        emitter:add_text('{')
       else
-        emitter:add('{{')
-        emitter:add_list(childnodes)
-        emitter:add('}}')
+        emitter:add('(',type,'){{')
       end
-    else
-      local useinitializer = can_use_initializer(childnodes)
-      if useinitializer then
-        emitter:add('(', type, '){{')
-      else
-        emitter:add_ln('({') emitter:inc_indent()
-        emitter:add_indent(type, ' _tmp = ')
-        emitter:add_zeroed_type_literal(type)
-        emitter:add_ln(';')
-      end
-      local subtype = type.subtype
       for i,childnode in ipairs(childnodes) do
-        if useinitializer then
-          if i > 1 then
-            emitter:add(', ')
-          end
-        else
-          emitter:add_indent('_tmp.v[', i-1 ,'] = ')
+        if i > 1 then
+          emitter:add_text(', ')
         end
         emitter:add_converted_val(subtype, childnode)
-        if not useinitializer then
-          emitter:add_ln(';')
-        end
       end
-      if useinitializer then
-        emitter:add('}}')
+      if untyped then
+        emitter:add_text('}')
       else
-        emitter:add_indent_ln('_tmp;')
-        emitter:dec_indent() emitter:add_indent('})')
+        emitter:add_text('}}')
       end
+    else
+      emitter:add_ln('({') emitter:inc_indent()
+      emitter:add_indent(type, ' _tmp = ')
+      emitter:add_zeroed_type_literal(type)
+      emitter:add_ln(';')
+      for i=1,#childnodes do
+        emitter:add_indent('_tmp.v[', i-1 ,'] = ')
+        emitter:add_converted_val(subtype, childnodes[i])
+        emitter:add_ln(';')
+      end
+      emitter:add_indent_ln('_tmp;')
+      emitter:dec_indent() emitter:add_indent('})')
     end
-  else --luacov:disable
-    error('not implemented yet')
-  end --luacov:enable
-end
-
-function visitors.Pair(_, node, emitter)
-  local namenode, valnode = node[1], node[2]
-  local parenttype = node.attr.parenttype
-  if parenttype and parenttype.is_composite then
-    assert(traits.is_string(namenode))
-    local field = parenttype.fields[namenode]
-    emitter:add('.', cdefs.quotename(field.name), ' = ')
-    emitter:add_converted_val(field.type, valnode)
   else --luacov:disable
     error('not implemented yet')
   end --luacov:enable
@@ -1071,17 +1055,23 @@ function visitors.VarDecl(context, node, emitter)
       local declared, defined
       if varattr.staticstorage then -- declare variables in the top scope
         local decemitter = CEmitter(context)
-        local custominit = valnode and valnode.attr.initializer
+        local custominit = valnode and vartype:is_initializable_from_attr(valnode.attr)
         declared = true
         defined = custominit or (not valnode and not lastcallindex)
         varnode.attr.ignoreconst = not defined
         decemitter:add_indent(varnode)
         if custominit then -- initialize to const values
           assert(not lastcallindex)
-          decemitter:add(' = ')
-          context:push_forked_state{ininitializer = true}
+          decemitter:add_text(' = ')
+          if vartype.is_array then
+            decemitter:add_text('{.v = ')
+          end
+          context:push_forked_state{untypedinit = true}
           decemitter:add_converted_val(vartype, valnode)
           context:pop_state()
+          if vartype.is_array then
+            decemitter:add_text('}')
+          end
         end
         decemitter:add_ln(';')
         context:add_declaration(decemitter:generate())

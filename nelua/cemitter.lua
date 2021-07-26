@@ -37,9 +37,6 @@ Adds literal for type `type` initialized to zeros.
 If `typed` is `true` then a type cast will precede its literal.
 ]]
 function CEmitter:add_zeroed_type_literal(type, typed)
-  if typed and not (type.is_boolean or type.is_scalar or type.is_pointer) then
-    self:add('(', type, ')')
-  end
   local s
   if type.is_float128 and not self.context.pragmas.nofloatsuffix then
     s = '0.0q'
@@ -59,10 +56,15 @@ function CEmitter:add_zeroed_type_literal(type, typed)
     s = self.context:ensure_builtin('NULL')
   elseif type.is_boolean then
     s = self.context:ensure_builtin('false')
-  elseif type.is_empty then
-    s = '{}'
-  else -- should initialize almost anything in C
-    s = '{0}'
+  else
+    if typed then
+      self:add('(', type, ')')
+    end
+    if type.is_empty then
+      s = '{}'
+    else -- should initialize almost anything in C
+      s = '{0}'
+    end
   end
   self:add_text(s)
 end
@@ -182,7 +184,7 @@ function CEmitter:add_converted_val(type, val, valtype, explicit)
       self:add_cstring2string(val, valtype)
     elseif valattr.comptime and type.is_scalar and valtype.is_scalar and
            (type.is_float or valtype.is_integral) then -- comptime scalar -> scalar
-      self:add_scalar_literal(valattr.value, type, valattr.base)
+      self:add_scalar_literal(valattr.value, type, valattr.base, true)
     elseif type.is_pointer and valtype.is_aggregate and valtype == type.subtype then -- auto ref
       self:add('(&', val, ')')
     elseif type.is_aggregate and valtype.is_pointer and valtype.subtype == type then -- auto deref
@@ -225,14 +227,14 @@ function CEmitter:add_short_string_literal(val, ascstring)
   if ascstring then
     self:add(quoted_value)
   else
-    local ininitializer = context.state.ininitializer
-    if not ininitializer then
+    local untypedinit = context.state.untypedinit
+    if not untypedinit then
       self:add_text('(')
       self:add('(', primtypes.string, ')')
     end
     self.context:ensure_type(primtypes.uint8)
     self:add('{(uint8_t*)', quoted_value, ', ', #val, '}')
-    if not ininitializer then
+    if not untypedinit then
       self:add_text(')')
     end
   end
@@ -244,7 +246,7 @@ Intended for long strings, because it may use multiple lines.
 ]]
 function CEmitter:add_long_string_literal(val, ascstring)
   local context = self.context
-  local ininitializer = context.state.ininitializer
+  local untypedinit = context.state.untypedinit
   local stringliterals = context.stringliterals
   local varname = stringliterals[val]
   local size = #val
@@ -252,12 +254,12 @@ function CEmitter:add_long_string_literal(val, ascstring)
     if ascstring then
       self:add_text(varname)
     else
-      if not ininitializer then
+      if not untypedinit then
         self:add('((', primtypes.string, ')')
       end
       self.context:ensure_type(primtypes.uint8)
       self:add('{(uint8_t*)', varname, ', ', size, '}')
-      if not ininitializer then
+      if not untypedinit then
         self:add_text(')')
       end
     end
@@ -285,13 +287,13 @@ function CEmitter:add_long_string_literal(val, ascstring)
   if ascstring then
     self:add_text(varname)
   else
-    if not ininitializer then
+    if not untypedinit then
       self:add_text('(')
       self:add('(', primtypes.string, ')')
     end
     self.context:ensure_type(primtypes.uint8)
     self:add('{(uint8_t*)', varname, ', ', size, '}')
-    if not ininitializer then
+    if not untypedinit then
       self:add_text(')')
     end
   end
@@ -350,10 +352,41 @@ function CEmitter:add_scalar_literal(num, numtype, base)
   elseif numtype.is_unsigned then
     self:add_text('U')
   end
+  if numtype.is_integral and not primtypes.cint:is_inrange(num) then
+    if numtype.is_clong or numtype.is_culong then
+      self:add_text('L')
+    elseif numtype.is_clonglong or numtype.is_culonglong or
+          (numtype.is_signed and primtypes.clonglong:is_inrange(num)) or
+          (numtype.is_unsigned and primtypes.culonglong:is_inrange(num)) then
+      self:add_text('LL')
+    end
+  end
   if minusone then
     self:add_text('-1)')
   end
 end
+
+-- Adds a array literal from list of attrs `valattrs`.
+function CEmitter:add_array_literal(valattrs, arrtype)
+  local context = self.context
+  local untypedinit = context.state.untypedinit
+  if untypedinit then
+    self:add('{')
+  else
+    self:add('(', arrtype, '){{')
+  end
+  local subtype = arrtype.subtype
+  for i=1,#valattrs do
+    if i > 1 then self:add_text(', ') end
+    self:add_literal(valattrs[i], subtype)
+  end
+  if untypedinit then
+    self:add('}')
+  else
+    self:add('}}')
+  end
+end
+
 
 -- Adds a literal from attr `valattr`.
 function CEmitter:add_literal(valattr)
@@ -372,6 +405,8 @@ function CEmitter:add_literal(valattr)
     self:add_text(self.context:declname(value))
   elseif valtype.is_niltype then
     self:add_nil_literal()
+  elseif valtype.is_array then
+    self:add_array_literal(value, valtype)
   else --luacov:disable
     errorer.errorf('not implemented: `CEmitter:add_literal` for valtype `%s`', valtype)
   end --luacov:enable
