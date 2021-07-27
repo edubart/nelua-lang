@@ -1668,7 +1668,6 @@ end
 
 local function visitor_Type_FieldIndex(context, node, objtype, name)
   objtype = objtype:implicit_deref_type()
-  node.attr.indextype = objtype
   if objtype.is_enum then
     return visitor_EnumType_FieldIndex(context, node, objtype, name)
   elseif objtype.is_record then
