@@ -336,9 +336,10 @@ function CEmitter:add_scalar_literal(num, numtype, base)
       num = num + 1
       self:add_text('(')
     end
-    if not base or base == 10 or num:isneg() then -- use decimal base
+    if (not base and num ~= numtype.min and num ~= numtype.max) or
+        base == 10 or num:isneg() then -- use decimal base
       self:add_text(bn.todecint(num))
-    else -- use hexadeciaml base
+    else -- use hexadecimal base
       self:add('0x', bn.tohexint(num))
     end
   end

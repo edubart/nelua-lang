@@ -2544,7 +2544,7 @@ it("automatic casting", function()
   expect.generate_c([[
     local a = (@uint8)(-1)
     local b: uint8 = (@uint8)(-1)
-  ]], {"a = 255U", "b = 255U"})
+  ]], {"a = 0xffU", "b = 0xffU"})
   expect.run_c([[
     do
       local i8: int8

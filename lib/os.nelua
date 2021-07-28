@@ -281,12 +281,12 @@ function os.tmpname(): string <polymorphic>
   cinclude '<stdio.h>' -- for tmpnam
   cinclude '<stdbool.h>' -- for true/false
   cemitdecl[[
-#ifndef _WIN32
+#if !defined(_WIN32) && defined(__unix__)
 #include <unistd.h>
 #endif
 ]]
   cemit[[
-#ifndef _WIN32
+#if !defined(_WIN32) && defined(__unix__)
   char* tmpdir = getenv("TMPDIR");
   if(tmpdir != NULL) {
     strncpy(bufcs, tmpdir, 260);

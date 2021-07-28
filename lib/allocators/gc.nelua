@@ -426,9 +426,8 @@ Initializes the garbage collector.
 This is called automatically when the starting the application.
 ]]
 function GC:init(stack: pointer): void
-  local UINTPTR_MAX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
   self.stackbottom = stack
-  self.minaddr = UINTPTR_MAX
+  self.minaddr = (@usize)(-1)
   self.pause = 200
   GC_registerroots(self)
   self:restart()

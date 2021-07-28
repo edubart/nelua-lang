@@ -6,7 +6,6 @@ Used by string `find`, `match`, `gsub` and `gmatch` functions.
 
 require 'memory'
 
-local function tolower(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
 local function isalnum(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
 local function isalpha(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
 local function islower(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
@@ -70,23 +69,30 @@ end
 function PatternMatcher._match(ms: *PatternMatcher, s: isize, p: isize): isize
   local function match_class(c: byte, cl: byte): boolean
     local res: boolean
-    switch tolower(cl)
-      case 'a'_byte then res = isalpha(c) ~= 0
-      case 'c'_byte then res = iscntrl(c) ~= 0
-      case 'd'_byte then res = isdigit(c) ~= 0
-      case 'g'_byte then res = isgraph(c) ~= 0
-      case 'l'_byte then res = islower(c) ~= 0
-      case 'p'_byte then res = ispunct(c) ~= 0
-      case 's'_byte then res = isspace(c) ~= 0
-      case 'u'_byte then res = isupper(c) ~= 0
-      case 'w'_byte then res = isalnum(c) ~= 0
-      case 'x'_byte then res = isxdigit(c) ~= 0
-      case 'z'_byte then res = (c == 0) -- deprecated option
-      else return (cl == c)
-    end
-    if islower(cl) == 0 then
-      res = not res
-    end
+    switch cl
+    case 'a'_b then res = isalpha(c) ~= 0
+    case 'A'_b then res = isalpha(c) == 0
+    case 'c'_b then res = iscntrl(c) ~= 0
+    case 'C'_b then res = iscntrl(c) == 0
+    case 'd'_b then res = isdigit(c) ~= 0
+    case 'D'_b then res = isdigit(c) == 0
+    case 'g'_b then res = isgraph(c) ~= 0
+    case 'G'_b then res = isgraph(c) == 0
+    case 'l'_b then res = islower(c) ~= 0
+    case 'L'_b then res = islower(c) == 0
+    case 'p'_b then res = ispunct(c) ~= 0
+    case 'P'_b then res = ispunct(c) == 0
+    case 's'_b then res = isspace(c) ~= 0
+    case 'S'_b then res = isspace(c) == 0
+    case 'u'_b then res = isupper(c) ~= 0
+    case 'U'_b then res = isupper(c) == 0
+    case 'w'_b then res = isalnum(c) ~= 0
+    case 'W'_b then res = isalnum(c) == 0
+    case 'x'_b then res = isxdigit(c) ~= 0
+    case 'X'_b then res = isxdigit(c) == 0
+    case 'z'_b then res = c == 0 -- deprecated option
+    case 'Z'_b then res = c ~= 0 -- deprecated option
+    else return cl == c end
     return res
   end
 

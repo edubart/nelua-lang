@@ -309,14 +309,14 @@ function cbuiltins.nelua_string2cstring_(context, checked)
   if checked then
     context:ensure_builtins('nelua_panic_cstring', 'nelua_unlikely')
     code = [[{
-    if(s.size == 0) {
-      return (char*)"";
-    }
-    if(nelua_unlikely(s.data[s.size]) != 0) {
-      nelua_panic_cstring("attempt to convert a non null terminated string to cstring");
-    }
-    return (char*)s.data;
-  }]]
+  if(s.size == 0) {
+    return (char*)"";
+  }
+  if(nelua_unlikely(s.data[s.size]) != 0) {
+    nelua_panic_cstring("attempt to convert a non null terminated string to cstring");
+  }
+  return (char*)s.data;
+}]]
   else
     code = [[{
   return (s.size == 0) ? (char*)"" : (char*)s.data;

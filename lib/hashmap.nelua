@@ -55,7 +55,7 @@ local GROW_RATE: usize <comptime> = 200
 -- Initial bucket capacity to reserve when inserting an element for the first time in a container.
 local INIT_CAPACITY: usize <comptime> = 16
 -- Constant used to test invalid index.
-local INVALID_INDEX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
+local INVALID_INDEX: usize <comptime> = (@usize)(-1)
 
 ## local make_hashmapT = generalize(function(K, V, HashFunc, Allocator)
   ## static_assert(traits.is_type(K), "invalid type '%s'", K)
