@@ -1,0 +1,96 @@
+require 'math'
+require 'os'
+require 'io'
+
+local GRID_WIDTH <comptime> = 40
+local GRID_HEIGHT <comptime> = 15
+
+-- Two-dimensional field of cells.
+local CellField = @record{
+  cells: [GRID_HEIGHT][GRID_WIDTH]boolean,
+}
+
+-- Returns an empty field.
+function CellField.new(): *CellField
+  return new(@CellField)
+end
+
+-- Sets the state of the specified cell to the given value..
+function CellField:set_alive(x: integer, y: integer, b: boolean)
+  self.cells[y][x] = b
+end
+
+--[[
+Reports whether the specified cell is alive.
+If the x or y coordinates are outside the field boundaries they are wrapped.
+]]
+function CellField:is_alive(x: integer, y: integer)
+  return self.cells[(y + GRID_HEIGHT) % GRID_HEIGHT][(x + GRID_WIDTH) % GRID_WIDTH]
+end
+
+-- Returns the state of the specified cell at the next time step.
+function CellField:next(x: integer, y: integer): boolean
+  -- Count adjacent cells that are alive.
+  local alive = 0
+  for i=-1,1 do
+    for j=-1,1 do
+      if (j ~= 0 or i ~= 0) and self:is_alive(x+i, y+j) then
+        alive = alive + 1
+      end
+    end
+  end
+  --[[
+  Returns next state according to the game rules:
+   - exactly 3 neighbors: on
+   - exactly 2 neighbors: maintain current state
+   - otherwise: off
+  ]]
+  return alive == 3 or (alive == 2 and self:is_alive(x, y))
+end
+
+-- Stores round state of Conway's Game of Life.
+local GameState = @record{
+  a: *CellField, b: *CellField
+}
+
+-- Returns a new game state with a random initial cells.
+function GameState.new(seed: integer): GameState
+  math.randomseed(seed)
+  local a = CellField.new()
+  for i=1,GRID_WIDTH*GRID_HEIGHT/4 do
+    a:set_alive(math.random(0, GRID_WIDTH-1), math.random(0, GRID_HEIGHT-1), true)
+  end
+  return (@GameState){a=a, b=CellField.new()}
+end
+
+-- Advances the game by one instant, recomputing and updating all cells.
+function GameState:step()
+  for y=0,GRID_HEIGHT-1 do
+    for x=0,GRID_WIDTH-1 do
+      self.b:set_alive(x, y, self.a:next(x, y))
+    end
+  end
+  self.a, self.b = self.b, self.a -- swap fields
+end
+
+-- Returns the game board as a string.
+function GameState:render()
+  io.write("\27c") -- clear screen
+  for y=0,GRID_HEIGHT-1 do
+    for x=0,GRID_WIDTH-1 do
+      io.write(self.a:is_alive(x, y) and 'O' or ' ') -- draw cell
+    end
+    io.write('\n')
+  end
+  io.flush() -- flush screen
+end
+
+-- Create new game.
+local l = GameState.new(1)
+
+-- Run game of life for 300 frames.
+for i=1,300 do
+  l:step()
+  l:render()
+  os.sleep(1/24)
+end
