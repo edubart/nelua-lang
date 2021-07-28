@@ -31,7 +31,7 @@ it("run simple programs", function()
   expect.run({'--generator', 'lua', '--eval', "print(_G.arg[1])", "hello"}, 'hello')
   expect.run({'--eval', ""})
   local ccinfo = ccompiler.get_cc_info()
-  if ccinfo.is_gcc and ccinfo.is_linux then
+  if ccinfo.is_gcc and not ccinfo.is_clang and ccinfo.is_linux then
     expect.run({'--eval', "## cflags '-w -g' linklib 'm' ldflags '-s'"})
   end
 end)
@@ -179,7 +179,7 @@ the sum is:
 mylib - terminate]])
     os.remove('libmylib.a')
     os.remove('libmylib.o')
-    os.remove('mylib_test')
+    os.remove('mylib_test') os.remove('mylib_test.exe')
   end
 end)
 

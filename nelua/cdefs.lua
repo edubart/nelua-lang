@@ -174,6 +174,8 @@ compilers_flags['g++'] = tabler.update(tabler.copy(compilers_flags.gcc), {
 compilers_flags.clang = tabler.copy(compilers_flags.gcc)
 -- Clang (C++)
 compilers_flags['clang++'] = tabler.copy(compilers_flags['g++'])
+-- Zig CC
+compilers_flags['zig cc'] = compilers_flags.clang
 
 -- Code to detect target features.
 cdefs.target_info_code = [[

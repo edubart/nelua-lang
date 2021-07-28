@@ -1,7 +1,7 @@
 ##[[
 cflags '-O3'
 cdefine 'SDL_MAIN_HANDLED'
-if ccinfo.is_gcc then
+if ccinfo.is_gcc and not ccinfo.is_clang then
   cflags '-ffast-math -march=native -fopenmp'
 else
   cdefine 'SDL_DISABLE_IMMINTRIN_H'

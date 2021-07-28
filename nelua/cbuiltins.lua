@@ -897,7 +897,11 @@ function cbuiltins.operators.shl(_, node, emitter, lattr, rattr, lname, rname)
   assert(ltype.is_integral and rtype.is_integral)
   if rattr.comptime and rattr.value >= 0 and rattr.value < ltype.bitsize then
     -- no overflow possible, can use plain C shift
-    emitter:add('(', lname, ' << ', rname, ')')
+    if ltype.is_unsigned then
+      emitter:add('(', lname, ' << ', rname, ')')
+    else
+      emitter:add('((',ltype,')((',ltype:unsigned_type(),')', lname, ' << ', rname, '))')
+    end
   else
     emitter:add_builtin('nelua_shl_', type)
     emitter:add('(', lname, ', ', rname, ')')
