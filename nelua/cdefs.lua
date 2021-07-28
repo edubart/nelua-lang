@@ -180,7 +180,7 @@ compilers_flags['zig cc'] = compilers_flags.clang
 -- Code to detect target features.
 cdefs.target_info_code = [[
 /* OS */
-#if defined(__unix__) || defined(__unix)
+#if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
 is_unix = true;
 #endif
 #if defined(__linux__) || defined(__linux)

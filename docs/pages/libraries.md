@@ -1417,6 +1417,41 @@ In POSIX systems, this function also creates a file with that name, to avoid sec
 You still have to open the file to use it and to remove it (even if you do not use it).
 When possible, you may prefer to use `io.tmpfile`, which automatically removes the file when the program ends.
 
+### os.now
+
+```nelua
+function os.now(): number
+```
+
+Get time elapsed in seconds since its first call using a high resolution timer.
+Returns a number greater or equal than `0` on success, otherwise `-1`.
+
+In the first successful call `0` is returned,
+in subsequent calls the relative time in seconds since the first call is returned.
+This is typically used to compute time differences with high precision.
+
+The time resolution is unspecified and depends on the OS,
+but typically has nanosecond precision on POSIX systems.
+
+The operation may not be supported by all systems, or may fail in some systems,
+in that case `-1` is returned.
+
+### os.sleep
+
+```nelua
+function os.sleep(secs: number): boolean
+```
+
+Sleep the current OS thread for `secs` seconds.
+Returns true on success, otherwise false.
+
+The operation typically has at least millisecond precision,
+the sleep time will be typically the requested one,
+but can be a little lower or higher depending on the system.
+
+The operation may not be supported by all systems, or may fail in some systems,
+in that case false is returned.
+
 ---
 ## span
 
@@ -1758,7 +1793,7 @@ Return length of a string. Used by the length operator (`#`).
 ### string.__concat
 
 ```nelua
-function string.__concat(a: string_coercion_concept, b: string_coercion_concept): string
+function string.__concat(a: auto, b: auto): string
 ```
 
 Concatenate two strings. Used by the concatenation operator (`..`).
@@ -4328,7 +4363,7 @@ or if the system does not have an allocator.
 
 Its memory cannot grow automatically, use the system's general purpose allocator for that.
 The allocator is not thread safe, it was designed to be used in single thread applications.
-Allocations are always 16 byte aligned.
+Allocations are always aligned to the platform max alignment, typically 16 bytes.
 
 *NOTE*: This is experimental, a bunch of tests were done but is not really battle tested.
 

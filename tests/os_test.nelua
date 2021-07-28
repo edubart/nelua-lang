@@ -58,6 +58,14 @@ do -- os.time
   assert(os.time(os.timedesc{year=2020,month=7,day=18,hour=12,isdst=false}) > 0)
 end
 
+do -- os.now/os.sleep
+  assert(os.now() == 0.0)
+  os.sleep(0.004)
+  assert(os.now() >= 0.004)
+  os.sleep(0.004)
+  assert(os.now() >= 0.008)
+end
+
 print 'os OK!'
 
 do -- os.exit

@@ -170,18 +170,23 @@ If the file name is not an absolute path and not between `<>` or `""`,
 then looks for files in the current source file directory.
 ]]
 function CContext:ensure_include(name)
-  -- normalize include name
-  local incname = name
+  local directives = self.directives
+  if directives[name] then return end
+  -- normalize include code
+  local inccode = name
   local searchinc = false
-  if not name:match('^["<].*[>"]$') then
-    incname = '<'..name..'>'
-    searchinc = true
+  if not inccode:find('[#\n]') then
+    if not name:match('^["<].*[>"]$') then
+      inccode = '<'..name..'>'
+      searchinc = true
+    end
+    inccode = '#include '..inccode..'\n'
+    if directives[inccode] then return end
   end
   -- add include directive
-  local directives = self.directives
-  if directives[incname] then return end
-  directives[incname] = true
-  directives[#directives+1] = '#include '..incname..'\n'
+  directives[inccode] = true
+  directives[name] = true
+  directives[#directives+1] = inccode
   -- make sure to add the include directory for that file
   if searchinc and not fs.isabs(name) then
     local dirpath = self:get_visiting_directory()

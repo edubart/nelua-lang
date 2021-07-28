@@ -87,14 +87,19 @@ function io.popen(prog: string, mode: facultative(string)) : (filestream, string
 ##[==[
   cinclude '<stdio.h>' -- for popen/pclose
   cinclude '<stddef.h>' -- for NULL
+  cinclude [[
+#if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
+  #include <unistd.h>
+#endif
+]]
   cemit[[
-#if !defined(_WIN32) && defined(__unix__)
+#ifdef _WIN32
+  fp = _popen(progcs, modecs);
+  closef = _pclose;
+#elif _POSIX_VERSION >= 200112L
   fflush(NULL);
   fp = popen(progcs, modecs);
   closef = pclose;
-#else
-  fp = _popen(progcs, modecs);
-  closef = _pclose;
 #endif
 ]]
 ]==]

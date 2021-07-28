@@ -280,13 +280,13 @@ function os.tmpname(): string <polymorphic>
   cinclude '<stdlib.h>' -- for getenv
   cinclude '<stdio.h>' -- for tmpnam
   cinclude '<stdbool.h>' -- for true/false
-  cemitdecl[[
-#if !defined(_WIN32) && defined(__unix__)
-#include <unistd.h>
+  cinclude [[
+#if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
+  #include <unistd.h>
 #endif
 ]]
-  cemit[[
-#if !defined(_WIN32) && defined(__unix__)
+  cemit [[
+#if _POSIX_VERSION >= 200112L
   char* tmpdir = getenv("TMPDIR");
   if(tmpdir != NULL) {
     strncpy(bufcs, tmpdir, 260);
@@ -311,4 +311,143 @@ function os.tmpname(): string <polymorphic>
   else
     return (@string){}
   end
+end
+
+--[[
+Get time elapsed in seconds since its first call using a high resolution timer.
+Returns a number greater or equal than `0` on success, otherwise `-1`.
+
+In the first successful call `0` is returned,
+in subsequent calls the relative time in seconds since the first call is returned.
+This is typically used to compute time differences with high precision.
+
+The time resolution is unspecified and depends on the OS,
+but typically has nanosecond precision on POSIX systems.
+
+The operation may not be supported by all systems, or may fail in some systems,
+in that case `-1` is returned.
+]]
+function os.now(): number <polymorphic>
+  local ok: boolean = false
+  local ns: int64
+##[==[
+  cinclude '<time.h>' -- for timespec_get/TIME_UTC
+  cinclude '<stdbool.h>' -- for bool
+  cinclude '<stdint.h>' -- for int64_t
+  cinclude [[
+#if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
+  #include <unistd.h>
+#endif
+]]
+  cemitdecl [[
+#if __STDC_VERSION__ >= 201112L && defined(TIME_UTC)
+  #define _HAVE_C11_TIMESPEC_GET
+#elif defined(_POSIX_TIMERS) && defined(_POSIX_MONOTONIC_CLOCK)
+  #define _HAVE_POSIX_MONOTONIC_CLOCK
+#elif _POSIX_VERSION >= 200112L
+  #include <sys/time.h>
+  #define _HAVE_POSIX_GETTIMEOFDAY
+#endif
+]]
+  cemit [[
+#if defined(_HAVE_C11_TIMESPEC_GET)
+  static bool initialized = false;
+  static struct timespec start = {0};
+  errno = 0;
+  if(!initialized) {
+    initialized = true;
+    ok = timespec_get(&start, TIME_UTC) == TIME_UTC;
+    ns = 0;
+  } else {
+    struct timespec ts = {0};
+    ok = timespec_get(&ts, TIME_UTC) == TIME_UTC;
+    ns = (int64_t)(ts.tv_sec - start.tv_sec)*1000000000 + (int64_t)(ts.tv_nsec - start.tv_nsec);
+  }
+#elif defined(_HAVE_POSIX_MONOTONIC_CLOCK)
+  static bool initialized = false;
+  static struct timespec start = {0};
+  errno = 0;
+  if(!initialized) {
+    initialized = true;
+    ok = clock_gettime(CLOCK_MONOTONIC, &start) == 0;
+    ns = 0;
+  } else {
+    struct timespec ts = {0};
+    ok = clock_gettime(CLOCK_MONOTONIC, &ts) == 0;
+    ns = (int64_t)(ts.tv_sec - start.tv_sec)*1000000000 + (int64_t)(ts.tv_nsec - start.tv_nsec);
+  }
+#elif defined(_HAVE_POSIX_GETTIMEOFDAY)
+  static bool initialized = false;
+  static struct timeval start = {0};
+  errno = 0;
+  if(!initialized) {
+    initialized = true;
+    ok = gettimeofday(&start, NULL) == 0;
+    ns = 0;
+  } else {
+    struct timeval ts;
+    ok = gettimeofday(&ts, NULL) == 0;
+    ns = (int64_t)(ts.tv_sec - start.tv_sec)*1000000000 + (int64_t)(ts.tv_usec - start.tv_usec)*1000;
+  }
+#endif
+]]
+]==]
+  if not ok then return -1.0 end
+  return ns / 1000000000.0
+end
+
+--[[
+Sleep the current OS thread for `secs` seconds.
+Returns true on success, otherwise false.
+
+The operation typically has at least millisecond precision,
+the sleep time will be typically the requested one,
+but can be a little lower or higher depending on the system.
+
+The operation may not be supported by all systems, or may fail in some systems,
+in that case false is returned.
+]]
+function os.sleep(secs: number): boolean <polymorphic>
+  local us: uint64 <nodce> = (@uint64)(secs * 1000000)
+  local ok: boolean = false
+##[==[
+  cinclude '<time.h>' -- for nanosleep
+  cinclude '<stdbool.h>' -- for true
+  cinclude '<errno.h>' -- for errno
+  cinclude [[
+#if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
+  #include <unistd.h>
+#endif
+]]
+  cinclude [[
+#ifdef _WIN32
+  #ifndef WIN32_LEAN_AND_MEAN
+    #define WIN32_LEAN_AND_MEAN
+  #endif
+  #include <windows.h>
+#endif
+]]
+  cemit [[
+#ifdef _WIN32
+  unsigned int ms = (us + 999) / 1000;
+  if(ms > 0) {
+    Sleep(ms);
+  }
+  ok = true;
+#elif _POSIX_VERSION >= 200112L
+  if(us > 0) {
+    struct timespec ts;
+    ts.tv_sec = us / 1000000;
+    ts.tv_nsec = (us % 1000000) * 1000;
+    int res;
+    do {
+      errno = 0;
+      res = nanosleep(&ts, &ts);
+    } while(res != 0 && errno == EINTR);
+    ok = res == 0;
+  }
+#endif
+]]
+]==]
+  return ok
 end
