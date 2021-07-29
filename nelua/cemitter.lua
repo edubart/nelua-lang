@@ -415,7 +415,7 @@ end
 
 function CEmitter:add_type_qualifiers(type)
   if type.aligned then
-    self:add(' __attribute__((aligned(', type.aligned, ')))')
+    self:add(' ', self.context:ensure_builtin('nelua_aligned'), '(', type.aligned, ')')
   end
   if type.packed then
     self:add(' __attribute__((packed))')
@@ -429,6 +429,9 @@ function CEmitter:add_qualified_declaration(attr, type, name)
     context:ensure_include(attr.cinclude)
   end
   -- storage specifiers
+  if attr.aligned then
+    self:add(context:ensure_builtin('nelua_alignas'), '(', attr.aligned, ') ')
+  end
   if attr.cimport and attr.codename ~= 'nelua_main' then
     self:add(context:ensure_builtin('nelua_cimport'), ' ')
   elseif attr.cexport then
@@ -473,7 +476,6 @@ function CEmitter:add_qualified_declaration(attr, type, name)
   if attr.restrict then
     self:add('__restrict ')
   end
-  -- TODO: _Alignas?
   if attr.cattribute then
     self:add(string.format('__attribute__((%s)) ', attr.cattribute))
   end

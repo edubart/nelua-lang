@@ -60,9 +60,9 @@ cgenerator.typevisitors = typevisitors
 
 typevisitors[types.ArrayType] = function(context, type)
   local decemitter = CEmitter(context)
-  decemitter:add('typedef struct {', type.subtype, ' v[', type.length, '];} ', type.codename)
+  decemitter:add('typedef struct')
   decemitter:add_type_qualifiers(type)
-  decemitter:add(';')
+  decemitter:add(' ', type.codename, ' {', type.subtype, ' v[', type.length, '];} ', type.codename, ';')
   if type.size and type.size > 0 and not context.pragmas.nocstaticassert then
     context:ensure_builtins('nelua_static_assert', 'nelua_alignof')
     decemitter:add(' nelua_static_assert(sizeof(',type.codename,') == ', type.size, ' && ',
@@ -99,8 +99,9 @@ local function typevisitor_CompositeType(context, type)
   end
   table.insert(context.declarations, decemitter:generate())
   local defemitter = CEmitter(context)
-  defemitter:add(kindname, ' ', type.codename)
-  defemitter:add(' {')
+  defemitter:add(kindname)
+  defemitter:add_type_qualifiers(type)
+  defemitter:add(' ', type.codename, ' {')
   if #type.fields > 0 then
     defemitter:add_ln()
     for _,field in ipairs(type.fields) do
@@ -118,7 +119,6 @@ local function typevisitor_CompositeType(context, type)
     end
   end
   defemitter:add('}')
-  defemitter:add_type_qualifiers(type)
   defemitter:add(';')
   if type.size and type.size > 0 and not context.pragmas.nocstaticassert then
     context:ensure_builtins('nelua_static_assert', 'nelua_alignof')

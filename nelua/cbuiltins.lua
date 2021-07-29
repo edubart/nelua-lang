@@ -153,6 +153,36 @@ function cbuiltins.nelua_threadlocal(context)
 ]], 'directives')
 end
 
+-- Used by `<aligned>` on type declarations.
+function cbuiltins.nelua_aligned(context)
+  context:define_builtin_macro('nelua_aligned', [[
+#if defined(__GNUC__)
+  #define nelua_aligned(X) __attribute__((aligned(X)))
+#elif defined(_MSC_VER)
+  #define nelua_aligned(X) __declspec(align(X))
+#else
+  #define nelua_aligned(X)
+#endif
+]], 'directives')
+end
+
+-- Used by `<aligned>` on variable declarations.
+function cbuiltins.nelua_alignas(context)
+  context:define_builtin_macro('nelua_alignas', [[
+#if __STDC_VERSION__ >= 201112L
+  #define nelua_alignas(X) _Alignas(X)
+#elif __cplusplus >= 201103L
+  #define nelua_alignas(X) alignas(X)
+#elif defined(__GNUC__)
+  #define nelua_alignas(X) __attribute__((aligned(X)))
+#elif defined(_MSC_VER)
+  #define nelua_alignas(X) __declspec(align(X))
+#else
+  #define nelua_alignas(X)
+#endif
+]], 'directives')
+end
+
 -- Used to assure some C compiler requirements.
 function cbuiltins.nelua_static_assert(context)
   context:define_builtin_macro('nelua_static_assert', [[
@@ -1046,7 +1076,7 @@ function cbuiltins.operators.eq(_, _, emitter, lattr, rattr, lname, rname)
     end
   elseif ltype.is_array then
     assert(ltype == rtype)
-    if lattr.lvalue and rattr.lvalue then
+    if lattr.lvalue and rattr.lvalue and not lattr.comptime and not rattr.comptime then
       emitter:add('(')
       emitter:add_builtin('memcmp')
       emitter:add('(&', lname, ', &', rname, ', sizeof(', ltype, ')) == 0)')
@@ -1099,7 +1129,7 @@ function cbuiltins.operators.ne(_, _, emitter, lattr, rattr, lname, rname)
     end
   elseif ltype.is_array then
     assert(ltype == rtype)
-    if lattr.lvalue and rattr.lvalue then
+    if lattr.lvalue and rattr.lvalue and not lattr.comptime and not rattr.comptime then
       emitter:add('(')
       emitter:add_builtin('memcmp')
       emitter:add('(&', lname, ', &', rname, ', sizeof(', ltype, ')) != 0)')

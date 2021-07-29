@@ -2733,9 +2733,11 @@ it("annotations", function()
   expect.generate_c("local a: int64 <cattribute 'vector_size(16)'>", "int64_t __attribute__((vector_size(16))) a")
   expect.generate_c("local a: number <cqualifier 'in'> = 1", "in double a = 1.0;")
   expect.generate_c("local R <aligned(16)> = @record{x: integer}; local r: R",
-    {"__attribute__((aligned(16)));", "sizeof(R) == 16"})
+    {"struct nelua_aligned(16) R", "sizeof(R) == 16"})
   expect.generate_c("local R <packed> = @record{x: integer, y: byte}; local r: R",
-    {"__attribute__((packed));", "sizeof(R) == 9"})
+    {"struct __attribute__((packed)) R", "sizeof(R) == 9"})
+  expect.generate_c("local a: int64 <aligned(16)>",
+    "nelua_alignas(16) static int64_t a")
   expect.generate_c("local function f() <inline> end", "inline void")
   expect.generate_c("local function f() <noreturn> end", "nelua_noreturn void")
   expect.generate_c("local function f() <noinline> end", "nelua_noinline void")
