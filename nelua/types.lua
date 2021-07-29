@@ -725,6 +725,7 @@ NiltypeType.is_niltype = true
 NiltypeType.is_nilable = true
 NiltypeType.is_falseable = true
 NiltypeType.is_unpointable = true
+NiltypeType.is_empty = true
 
 function NiltypeType:_init(name, size)
   Type._init(self, name, size)

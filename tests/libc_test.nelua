@@ -14,9 +14,11 @@ do -- math
   assert(C.fabs(-1.0) == 1.0)
   assert(C.fabsf(-2.0_f32) == 2.0_f32)
 
-  assert(C.isnan(C.NAN) ~= 0)
-  assert(C.isinf(C.INFINITY) ~= 0)
-  assert(C.NAN ~= C.NAN)
+  ## if ccinfo.is_gcc then
+    assert(C.isnan(C.NAN) ~= 0)
+    assert(C.isinf(C.INFINITY) ~= 0)
+    assert(C.NAN ~= C.NAN)
+  ## end
 end
 
 do -- va_list

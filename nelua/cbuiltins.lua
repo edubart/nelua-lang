@@ -78,7 +78,7 @@ function cbuiltins.nelua_noinline(context)
 #ifdef __GNUC__
   #define nelua_noinline __attribute__((noinline))
 #elif defined(_MSC_VER)
-  #define nelua_aligned(X) __declspec(noinline)
+  #define nelua_noinline __declspec(noinline)
 #else
   #define nelua_noinline
 #endif
@@ -117,7 +117,7 @@ function cbuiltins.nelua_noreturn(context)
 #elif defined(__GNUC__)
   #define nelua_noreturn __attribute__((noreturn))
 #elif defined(_MSC_VER)
-  #define nelua_aligned(X) __declspec(noreturn)
+  #define nelua_noreturn __declspec(noreturn)
 #else
   #define nelua_noreturn
 #endif

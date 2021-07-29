@@ -283,7 +283,7 @@ function visitors.InitList(context, node, emitter)
   local len = #childnodes
   local untyped = context.state.untypedinit
   if len == 0 and type.is_aggregate then
-    emitter:add_zeroed_type_literal(type, true)
+    emitter:add_zeroed_type_literal(type, not untyped)
   elseif type.is_composite then
     if type.cconstruct then -- used to construct vector types when generating GLSL code
       --luacov:disable

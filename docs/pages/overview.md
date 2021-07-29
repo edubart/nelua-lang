@@ -1854,7 +1854,7 @@ end
 
 local a = pow(2, 2) -- use specialized implementation for integers
 local b = pow(2.0, 2) -- use pow implementation for floats
-print(a,b) -- outputs: 4 4.000000
+print(a,b) -- outputs: 4 4.0
 
 -- uncommenting the following will trigger the compile error:
 --   error: cannot pow variable of type "string"
