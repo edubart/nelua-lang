@@ -222,25 +222,39 @@ end
 
 -- Used by infinite float number literal.
 function cbuiltins.NLINF_(context, type)
-  local name = type.is_float32 and 'NLINFF' or 'NLINF'
+  context:ensure_include('<math.h>')
+  local S = ''
+  if type.is_float128 then S = 'Q'
+  elseif type.is_clongdouble then S = 'L'
+  elseif type.is_float32 then S = 'F' end
+  local name = 'NLINF'..S
   if context.usedbuiltins[name] then return name end
-  if type.is_float32 then
-    context:define_builtin_macro(name, "#define "..name.." (1.0f/0.0f)")
-  else
-    context:define_builtin_macro(name, "#define "..name.." (1.0/0.0)")
-  end
+  context:define_builtin_macro(name, pegger.substitute([[
+#ifdef HUGE_VAL$(S)
+  #define NLINF$(S) HUGE_VAL$(S)
+#else
+  #define NLINF$(S) (1.0$(s)/0.0$(s))
+#endif
+]], {s=S:lower(), S=S}))
   return name
 end
 
 -- Used by NaN (not a number) float number literal.
 function cbuiltins.NLNAN_(context, type)
-  local name = type.is_float32 and 'NLNANF' or 'NLNAN'
+  context:ensure_include('<math.h>')
+  local S = ''
+  if type.is_float128 then S = 'Q'
+  elseif type.is_clongdouble then S = 'L'
+  elseif type.is_float32 then S = 'F' end
+  local name = 'NLNAN'..S
   if context.usedbuiltins[name] then return name end
-  if type.is_float32 then
-    context:define_builtin_macro(name, "#define "..name.." (0.0f/0.0f)")
-  else
-    context:define_builtin_macro(name, "#define "..name.." (0.0/0.0)")
-  end
+  context:define_builtin_macro(name, pegger.substitute([[
+#ifdef NAN
+  #define NLNAN$(S) (($(T))NAN)
+#else
+  #define NLNAN$(S) (0.0$(s)/0.0$(s))
+#endif
+]], {s=S:lower(), S=S, T=context:ensure_type(type)}))
   return name
 end
 
