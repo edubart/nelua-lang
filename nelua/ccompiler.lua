@@ -154,7 +154,7 @@ local function get_cc_info(cc, cflags)
     except.raisef("failed to retrieve compiler information: %s", stderr or '?')
   end
   local ccinfo = {}
-  for name,value in stdout:gmatch('([a-z_]+)%s*=%s*([^;\n]+);') do
+  for name,value in stdout:gmatch('([a-zA-Z0-9_]+)%s*=%s*([^;\n]+);') do
     if value:match('^[0-9]+L$') then
       value = tonumber(value:sub(1,-2))
     elseif value:match('^[0-9]+$') then

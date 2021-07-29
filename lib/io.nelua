@@ -83,8 +83,8 @@ function io.popen(prog: string, mode: facultative(string)) : (filestream, string
   local progcs: cstring <nodce> = prog
   local fp: *FILE
   local closef: function(fp: *FILE): cint
-  -- to output a portable C file, we emit C code here to support all platforms from a single C file
 ##[==[
+  -- C code is used so that the generated C is portable across platforms.
   cinclude '<stdio.h>' -- for popen/pclose
   cinclude '<stddef.h>' -- for NULL
   cinclude [[

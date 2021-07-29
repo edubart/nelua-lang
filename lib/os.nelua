@@ -269,12 +269,12 @@ In POSIX systems, this function also creates a file with that name, to avoid sec
 You still have to open the file to use it and to remove it (even if you do not use it).
 When possible, you may prefer to use `io.tmpfile`, which automatically removes the file when the program ends.
 ]]
-function os.tmpname(): string <polymorphic>
+function os.tmpname(): string
   local buf: [260]cchar
   local bufcs: cstring = &buf[0]
   local success: boolean
-  -- to output a portable C file, we emit C code here to support all platforms from a single C file
 ##[==[
+  -- C code is used so that the generated C is portable across platforms.
   cinclude '<stddef.h>' -- for NULL
   cinclude '<string.h>' -- for strncpy/strncat
   cinclude '<stdlib.h>' -- for getenv
@@ -327,9 +327,10 @@ but typically has nanosecond precision on POSIX systems.
 The operation may not be supported by all systems, or may fail in some systems,
 in that case `-1` is returned.
 ]]
-function os.now(): number <polymorphic>
+function os.now(): number
   local ok: boolean = false
-  local ns: int64
+  local ns: int64 = 0
+
 ##[==[
   cinclude '<time.h>' -- for timespec_get/TIME_UTC
   cinclude '<stdbool.h>' -- for bool
@@ -357,7 +358,6 @@ function os.now(): number <polymorphic>
   if(!initialized) {
     initialized = true;
     ok = timespec_get(&start, TIME_UTC) == TIME_UTC;
-    ns = 0;
   } else {
     struct timespec ts = {0};
     ok = timespec_get(&ts, TIME_UTC) == TIME_UTC;
@@ -370,7 +370,6 @@ function os.now(): number <polymorphic>
   if(!initialized) {
     initialized = true;
     ok = clock_gettime(CLOCK_MONOTONIC, &start) == 0;
-    ns = 0;
   } else {
     struct timespec ts = {0};
     ok = clock_gettime(CLOCK_MONOTONIC, &ts) == 0;
@@ -383,7 +382,6 @@ function os.now(): number <polymorphic>
   if(!initialized) {
     initialized = true;
     ok = gettimeofday(&start, NULL) == 0;
-    ns = 0;
   } else {
     struct timeval ts;
     ok = gettimeofday(&ts, NULL) == 0;
@@ -407,10 +405,11 @@ but can be a little lower or higher depending on the system.
 The operation may not be supported by all systems, or may fail in some systems,
 in that case false is returned.
 ]]
-function os.sleep(secs: number): boolean <polymorphic>
+function os.sleep(secs: number): boolean
   local us: uint64 <nodce> = (@uint64)(secs * 1000000)
   local ok: boolean = false
 ##[==[
+  -- C code is used so that the generated C is portable across platforms.
   cinclude '<time.h>' -- for nanosleep
   cinclude '<stdbool.h>' -- for true
   cinclude '<errno.h>' -- for errno
