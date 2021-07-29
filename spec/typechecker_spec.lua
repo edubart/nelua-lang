@@ -1644,6 +1644,7 @@ it("annotations", function()
   expect.analyze_error(
     "local function f(): cint <cimport,nodecl> end local b: boolean = f()",
     "expression will always be true")
+  expect.analyze_error("local a: string <atomic>", "cannot be atomic")
 end)
 
 it("cimport", function()

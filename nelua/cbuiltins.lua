@@ -120,12 +120,45 @@ function cbuiltins.nelua_noreturn(context)
 ]], 'directives')
 end
 
+-- Used by `<atomic>`.
+function cbuiltins.nelua_atomic(context)
+  context:define_builtin_macro('nelua_atomic', [[
+#if __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_ATOMICS__)
+  #define nelua_atomic _Atomic
+#elif __cplusplus >= 201103L
+  #include <atomic>
+  #define nelua_atomic(T) std::atomic<T>
+#else
+  #define nelua_atomic(a) a
+  #error "Atomic is unsupported."
+#endif
+]], 'directives')
+end
+
+-- Used by `<threadlocal>`.
+function cbuiltins.nelua_threadlocal(context)
+  context:define_builtin_macro('nelua_threadlocal', [[
+#if __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_THREADS__)
+  #define nelua_threadlocal _Thread_local
+#elif __cplusplus >= 201103L
+  #define nelua_threadlocal thread_local
+#elif defined(_WIN32) && defined(_MSC_VER)
+  #define nelua_threadlocal __declspec(thread)
+#elif defined(__GNUC__)
+  #define nelua_threadlocal __thread
+#else
+  #define nelua_threadlocal
+  #error "Thread local is unsupported."
+#endif
+]], 'directives')
+end
+
 -- Used to assure some C compiler requirements.
 function cbuiltins.nelua_static_assert(context)
   context:define_builtin_macro('nelua_static_assert', [[
 #if __STDC_VERSION__ >= 201112L
   #define nelua_static_assert _Static_assert
-#elif defined(__cplusplus) && __cplusplus >= 201103L
+#elif __cplusplus >= 201103L
   #define nelua_static_assert static_assert
 #else
   #define nelua_static_assert(x, y)
@@ -138,7 +171,7 @@ function cbuiltins.nelua_alignof(context)
   context:define_builtin_macro('nelua_alignof', [[
 #if __STDC_VERSION__ >= 201112L
   #define nelua_alignof _Alignof
-#elif defined(__cplusplus) && __cplusplus >= 201103L
+#elif __cplusplus >= 201103L
   #define nelua_alignof alignof
 #else
   #define nelua_alignof(x)

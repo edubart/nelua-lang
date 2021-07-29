@@ -448,6 +448,9 @@ function CEmitter:add_qualified_declaration(attr, type, name)
   if attr.noreturn then
     self:add(context:ensure_builtin('nelua_noreturn'), ' ')
   end
+  if attr.threadlocal then
+    self:add(context:ensure_builtin('nelua_threadlocal'), ' ')
+  end
   -- type qualifiers
   if attr.const and not attr.ignoreconst then
     if traits.is_type(type) and (type.is_pointer or type.is_scalar or type.is_boolean) then
@@ -461,12 +464,16 @@ function CEmitter:add_qualified_declaration(attr, type, name)
   if attr.cqualifier then
     self:add(attr.cqualifier, ' ')
   end
-  self:add(type, ' ')
+  if attr.atomic then
+    self:add(context:ensure_builtin('nelua_atomic'), '(', type, ') ')
+  else
+    self:add(type, ' ')
+  end
   -- late type qualifiers
   if attr.restrict then
     self:add('__restrict ')
   end
-  -- TODO: _Atomic, __asm, _Alignas?
+  -- TODO: _Alignas?
   if attr.cattribute then
     self:add(string.format('__attribute__((%s)) ', attr.cattribute))
   end

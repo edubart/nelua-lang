@@ -287,6 +287,10 @@ typedefs.variable_annots = {
   register = true,
   -- Whether to use the '__restrict' qualifier in C.
   restrict = true,
+  -- Whether to perform atomic operations on the variable (requires C11).
+  atomic = true,
+  -- Whether to declare variable per thread (requires C11 or C compiler support).
+  threadlocal = true,
   -- Whether to prevent optimizing the variable, it uses the 'volatile' qualifier in C.
   volatile = true,
   -- Whether to skip declaring the variable in C.

@@ -628,6 +628,12 @@ function visitors.Annotation(context, node, opts)
     if not context:get_visiting_node(2).is_VarDecl then
       node:raisef("annotation 'close' is only allowed in variable declarations")
     end
+  elseif name == 'atomic' then
+    local objtype = objattr.type
+    if not (objtype.is_scalar or objtype.is_boolean or
+            objtype.is_pointer or objtype.is_function) then
+      node:raisef("variable of type '%s' cannot be atomic", objtype)
+    end
   end
 
   node.done = true

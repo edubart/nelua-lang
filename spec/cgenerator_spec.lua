@@ -2723,6 +2723,8 @@ it("annotations", function()
   expect.generate_c("do local a: int64 <register> end",
     (ccompiler.get_cc_info().is_cpp and "" or "register ").."int64_t a")
   expect.generate_c("local a: pointer <restrict>", "void* __restrict a")
+  expect.generate_c("local a: int64 <atomic>", "nelua_atomic(int64_t) a")
+  expect.generate_c("local a: int64 <threadlocal>", "nelua_threadlocal int64_t a")
   expect.generate_c("local a: int64 <nodecl>", "")
   expect.generate_c("local a: cint <cimport>", "nelua_cimport int a;")
   expect.generate_c("local a: int64 <noinit>; a = 2", {"a;", "a = 2;"})

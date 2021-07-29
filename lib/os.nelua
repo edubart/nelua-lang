@@ -315,7 +315,7 @@ end
 
 --[[
 Get time elapsed in seconds since its first call using a high resolution timer.
-Returns a number greater or equal than `0` on success, otherwise `-1`.
+Returns a number greater than or equal to `0` on success, otherwise `-1`.
 
 In the first successful call `0` is returned,
 in subsequent calls the relative time in seconds since the first call is returned.
