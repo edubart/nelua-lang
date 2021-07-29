@@ -2735,7 +2735,7 @@ it("annotations", function()
   expect.generate_c("local R <aligned(16)> = @record{x: integer}; local r: R",
     {"struct nelua_aligned(16) R", "sizeof(R) == 16"})
   expect.generate_c("local R <packed> = @record{x: integer, y: byte}; local r: R",
-    {"struct __attribute__((packed)) R", "sizeof(R) == 9"})
+    {"struct nelua_packed R", "sizeof(R) == 9"})
   expect.generate_c("local a: int64 <aligned(16)>",
     "nelua_alignas(16) static int64_t a")
   expect.generate_c("local function f() <inline> end", "inline void")

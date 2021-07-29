@@ -1929,7 +1929,7 @@ end
 -- Called when changing any field at compile time.
 function RecordType:update_fields()
   local fields = self.fields
-  local offset, align = 0, 0
+  local offset, align = 0, 1
   local unknown = self.cincomplete
   if #fields > 0 then
     local packed, aligned = self.packed, self.aligned
@@ -1954,8 +1954,8 @@ function RecordType:update_fields()
       if fieldsize and fieldalign then
         if not unknown then
           -- the record align is computed as the max field align
-          align = math.max(align, fieldalign)
           if not packed then -- align the field
+            align = math.max(align, fieldalign)
             offset = align_forward(offset, fieldalign)
           end
           field.offset = offset
@@ -2100,7 +2100,7 @@ end
 -- Called when changing any field at compile time.
 function UnionType:update_fields()
   local fields = self.fields
-  local size, align = 0, 0
+  local size, align = 0, 1
   local unknown = self.cincomplete
   if #fields > 0 then
     -- compute fields offset and union align

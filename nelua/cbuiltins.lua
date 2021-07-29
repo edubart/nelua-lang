@@ -77,6 +77,8 @@ function cbuiltins.nelua_noinline(context)
   context:define_builtin_macro('nelua_noinline', [[
 #ifdef __GNUC__
   #define nelua_noinline __attribute__((noinline))
+#elif defined(_MSC_VER)
+  #define nelua_aligned(X) __declspec(noinline)
 #else
   #define nelua_noinline
 #endif
@@ -114,6 +116,8 @@ function cbuiltins.nelua_noreturn(context)
   #define nelua_noreturn _Noreturn
 #elif defined(__GNUC__)
   #define nelua_noreturn __attribute__((noreturn))
+#elif defined(_MSC_VER)
+  #define nelua_aligned(X) __declspec(noreturn)
 #else
   #define nelua_noreturn
 #endif
@@ -142,13 +146,24 @@ function cbuiltins.nelua_threadlocal(context)
   #define nelua_threadlocal _Thread_local
 #elif __cplusplus >= 201103L
   #define nelua_threadlocal thread_local
-#elif defined(_WIN32) && defined(_MSC_VER)
-  #define nelua_threadlocal __declspec(thread)
 #elif defined(__GNUC__)
   #define nelua_threadlocal __thread
+#elif defined(_MSC_VER)
+  #define nelua_threadlocal __declspec(thread)
 #else
   #define nelua_threadlocal
   #error "Thread local is unsupported."
+#endif
+]], 'directives')
+end
+
+-- Used by `<packed>` on type declarations.
+function cbuiltins.nelua_packed(context)
+  context:define_builtin_macro('nelua_packed', [[
+#if defined(__GNUC__)
+  #define nelua_packed __attribute__((packed))
+#else
+  #define nelua_packed
 #endif
 ]], 'directives')
 end
@@ -203,6 +218,10 @@ function cbuiltins.nelua_alignof(context)
   #define nelua_alignof _Alignof
 #elif __cplusplus >= 201103L
   #define nelua_alignof alignof
+#elif defined(__GNUC__)
+  #define nelua_alignof __alignof__
+#elif defined(_MSC_VER)
+  #define nelua_alignof __alignof
 #else
   #define nelua_alignof(x)
 #endif

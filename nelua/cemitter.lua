@@ -418,7 +418,7 @@ function CEmitter:add_type_qualifiers(type)
     self:add(' ', self.context:ensure_builtin('nelua_aligned'), '(', type.aligned, ')')
   end
   if type.packed then
-    self:add(' __attribute__((packed))')
+    self:add(' ', self.context:ensure_builtin('nelua_packed'))
   end
 end
 
