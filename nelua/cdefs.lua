@@ -246,7 +246,7 @@ emscripten_major = __EMSCRIPTEN_major__;
 emscripten_minor = __EMSCRIPTEN_minor__;
 emscripten_tiny = __EMSCRIPTEN_tiny__;
 #endif
-#if defined(__mirc__)
+#if defined(__MIRC__)
 is_mirc = true;
 #endif
 #if defined(__COMPCERT__)
@@ -286,13 +286,13 @@ biggest_alignment = __BIGGEST_ALIGNMENT__;
 
 /* C standard */
 #if defined(__STDC__)
-is_c = true
 stdc = true;
 #endif
 #if defined(__STDC_HOSTED__)
 stdc_hosted = true;
 #endif
 #if defined(__STDC_VERSION__)
+is_c = true;
 stdc_version = __STDC_VERSION__;
 #endif
 #if defined(__STDC_NO_THREADS__)
@@ -310,8 +310,6 @@ stdc_no_vla = true;
 #if defined(__cplusplus)
 is_cpp = true;
 cplusplus = __cplusplus;
-#else
-is_c = true;
 #endif
 
 /* Primitive sizes */
@@ -362,9 +360,6 @@ is_64 = true;
 #if defined(__LP32__) || defined(__ILP32__) || defined(__LLP32__)
 is_32 = true;
 #endif
-#if defined(__EMSCRIPTEN__) || defined(_WIN32) || defined(__CYGWIN__)
-is_align_double = true;
-#endif
 #if defined(__ELF__)
 is_elf = true;
 #endif
@@ -377,6 +372,12 @@ is_little_endian = true;
 #else
 is_big_endian = true;
 #endif
+#endif
+#if defined(__EMSCRIPTEN__) || defined(_WIN32) || defined(__CYGWIN__)
+is_align_double = true;
+#endif
+#if defined(__STDC_VERSION__) && (defined(__GNUC__) || defined(__TINYC__) || defined(__MIRC__))
+is_empty_supported = true;
 #endif
 ]]
 
@@ -416,21 +417,46 @@ cdefs.reserverd_keywords = {
   ['while'] = true,
   ['inline'] = true,
   ['restrict'] = true,
+
+  -- C11
+  ['_Bool'] = true,
+  ['_Complex'] = true,
+  ['_Imaginary'] = true,
+  ['_Thread_local'] = true,
+  ['_Atomic'] = true,
+  ['_Alignas'] = true,
+  ['_Alignof'] = true,
+  ['_Noreturn'] = true,
+  ['_Static_assert'] = true,
+
+  -- C extensions
   ['asm'] = true,
   ['fortran'] = true,
 
-  -- C macros aliases
+  -- C aliases
   ['alignas'] = true,
   ['alignof'] = true,
   ['offsetof'] = true,
-  ['bool'] = true,
   ['complex'] = true,
   ['imaginary'] = true,
   ['noreturn'] = true,
   ['static_assert'] = true,
   ['thread_local'] = true,
+  ['NULL'] = true,
 
-  -- C operator aliases
+  -- C stdbool.h
+  ['bool'] = true,
+  ['true'] = true,
+  ['false'] = true,
+
+  -- C stdarg.h
+  ['va_start'] = true,
+  ['va_arg'] = true,
+  ['va_copy'] = true,
+  ['va_end'] = true,
+  ['va_list'] = true,
+
+  -- C iso646.h
   ['and'] = true,
   ['and_eq'] = true,
   ['bitand'] = true,
@@ -443,26 +469,25 @@ cdefs.reserverd_keywords = {
   ['xor'] = true,
   ['xor_eq'] = true,
 
-  -- C macros used internally by compilers
-  ['NULL'] = true,
+  -- Common C platform defines
+  ['linux'] = true,
+  ['unix'] = true,
+  ['WIN32'] = true,
+  ['WIN64'] = true,
+  ['WINNT'] = true,
+
+  -- Common C APIs
+  ['FILE'] = true,
   ['NAN'] = true,
   ['EOF'] = true,
   ['INFINITY'] = true,
   ['BUFSIZ'] = true,
-
+  ['alloca'] = true,
   ['errno'] = true,
   ['stderr'] = true,
   ['stdin'] = true,
   ['stdout'] = true,
   ['assert'] = true,
-
-  -- C arch defines
-  ['i386'] = true,
-  ['linux'] = true,
-  ['mips'] = true,
-  ['near'] = true,
-  ['powerpc'] = true,
-  ['unix'] = true,
 }
 
 cdefs.template = [[
@@ -473,7 +498,6 @@ $(declarations)
 /* ------------------------------ DEFINITIONS ------------------------------- */
 $(definitions)
 ]]
-
 
 function cdefs.quotename(name)
   if cdefs.reserverd_keywords[name] then

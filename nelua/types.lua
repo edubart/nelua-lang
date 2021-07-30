@@ -1501,7 +1501,7 @@ function ArrayType:_init(subtype, length, node)
   self.length = length
   self.align = subtype.align
   if length == 0 then
-    self.is_empty = length == 0
+    self.is_empty = true
   end
   -- validated subtype
   if subtype.is_comptime then

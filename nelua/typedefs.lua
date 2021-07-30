@@ -35,7 +35,7 @@ local cmaxalign = ccinfo.biggest_alignment
 -- Max alignment for double.
 local cmaxdoublealign = math.min(ccinfo.is_align_double and clongdoublesize or cptrsize, cmaxalign)
 -- Not all C compilers supports empty structs/arrays.
-local emptysize = (ccinfo.gcc and not ccinfo.is_cpp) and 0 or 1
+local emptysize = ccinfo.is_empty_supported and 0 or 1
 
 -- Map containing all primitive types.
 local primtypes = {}

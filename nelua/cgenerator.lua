@@ -1475,6 +1475,27 @@ function cgenerator.emit_feature_checks(context)
   context:add_directive(emitter:generate(), 'features_checks')
 end
 
+function cgenerator.emit_features_setup(context)
+  local emitter = CEmitter(context)
+  -- support for large files
+  emitter:add([[
+#if !defined(_FILE_OFFSET_BITS) && __SIZEOF_LONG__ >= 8
+  #define _FILE_OFFSET_BITS 64
+#endif
+]])
+  -- support for POSIX stuff
+  emitter:add([[
+#if !defined(_POSIX_C_SOURCE) && !defined(_XOPEN_SOURCE) && !defined(_GNU_SOURCE) && !defined(_DEFAULT_SOURCE)
+  #if defined(__gnu_linux__)
+    #define _GNU_SOURCE
+  #else
+    #define _XOPEN_SOURCE 600
+  #endif
+#endif
+]])
+  context:add_directive(emitter:generate(), 'features_setup')
+end
+
 -- Emits `nelua_main`.
 function cgenerator.emit_nelua_main(context, ast, emitter)
   assert(ast.is_Block) -- ast is expected to be a Block
@@ -1524,6 +1545,7 @@ function cgenerator.generate(context)
   context:promote(CContext, visitors, typevisitors) -- promote AnalyzerContext to CContext
   cgenerator.emit_warning_pragmas(context) -- silent some C warnings
   cgenerator.emit_feature_checks(context) -- check C primitive sizes
+  cgenerator.emit_features_setup(context)
   cgenerator.emit_entrypoint(context, context.ast) -- emit `main` and `nelua_main`
   return context:concat_chunks(cdefs.template) -- concatenate emitted chunks
 end
