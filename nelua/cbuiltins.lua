@@ -8,7 +8,8 @@ local pegger = require 'nelua.utils.pegger'
 local bn = require 'nelua.utils.bn'
 local cdefs = require 'nelua.cdefs'
 local CEmitter = require 'nelua.cemitter'
-local primtypes = require 'nelua.typedefs'.primtypes
+local typedefs = require 'nelua.typedefs'
+local primtypes = typedefs.primtypes
 
 -- The cbuiltins table.
 local cbuiltins = {}
@@ -230,13 +231,17 @@ end
 
 -- Used by `nil` type at runtime.
 function cbuiltins.nlniltype(context)
-  context:define_builtin_decl('nlniltype', "typedef struct nlniltype {} nlniltype;")
+  context:define_builtin_decl('nlniltype',
+    "typedef struct nlniltype {"..
+    (typedefs.emptysize == 0 and '' or 'char x;')..
+    "} nlniltype;")
 end
 
 -- Used by `nil` at runtime.
 function cbuiltins.NLNIL(context)
   context:ensure_builtin('nlniltype')
-  context:define_builtin_macro('NLNIL', "#define NLNIL (nlniltype){}")
+  context:define_builtin_macro('NLNIL', "#define NLNIL (nlniltype)"..
+    (typedefs.emptysize == 0 and '{}' or '{0}'))
 end
 
 -- Used by infinite float number literal.

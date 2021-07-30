@@ -34,6 +34,9 @@ local cdoublesize = ccinfo.sizeof_double
 local cmaxalign = ccinfo.biggest_alignment
 -- Max alignment for double.
 local cmaxdoublealign = math.min(ccinfo.is_align_double and clongdoublesize or cptrsize, cmaxalign)
+-- Not all C compilers supports empty structs/arrays.
+local emptysize = (ccinfo.gcc and not ccinfo.is_cpp) and 0 or 1
+
 -- Map containing all primitive types.
 local primtypes = {}
 
@@ -42,12 +45,12 @@ local typedefs = {
   primtypes = primtypes,
   ptrsize = cptrsize,
   maxalign = cmaxalign,
-  emptysize = ccinfo.is_cpp and 1 or 0,
+  emptysize = emptysize
 }
 types.set_typedefs(typedefs)
 
 -- Basic types.
-primtypes.niltype     = types.NiltypeType('niltype', typedefs.emptysize) -- must be defined first
+primtypes.niltype     = types.NiltypeType('niltype', emptysize) -- must be defined first
 primtypes.nilptr      = types.NilptrType('nilptr', cptrsize)
 primtypes.type        = types.TypeType('type', 0)
 primtypes.typetype    = primtypes.type

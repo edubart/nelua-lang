@@ -60,7 +60,7 @@ function CEmitter:add_zeroed_type_literal(type, typed)
     if typed then
       self:add('(', type, ')')
     end
-    if type.is_empty then
+    if type.size == 0 then
       s = '{}'
     else -- should initialize almost anything in C
       s = '{0}'

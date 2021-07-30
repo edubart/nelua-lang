@@ -980,7 +980,7 @@ it("unary operator `deref`", function()
     function R:foo(alloc: auto) end
     local r = R()
     r:foo()
-  ]], {"r = (R){}", "((&r), NLNIL)"})
+  ]], {"r = (R){", "((&r), NLNIL)"})
   expect.generate_c([[
     local a: *[0]integer
     local function f(x: [0]integer) end

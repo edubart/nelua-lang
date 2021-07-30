@@ -62,7 +62,8 @@ typevisitors[types.ArrayType] = function(context, type)
   local decemitter = CEmitter(context)
   decemitter:add('typedef struct')
   decemitter:add_type_qualifiers(type)
-  decemitter:add(' ', type.codename, ' {', type.subtype, ' v[', type.length, '];} ', type.codename, ';')
+  local len = math.max(type.length, typedefs.emptysize)
+  decemitter:add(' ', type.codename, ' {', type.subtype, ' v[', len, '];} ', type.codename, ';')
   if type.size and type.size > 0 and not context.pragmas.nocstaticassert then
     context:ensure_builtins('nelua_static_assert', 'nelua_alignof')
     decemitter:add(' nelua_static_assert(sizeof(',type.codename,') == ', type.size, ' && ',
@@ -117,9 +118,10 @@ local function typevisitor_CompositeType(context, type)
       end
       defemitter:add_ln(';')
     end
+  elseif typedefs.emptysize > 0 then
+    defemitter:add('char x;')
   end
-  defemitter:add('}')
-  defemitter:add(';')
+  defemitter:add('};')
   if type.size and type.size > 0 and not context.pragmas.nocstaticassert then
     context:ensure_builtins('nelua_static_assert', 'nelua_alignof')
     defemitter:add(' nelua_static_assert(sizeof(',type.codename,') == ', type.size, ' && ',
