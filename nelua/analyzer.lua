@@ -436,7 +436,7 @@ function visitors.InitList(context, node, opts)
   local desiredtype = (opts and opts.desiredtype) or node.attr.desiredtype
   if desiredtype then
     local objtype = desiredtype:implicit_deref_type()
-    if objtype.is_record and objtype.metafields.__convert then
+    if objtype.metafields and objtype.metafields.__convert then
       local argtype = objtype.metafields.__convert.type.argtypes[1]
       if argtype.is_concept then
         local listtype = argtype:get_desired_type_from_node(node)
@@ -1555,18 +1555,18 @@ function visitors.CallMethod(context, node)
       calleetype = calleetype.subtype
     end
 
-    if calleetype.is_record then
-      local field = calleetype.fields[name]
+    if calleetype.metafields then
+      local field = calleetype.fields and calleetype.fields[name]
       if field then
         calleetype = field.type
       else
         calleesym = calleetype.metafields[name]
         if not calleesym then
           if calleetype.is_string and not calleetype.metafields.sub then
-            node:raisef("cannot index meta field '%s' in record '%s', \z
+            node:raisef("cannot index meta field '%s' for type '%s', \z
               maybe you forget to require module 'string'?", name, calleetype)
           else
-            node:raisef("cannot index meta field '%s' in record '%s'", name, calleetype)
+            node:raisef("cannot index meta field '%s' for type '%s'", name, calleetype)
           end
         end
         if calleesym.deprecated then
@@ -1618,7 +1618,7 @@ local function visitor_EnumType_FieldIndex(_, node, objtype, name)
   attr.type = objtype
 end
 
-local function visitor_RecordType_FieldIndex(context, node, objtype, name)
+local function visitor_Type_MetaFieldIndex(context, node, objtype, name)
   local attr = node.attr
   local symbol = objtype.metafields[name]
   local parentnode = context:get_visiting_node(1)
@@ -1676,8 +1676,8 @@ local function visitor_Type_FieldIndex(context, node, objtype, name)
   objtype = objtype:implicit_deref_type()
   if objtype.is_enum then
     return visitor_EnumType_FieldIndex(context, node, objtype, name)
-  elseif objtype.is_record then
-    return visitor_RecordType_FieldIndex(context, node, objtype, name)
+  elseif objtype.metafields then
+    return visitor_Type_MetaFieldIndex(context, node, objtype, name)
   else
     node:raisef("cannot index fields on type '%s'", objtype)
   end
@@ -1740,7 +1740,7 @@ local function visitor_Array_KeyIndex(_, node, objtype, _, indexnode)
   end
 end
 
-local function visitor_Record_KeyIndex(context, node, objtype, objnode, indexnode)
+local function visitor_Type_MetaKeyIndex(context, node, objtype, objnode, indexnode)
   local newnode
   local metafields = objtype.metafields
   if metafields.__index then
@@ -1769,8 +1769,8 @@ function visitors.KeyIndex(context, node)
     objtype = objtype:implicit_deref_type()
     if objtype.is_array then
       visitor_Array_KeyIndex(context, node, objtype, objnode, indexnode)
-    elseif objtype.is_record then
-      visitor_Record_KeyIndex(context, node, objtype, objnode, indexnode)
+    elseif objtype.metafields then
+      visitor_Type_MetaKeyIndex(context, node, objtype, objnode, indexnode)
     elseif objtype.is_table or objtype.is_any then
       attr.type = primtypes.any
     else
@@ -2164,7 +2164,7 @@ local function visit_close(context, declnode, varnode, symbol)
   local objtype = varnode.attr.type
   if not objtype then return end
   objtype = objtype:implicit_deref_type()
-  if not objtype.is_record or not objtype.metafields.__close then
+  if not objtype.metafields or not objtype.metafields.__close then
     varnode:raisef(
       "in variable '%s' declaration: cannot close because type '%s' does not have '__close' metamethod",
       symbol.name, objtype)
@@ -3046,7 +3046,7 @@ local function override_unary_op(context, node, opname, objnode, objtype)
     -- allow calling len on pointers for arrays/records
     objtype = objtype:implicit_deref_type()
   end
-  if not objtype.is_record then return end
+  if not objtype.metafields then return end
   local mtname = '__' .. opname
   local mtsym = objtype.metafields[mtname]
   if not mtsym then
@@ -3123,7 +3123,7 @@ function visitors.UnaryOp(context, node, opts)
 end
 
 local function override_binary_op(context, node, opname, lnode, rnode, ltype, rtype)
-  if not ltype.is_record and not rtype.is_record then return end
+  if not ltype.metafields and not rtype.metafields then return end
   if not overridable_operators[opname] then return end
 
   local objtype, mtsym, mtname
@@ -3142,11 +3142,11 @@ local function override_binary_op(context, node, opname, lnode, rnode, ltype, rt
     -- __eq metamethod is called only for same record types (except for stringy types)
     return
   end
-  if ltype.is_record then
+  if ltype.metafields then
     mtsym = ltype.metafields[mtname]
     objtype = ltype
   end
-  if not mtsym and rtype.is_record then
+  if not mtsym and rtype.metafields then
     mtsym = rtype.metafields[mtname]
     objtype = rtype
   end
