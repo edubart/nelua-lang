@@ -59,6 +59,7 @@ do -- realloc0
 end
 
 do -- copy
+  memory.copy(nilptr, nilptr, 0)
   local pa = (@*vec2)(allocator:alloc0(#@vec2))
   local pb = (@*vec2)(allocator:alloc0(#@vec2))
   $pa = {x=1,y=2}
@@ -69,6 +70,7 @@ do -- copy
 end
 
 do -- move
+  memory.move(nilptr, nilptr, 0)
   local p = (@*[0]vec2)(allocator:alloc0(2*#@vec2))
   local pa, pb = &p[0], &p[1]
   $pa, $pb = {x=1,y=2}, {x=3,y=4}
@@ -78,6 +80,8 @@ do -- move
 end
 
 do -- set and zero
+  memory.set(nilptr, 0, 0)
+  memory.zero(nilptr, 0)
   local p = (@*vec2)(allocator:alloc0(#@vec2))
   memory.set(p, 0xff, #@vec2)
   assert(p.x == 0xffffffffffffffff and p.y == 0xffffffffffffffff)
@@ -87,6 +91,7 @@ do -- set and zero
 end
 
 do -- compare
+  assert(memory.compare(nilptr, nilptr, 0) == 0)
   local pa = (@*vec2)(allocator:alloc0(#@vec2))
   local pb = (@*vec2)(allocator:alloc0(#@vec2))
   assert(memory.compare(pa, pb, #@vec2) == 0)
@@ -101,6 +106,7 @@ do -- compare
 end
 
 do -- equals
+  assert(memory.equals(nilptr, nilptr, 0) == true)
   local pa = (@*vec2)(allocator:alloc0(#@vec2))
   local pb = (@*vec2)(allocator:alloc0(#@vec2))
   assert(memory.equals(pa, pb, #@vec2))
@@ -111,6 +117,7 @@ do -- equals
 end
 
 do -- scan
+  assert(memory.scan(nilptr, 0, 0) == nilptr)
   local p = (@*vec2)(allocator:alloc0(#@vec2))
   p.x = 1 p.y = 2
   assert(memory.scan(p, 1, #@vec2) == &p.x)
@@ -120,6 +127,7 @@ do -- scan
 end
 
 do -- find
+  assert(memory.find(nilptr, 0, nilptr, 0) == nilptr)
   local p = (@*vec2)(allocator:alloc0(#@vec2))
   p.x = 1 p.y = 2
   local x: integer, y: integer = 1, 2

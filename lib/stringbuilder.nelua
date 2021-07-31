@@ -265,9 +265,7 @@ end
       buff = (@cstring)(self:prepare(maxitem).data)
       if buff then
         if form[1] == c and form[2] == 0 then -- just copy the string
-          if s.size > 0 then
-            memory.copy(buff, s.data, s.size)
-          end
+          memory.copy(buff, s.data, s.size)
           nb = s.size
         else
           ## if arg1.type.is_string then
@@ -394,7 +392,7 @@ end
   function stringbuilderT:__tostring(): string <polymorphic>
     if unlikely(self.size == 0) then return (@string){} end
     local s: string = string.create(self.size)
-    memory.copy(&s.data[0], &self.data[0], self.size)
+    memory.copy(s.data, self.data.data, self.size)
     return s
   end
 

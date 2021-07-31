@@ -18,10 +18,12 @@ global memory: type = @record{}
 
 --[[
 Copies `n` bytes from memory pointed by `src` into memory pointed by `dest`.
+If `n` is zero, then nothing is done.
 
 The memory region may not overlap, use `memory.move` in that case.
 ]]
 function memory.copy(dest: pointer, src: pointer, n: usize): void <inline>
+  if unlikely(n == 0) then return end
   check(dest and src, 'invalid pointer')
   memcpy(dest, src, n)
 end
@@ -29,22 +31,32 @@ end
 --[[
 Copies `n` bytes from memory pointed by `src` into memory pointed by `dest`.
 The memory region may overlap.
+If `n` is zero, then nothing is done.
 
-In case the memory region is guaranteed to not overlap, use `memory.copy`.
+if the memory region is guaranteed to not overlap, then you could use `memory.copy`.
 ]]
 function memory.move(dest: pointer, src: pointer, n: usize): void <inline>
+  if unlikely(n == 0) then return end
   check(dest and src, 'invalid pointer')
   memmove(dest, src, n)
 end
 
--- Fills first `n` bytes of the memory pointed by `dest` with the byte `x`.
+--[[
+Fills first `n` bytes of the memory pointed by `dest` with the byte `x`.
+If `n` is zero, then nothing is done.
+]]
 function memory.set(dest: pointer, x: byte, n: usize): void <inline>
+  if unlikely(n == 0) then return end
   check(dest, 'invalid pointer')
   memset(dest, x, n)
 end
 
--- Fills first `n` bytes of the memory pointed by `dest` with zeros.
+--[[
+Fills first `n` bytes of the memory pointed by `dest` with zeros.
+If `n` is zero, then nothing is done.
+]]
 function memory.zero(dest: pointer, n: usize): void <inline>
+  if unlikely(n == 0) then return end
   check(dest, 'invalid pointer')
   memset(dest, 0, n)
 end
@@ -60,6 +72,7 @@ The sign is determined by the sign of the difference between the first pair of b
 If `n` is zero, the return value is zero.
 ]]
 function memory.compare(a: pointer, b: pointer, n: usize): int32 <inline>
+  if unlikely(n == 0) then return 0 end
   check(a and b, 'invalid pointer')
   return memcmp(a, b, n)
 end
@@ -68,21 +81,26 @@ end
 Check if the first `n` bytes of the memory areas pointed by `a` and `b` are equal.
 
 Returns `true` if the first `n` bytes of `a` is equal to the first `n` bytes of `b.
+
 If `n` is zero, the return value is `true`.
 ]]
-function memory.equals(a: pointer, b: pointer, size: usize): boolean <inline>
+function memory.equals(a: pointer, b: pointer, n: usize): boolean <inline>
+  if unlikely(n == 0) then return true end
   check(a and b, 'invalid pointer')
-  return memcmp(a, b, size) == 0
+  return memcmp(a, b, n) == 0
 end
 
 --[[
 Scan first `n` bytes from memory pointed by `src` for the first instance of byte `x`.
 
 Returns a pointer to the matching byte when found, otherwise `nilptr`.
+
+If `n` is zero, the return value is `nilptr`.
 ]]
-function memory.scan(src: pointer, x: byte, size: usize): pointer <inline>
+function memory.scan(src: pointer, x: byte, n: usize): pointer <inline>
+  if unlikely(n == 0) then return nilptr end
   check(src, 'invalid pointer')
-  return memchr(src, x, size)
+  return memchr(src, x, n)
 end
 
 --[[
@@ -211,9 +229,11 @@ In case `x` is not found -1 is returned.
 function memory.spanfind(s: an_span, x: auto): isize
   ## check_span_subtype_match(s, x)
   local T: type = #[x.type]#
-  for i:usize=0,<s.size do
-    if memcmp(&s[i], &x, #T) == 0 then
-      return (@isize)(i)
+  if likely(#T > 0) then
+    for i:usize=0,<s.size do
+      if memcmp(&s[i], &x, #T) == 0 then
+        return (@isize)(i)
+      end
     end
   end
   return -1

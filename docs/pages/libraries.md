@@ -1111,6 +1111,7 @@ function memory.copy(dest: pointer, src: pointer, n: usize): void
 ```
 
 Copies `n` bytes from memory pointed by `src` into memory pointed by `dest`.
+If `n` is zero, then nothing is done.
 
 The memory region may not overlap, use `memory.move` in that case.
 
@@ -1122,8 +1123,9 @@ function memory.move(dest: pointer, src: pointer, n: usize): void
 
 Copies `n` bytes from memory pointed by `src` into memory pointed by `dest`.
 The memory region may overlap.
+If `n` is zero, then nothing is done.
 
-In case the memory region is guaranteed to not overlap, use `memory.copy`.
+if the memory region is guaranteed to not overlap, then you could use `memory.copy`.
 
 ### memory.set
 
@@ -1132,6 +1134,7 @@ function memory.set(dest: pointer, x: byte, n: usize): void
 ```
 
 Fills first `n` bytes of the memory pointed by `dest` with the byte `x`.
+If `n` is zero, then nothing is done.
 
 ### memory.zero
 
@@ -1140,6 +1143,7 @@ function memory.zero(dest: pointer, n: usize): void
 ```
 
 Fills first `n` bytes of the memory pointed by `dest` with zeros.
+If `n` is zero, then nothing is done.
 
 ### memory.compare
 
@@ -1159,23 +1163,26 @@ If `n` is zero, the return value is zero.
 ### memory.equals
 
 ```nelua
-function memory.equals(a: pointer, b: pointer, size: usize): boolean
+function memory.equals(a: pointer, b: pointer, n: usize): boolean
 ```
 
 Check if the first `n` bytes of the memory areas pointed by `a` and `b` are equal.
 
 Returns `true` if the first `n` bytes of `a` is equal to the first `n` bytes of `b.
+
 If `n` is zero, the return value is `true`.
 
 ### memory.scan
 
 ```nelua
-function memory.scan(src: pointer, x: byte, size: usize): pointer
+function memory.scan(src: pointer, x: byte, n: usize): pointer
 ```
 
 Scan first `n` bytes from memory pointed by `src` for the first instance of byte `x`.
 
 Returns a pointer to the matching byte when found, otherwise `nilptr`.
+
+If `n` is zero, the return value is `nilptr`.
 
 ### memory.find
 
@@ -1424,7 +1431,7 @@ function os.now(): number
 ```
 
 Get time elapsed in seconds since its first call using a high resolution timer.
-Returns a number greater or equal than `0` on success, otherwise `-1`.
+Returns a number greater than or equal to `0` on success, otherwise `-1`.
 
 In the first successful call `0` is returned,
 in subsequent calls the relative time in seconds since the first call is returned.
