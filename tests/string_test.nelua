@@ -414,6 +414,7 @@ end
 do -- string format
   local s: string
   assert_string_eq(string.format(''), '')
+  assert_string_eq(string.format('%s', (@string){}), '')
   assert_string_eq(string.format('asd'), 'asd')
   assert_string_eq(string.format('', 0), '')
   assert_string_eq(string.format('a', 0), 'a')
