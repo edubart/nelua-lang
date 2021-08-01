@@ -369,7 +369,7 @@ end
 
 -- Checks if this type can initialize from the attr (succeeds only for compile time attrs).
 function Type:is_initializable_from_attr(attr)
-  return self == attr.type and attr.comptime
+  return attr.comptime and self == attr.type
 end
 
 -- Checks if this type equals to another type.

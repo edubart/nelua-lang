@@ -106,15 +106,19 @@ local function typevisitor_CompositeType(context, type)
   if #type.fields > 0 then
     defemitter:add_ln()
     for _,field in ipairs(type.fields) do
-      local fieldctype
       if field.type.is_array then
-        fieldctype = field.type.subtype
+        local fieldtype = field.type
+        while fieldtype.is_array do
+          fieldtype = fieldtype.subtype
+        end
+        defemitter:add('  ', fieldtype, ' ', field.name)
+        fieldtype = field.type
+        while fieldtype.is_array do
+          defemitter:add('[', fieldtype.length, ']')
+          fieldtype = fieldtype.subtype
+        end
       else
-        fieldctype = context:ensure_type(field.type)
-      end
-      defemitter:add('  ', fieldctype, ' ', field.name)
-      if field.type.is_array then
-        defemitter:add('[', field.type.length, ']')
+        defemitter:add('  ', field.type, ' ', field.name)
       end
       defemitter:add_ln(';')
     end
@@ -256,25 +260,33 @@ function visitors.VarargsType(_, node, emitter)
   emitter:add('...')
 end
 
--- Check if a an array of nodes can be emitted using an initialize.
-local function can_use_initializer(childnodes)
+-- Checks if an initializer node can be emitted using a C initializer.
+local function can_use_initializer(node)
   local hassideeffect = false
-  for _,childnode in ipairs(childnodes) do
+  for i=1,#node do
+    local childnode = node[i]
     local childvalnode
     if childnode.is_Pair then
       childvalnode = childnode[2]
     else
       childvalnode = childnode
     end
-    local sideeffect = childvalnode:recursive_has_attr('sideeffect')
-    if hassideeffect and sideeffect then
-      return false
+    if childvalnode.is_InitList then
+      if not can_use_initializer(childvalnode) then
+        return false
+      end
     end
     local childvalattr = childvalnode.attr
+    local sideeffect = childvalattr.sideeffect
+    if sideeffect then
+      if hassideeffect then
+        return false
+      end
+      hassideeffect = true
+    end
     if childvalattr.type.is_array and not childvalattr.comptime then
       return false
     end
-    if sideeffect then hassideeffect = true end
   end
   return true
 end
@@ -294,7 +306,7 @@ function visitors.InitList(context, node, emitter)
       emitter:add(')')
       --luacov:enable
     else
-      if can_use_initializer(childnodes) then
+      if can_use_initializer(node) then
         if not untyped then
           emitter:add('(',type,')')
         end
@@ -324,11 +336,25 @@ function visitors.InitList(context, node, emitter)
               if j > 1 then
                 emitter:add_text(', ')
               end
+              local comptime = arrchildnode.attr.comptime
+              if comptime then
+                context:push_forked_state{untypedinit=true}
+              end
               emitter:add_converted_val(fieldtype.subtype, arrchildnode)
+              if comptime then
+                context:pop_state()
+              end
             end
             emitter:add_text('}')
           else
+            local comptime = childvalnode.attr.comptime
+            if comptime then
+              context:push_forked_state{untypedinit=true}
+            end
             emitter:add_converted_val(fieldtype, childvalnode)
+            if comptime then
+              context:pop_state()
+            end
           end
         end
         emitter:add_text('}')
@@ -366,7 +392,7 @@ function visitors.InitList(context, node, emitter)
     end
   elseif type.is_array then
     local subtype = type.subtype
-    if can_use_initializer(childnodes) then
+    if can_use_initializer(node) then
       if untyped then
         emitter:add_text('{')
       else
@@ -376,7 +402,14 @@ function visitors.InitList(context, node, emitter)
         if i > 1 then
           emitter:add_text(', ')
         end
+        local comptime = childnode.attr.comptime
+        if comptime then
+          context:push_forked_state{untypedinit=true}
+        end
         emitter:add_converted_val(subtype, childnode)
+        if comptime then
+          context:pop_state()
+        end
       end
       if untyped then
         emitter:add_text('}')
@@ -687,8 +720,12 @@ function visitors.KeyIndex(context, node, emitter)
     pointer = true
   end
   if objtype.is_array then -- array indexing
+    local topobjnode = node
+    while topobjnode.is_KeyIndex do
+      topobjnode = topobjnode[2]
+    end
     if (pointer and objtype.length == 0) or -- unbounded array
-       (objnode.is_DotIndex and objnode[2].attr.type.is_composite) then -- record/union array field
+       (topobjnode.is_DotIndex and topobjnode[2].attr.type.is_composite) then -- record/union array field
       objattr.arrayindex = true
       emitter:add(objnode, '[')
     elseif pointer then -- pointer to bounded array

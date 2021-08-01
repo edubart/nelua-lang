@@ -1866,6 +1866,16 @@ it("arrays", function()
   expect.generate_c(
     "local a: array(boolean, 10)",
     {"v[10];} nlboolean_arr10"})
+  expect.generate_c([[
+    local Range = @record{ptr: pointer, size: usize}
+    local ImageData = @record{subimage: [8][4]Range}
+    local ImageDesc = @record{data: ImageData}
+    local imgdesc: ImageDesc
+    imgdesc.data.subimage[0][0] = {ptr=nilptr, size = 0}
+  ]], {
+    [[Range subimage[8][4];]],
+    [[imgdesc.data.subimage[0][0] = ]],
+  })
   expect.run_c([[
     do
       local a: array(boolean, 1)
@@ -3520,6 +3530,35 @@ it("record as namespaces", function()
 end)
 
 it("record initialize evaluation order", function()
+  expect.generate_c([[
+    local Boo = @record{x: integer}
+    local Foo = @record{a: [2]Boo}
+    local y = 0
+    local function f(x: integer) y = x return x end
+    local p: Foo = {a={{x=f(1)}, {x=f(2)}}}
+  ]], [[_tmp.v[0] = (Boo){.x = f(1)};]])
+  expect.generate_c([[
+    local Piece = @record{
+      layout: [2][3]byte,
+      color: integer,
+    }
+    local RED = 1
+    local GREEN = 2
+    local PIECES: [2]Piece = {
+      { layout={
+          {0,0,0},
+          {1,1,1},
+        },
+        color=RED,
+      },
+      { layout={
+          {0,0,0},
+          {1,1,1},
+        },
+        color=GREEN,
+      },
+    }
+  ]], [[PIECES = (Piece_arr2){{(Piece){.layout = {{0U, 0U, 0U}, {1U, 1U, 1U}}, .color = RED}]])
   expect.run_c([=[
     local Point = @record{x: integer, y: integer}
     local function f(x: integer): integer
