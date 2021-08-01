@@ -18,7 +18,7 @@ local defconfig = {
   lua_version = _VERSION:match('%d+%.%d+'),
   generator = 'c',
   gdb = 'gdb',
-  cache_dir = 'nelua_cache',
+  cache_dir = fs.getusercachepath('nelua'),
   pragmas = {}
 }
 metamagic.setmetaindex(config, defconfig)

@@ -37,11 +37,6 @@ nelua examples/helloworld.nelua
 
 When running it you should get an output that looks like this:
 ```bash
-generated /home/user/nelua-lang/nelua_cache/examples/helloworld.c
-gcc -o "/home/user/nelua-lang/nelua_cache/examples/helloworld" \
-       "/home/user/nelua-lang/nelua_cache/examples/helloworld.c" \
-       -Wall -lm -fwrapv -g
-/home/user/nelua-lang/nelua_cache/examples/helloworld
 hello world
 ```
 

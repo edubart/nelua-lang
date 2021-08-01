@@ -300,7 +300,7 @@ function fs.ewritefile(file, content)
 end
 
 -- Choose file path inside a cache directory for an input file path.
-function fs.getcachepath(infile, cachedir)
+function fs.normcachepath(infile, cachedir)
   local path = infile:gsub('%.[^.]+$','')
   path = fs.relpath(path)
   path = path:gsub('%.%.[/\\]+', '')
@@ -312,6 +312,11 @@ end
 -- Prefix a path with the user config path.
 function fs.getuserconfpath(path)
   return fs.expanduser(fs.join('~', '.config', path))
+end
+
+-- Prefix a path with the cache path.
+function fs.getusercachepath(path)
+  return fs.expanduser(fs.join('~', '.cache', path))
 end
 
 local modcache = {}

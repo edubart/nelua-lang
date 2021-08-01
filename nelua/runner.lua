@@ -140,7 +140,7 @@ local function run(argv, redirect)
   if not infile then infile = 'eval_' .. stringer.hash(code) end
 
   -- save the generated code
-  local outcacheprefix = fs.getcachepath(infile, config.cache_dir)
+  local outcacheprefix = fs.normcachepath(infile, config.cache_dir)
   local sourcefile = config.generate_code and config.output or outcacheprefix
   if not compiler.has_source_extension(sourcefile) then
     sourcefile = sourcefile .. compiler.source_extension
