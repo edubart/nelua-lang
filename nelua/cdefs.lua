@@ -132,11 +132,10 @@ local compilers_flags = {}
 cdefs.compilers_flags = compilers_flags
 
 -- Generic CC
-compilers_flags.cc = {
+compilers_flags.generic = {
   cflags_base = "",
   cflags_release = "-O2 -DNDEBUG",
   cflags_maximum_performance = "-O3 -DNDEBUG",
-  cflags_debug = "",
   cflags_shared = "-shared -fPIC",
   cflags_static = "-c",
   cmd_compile = '$(cc) "$(cfile)" -o "$(binfile)" $(cflags)',
@@ -145,21 +144,26 @@ compilers_flags.cc = {
   ext = '.c',
 }
 -- GCC
-compilers_flags.gcc = tabler.update(tabler.copy(compilers_flags.cc), {
+compilers_flags.gcc = tabler.update(tabler.copy(compilers_flags.generic), {
   cflags_base = "-fwrapv",
+  cflags_sanitize = "-Wall -Wextra -fsanitize=address -fsanitize=undefined",
+  cflags_devel = "-g",
+  cflags_debug = "-ggdb",
   cflags_release = "-O2 -fno-plt -DNDEBUG",
   cflags_maximum_performance = "-Ofast -fno-plt -flto -march=native -DNDEBUG",
-  cflags_debug = "-g",
   cmd_compile = '$(cc) -x c "$(cfile)" -o "$(binfile)" $(cflags)',
   cmd_info = '$(cc) -x c -E "$(cfile)" $(cflags)',
   cmd_defines = '$(cc) -x c -E -dM $(cflags) "$(cfile)"',
 })
 -- TCC
-compilers_flags.tcc = tabler.update(tabler.copy(compilers_flags.cc), {
+compilers_flags.tcc = tabler.update(tabler.copy(compilers_flags.generic), {
   cflags_base = "-w",
+  cflags_sanitize = "-b",
+  cflags_devel = "-g",
+  cflags_debug = "-g",
 })
 -- C2M
-compilers_flags.c2m = tabler.update(tabler.copy(compilers_flags.cc), {
+compilers_flags.c2m = tabler.update(tabler.copy(compilers_flags.generic), {
   cflags_base = "-w",
   cflags_shared = "-c",
 })

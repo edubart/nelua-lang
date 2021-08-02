@@ -33,7 +33,7 @@ local function get_compiler_flags(cc)
     end
   end
   --luacov:disable
-  return cdefs.compilers_flags.cc
+  return cdefs.compilers_flags.generic
 end --luacov: enable
 
 local function get_compiler_cflags(compileopts)
@@ -48,20 +48,41 @@ local function get_compiler_cflags(compileopts)
     cflags:add(' -I "'..incdir..'"')
   end
   cflags:add(' '..ccflags.cflags_base)
+  if config.sanitize then
+    if ccflags.cflags_sanitize and #ccflags.cflags_sanitize > 0 then
+      cflags:add(' '..ccflags.cflags_sanitize)
+    end
+    if config.cflags_sanitize and #config.cflags_sanitize then
+      cflags:add(' '..config.cflags_sanitize)
+    end
+  end
   if config.maximum_performance then
-    cflags:add(' '..ccflags.cflags_maximum_performance)
-    if config.cflags_maximum_performance then
+    if ccflags.cflags_maximum_performance and #ccflags.cflags_maximum_performance > 0 then
+      cflags:add(' '..ccflags.cflags_maximum_performance)
+    end
+    if config.cflags_maximum_performance and #config.cflags_maximum_performance > 0 then
       cflags:add(' '..config.cflags_maximum_performance)
     end
   elseif config.release then
-    cflags:add(' '..ccflags.cflags_release)
-    if config.cflags_release then
+    if ccflags.cflags_release and #ccflags.cflags_release > 0 then
+      cflags:add(' '..ccflags.cflags_release)
+    end
+    if config.cflags_release and #config.cflags_release then
       cflags:add(' '..config.cflags_release)
     end
-  else
-    cflags:add(' '..ccflags.cflags_debug)
-    if config.cflags_debug then
+  elseif config.debug then
+    if ccflags.cflags_debug and #ccflags.cflags_debug > 0 then
+      cflags:add(' '..ccflags.cflags_debug)
+    end
+    if config.cflags_debug and #config.cflags_debug > 0 then
       cflags:add(' '..config.cflags_debug)
+    end
+  else
+    if ccflags.cflags_devel and #ccflags.cflags_devel > 0 then
+      cflags:add(' '..ccflags.cflags_devel)
+    end
+    if config.cflags_devel and #config.cflags_devel > 0 then
+      cflags:add(' '..config.cflags_devel)
     end
   end
   if config.shared then

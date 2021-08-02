@@ -145,7 +145,7 @@ docs-gen:
 
 ## Clean the nelua cache directory.
 clean-cache:
-	$(RM_R) nelua_cache
+	$(RM_R) $(HOME)/.cache/nelua
 
 ## Clean coverage files.
 clean-coverage:
