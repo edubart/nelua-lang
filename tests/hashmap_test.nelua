@@ -125,7 +125,7 @@ do -- remove while iterating
   end
   local i = 1
   for k,v in pairs(map) do
-    local ek, ev = i*3167, i*10
+    local ev = i*10
     assert(map:remove(k) == ev)
     i = i + 1
   end

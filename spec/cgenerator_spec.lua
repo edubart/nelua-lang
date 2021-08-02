@@ -554,10 +554,10 @@ end)
 
 it("function definition", function()
   expect.generate_c("local function f() end",
-    "void f() {\n}")
+    "void f(void) {\n}")
   expect.generate_c(
     "local function f(): integer return 0 end",
-    "int64_t f() {\n  return 0;\n")
+    "int64_t f(void) {\n  return 0;\n")
   expect.generate_c(
     "local function f(a: integer): integer return a end",
     "int64_t f(int64_t a) {\n  return a;\n}")
@@ -774,7 +774,7 @@ it("recursive functions", function()
 end)
 
 it("global function definition", function()
-  expect.generate_c("local function f() end", "static void f();")
+  expect.generate_c("local function f() end", "static void f(void);")
   expect.run_c([[
     global function f(x: integer) return x+1 end
     assert(f(1) == 2)
@@ -784,13 +784,13 @@ end)
 it("function return", function()
   expect.generate_c([[
     local function f(): integer return 0 end
-  ]], "int64_t f() {\n  return 0;")
+  ]], "int64_t f(void) {\n  return 0;")
   expect.generate_c([[
     local function f(): niltype return end
   ]], "return NLNIL;")
   expect.generate_c([[
     local function f(): string return (@string){} end
-  ]], "nlstring f() {\n  return (nlstring){0};")
+  ]], "nlstring f(void) {\n  return (nlstring){0};")
   expect.generate_c([[
     local function f() return end
   ]], "return;")
@@ -3035,8 +3035,8 @@ it("context pragmas", function()
   ]], {
     "\nint64_t a;\n",
     "\nstatic int64_t b;\n",
-    "\nvoid f()",
-    "\nstatic void g()",
+    "\nvoid f(void)",
+    "\nstatic void g(void)",
   })
 
   config.pragmas.nofloatsuffix = true
@@ -3051,7 +3051,7 @@ it("context pragmas", function()
     ## context.pragmas.unitname = 'mylib'
     local function foo() <cexport>
     end
-  ]], "nelua_cexport void mylib_foo();")
+  ]], "nelua_cexport void mylib_foo(void);")
 end)
 
 it("require builtin", function()
@@ -3147,7 +3147,7 @@ it("top scope variables prefix", function()
   expect.generate_c("local a = 1", "int64_t mymod_a = 1;")
   expect.generate_c("global a = 1", "static int64_t mymod_a = 1;\n")
   expect.generate_c("global a = 1", "static int64_t mymod_a = 1;\n")
-  expect.generate_c("local function f() end", "void mymod_f() {\n}")
+  expect.generate_c("local function f() end", "void mymod_f(void) {\n}")
   expect.config.srcname = nil
 end)
 
@@ -3190,7 +3190,7 @@ it("GC requirements", function()
     end
 
     mark()
-  ]=], [[void mark() {
+  ]=], [[void mark(void) {
   markp((void*)(&gp));
   markp((void*)(&gr));
   markp((void*)(&ga));

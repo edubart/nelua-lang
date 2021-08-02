@@ -27,17 +27,21 @@ function cbuiltins.nelua_likely(context)
   context:define_builtin_macro('nelua_likely', [[
 #ifdef __GNUC__
   #define nelua_likely(x) __builtin_expect(x, 1)
-  #define nelua_unlikely(x) __builtin_expect(x, 0)
 #else
   #define nelua_likely(x) (x)
-  #define nelua_unlikely(x) (x)
 #endif
 ]], 'directives')
 end
 
 -- Used by `unlikely` builtin.
 function cbuiltins.nelua_unlikely(context)
-  context:ensure_builtin('nelua_likely')
+  context:define_builtin_macro('nelua_unlikely', [[
+#ifdef __GNUC__
+  #define nelua_unlikely(x) __builtin_expect(x, 0)
+#else
+  #define nelua_unlikely(x) (x)
+#endif
+]], 'directives')
 end
 
 -- Used by import and export builtins.
@@ -369,7 +373,9 @@ function cbuiltins.nelua_assert_narrow_(context, dtype, stype)
   emitter:add_indent_ln('nelua_panic_cstring("narrow casting from ',
       tostring(stype),' to ',tostring(dtype),' failed");')
   emitter:dec_indent() emitter:add_indent_ln('}')
-  emitter:add_indent_ln('return x;')
+  emitter:add_indent('return ')
+  emitter:add_converted_val(dtype, 'x', stype, true)
+  emitter:add_ln(';')
   emitter:dec_indent() emitter:add('}')
   context:define_function_builtin(name, 'nelua_inline', dtype, {{stype, 'x'}}, emitter:generate())
   return name
@@ -433,9 +439,13 @@ function cbuiltins.nelua_cstring2string(context)
   context:ensure_builtins('strlen', 'NULL')
   context:define_function_builtin('nelua_cstring2string',
     'nelua_inline', primtypes.string, {{'const char*', 's'}}, {[[{
-  if(s == NULL) return (]],primtypes.string,[[){0};
+  if(s == NULL) {
+    return (]],primtypes.string,[[){0};
+  }
   ]], primtypes.usize, [[ size = strlen(s);
-  if(size == 0) return (]],primtypes.string,[[){0};
+  if(size == 0) {
+    return (]],primtypes.string,[[){0};
+  }
   return (]],primtypes.string,[[){(]],primtypes.byte,[[*)s, size};
 }]]})
 end
@@ -570,8 +580,9 @@ function cbuiltins.nelua_fmod_(context, type)
   context:define_function_builtin(name,
     'nelua_inline', type, {{type, 'a'}, {type, 'b'}}, {[[{
   ]],type,[[ r = ]],cfmod,[[(a, b);
-  if(nelua_unlikely((r > 0 && b < 0) || (r < 0 && b > 0)))
+  if(nelua_unlikely((r > 0 && b < 0) || (r < 0 && b > 0))) {
     r += b;
+  }
   return r;
 }]]})
   return name
@@ -582,13 +593,17 @@ function cbuiltins.nelua_shl_(context, type)
   local name = 'nelua_shl_'..type.codename
   if context.usedbuiltins[name] then return name end
   local bitsize, stype, utype = type.bitsize, type:signed_type(), type:unsigned_type()
-  context:ensure_builtins('nelua_unlikely')
+  context:ensure_builtins('nelua_likely', 'nelua_unlikely')
   context:define_function_builtin(name,
     'nelua_inline', type, {{type, 'a'}, {stype, 'b'}},
     {[[{
-  if(nelua_likely(b >= 0 && b < ]],bitsize,[[)) return (]],utype,[[)a << b;
-  else if(nelua_unlikely(b < 0 && b > -]],bitsize,[[)) return (]],utype,[[)a >> -b;
-  else return 0;
+  if(nelua_likely(b >= 0 && b < ]],bitsize,[[)) {
+    return ((]],utype,[[)a) << b;
+  } else if(nelua_unlikely(b < 0 && b > -]],bitsize,[[)) {
+    return (]],utype,[[)a >> -b;
+  } else {
+    return 0;
+  }
 }]]})
   return name
 end
@@ -598,13 +613,17 @@ function cbuiltins.nelua_shr_(context, type)
   local name = 'nelua_shr_'..type.codename
   if context.usedbuiltins[name] then return name end
   local bitsize, stype, utype = type.bitsize, type:signed_type(), type:unsigned_type()
-  context:ensure_builtins('nelua_unlikely')
+  context:ensure_builtins('nelua_likely', 'nelua_unlikely')
   context:define_function_builtin(name,
     'nelua_inline', type, {{type, 'a'}, {stype, 'b'}},
     {[[{
-  if(nelua_likely(b >= 0 && b < ]],bitsize,[[)) return (]],utype,[[)a >> b;
-  else if(nelua_unlikely(b < 0 && b > -]],bitsize,[[)) return (]],utype,[[)a << -b;
-  else return 0;
+  if(nelua_likely(b >= 0 && b < ]],bitsize,[[)) {
+    return (]],utype,[[)a >> b;
+  } else if(nelua_unlikely(b < 0 && b > -]],bitsize,[[)) {
+    return (]],utype,[[)a << -b;
+  } else {
+    return 0;
+  }
 }]]})
   return name
 end
@@ -614,14 +633,19 @@ function cbuiltins.nelua_asr_(context, type)
   local name = 'nelua_asr_'..type.codename
   if context.usedbuiltins[name] then return name end
   local bitsize = type.bitsize
-  context:ensure_builtins('nelua_unlikely')
+  context:ensure_builtins('nelua_likely', 'nelua_unlikely')
   context:define_function_builtin(name,
     'nelua_inline', type, {{type, 'a'}, {type:signed_type(), 'b'}},
     {[[{
-  if(nelua_likely(b >= 0 && b < ]],bitsize,[[)) return a >> b;
-  else if(nelua_unlikely(b >= ]],bitsize,[[)) return a < 0 ? -1 : 0;
-  else if(nelua_unlikely(b < 0 && b > -]],bitsize,[[)) return a << -b;
-  else return 0;
+  if(nelua_likely(b >= 0 && b < ]],bitsize,[[)) {
+    return a >> b;
+  } else if(nelua_unlikely(b >= ]],bitsize,[[)) {
+    return a < 0 ? -1 : 0;
+  } else if(nelua_unlikely(b < 0 && b > -]],bitsize,[[)) {
+    return a << -b;
+  } else {
+    return 0;
+  }
 }]]})
   return name
 end
@@ -759,12 +783,16 @@ function cbuiltins.calls.print(context, node)
   local decemitter = CEmitter(context)
   decemitter:add('void ', funcname, '(')
   local hasfloat
-  for i,argtype in ipairs(argtypes) do
-    if i>1 then decemitter:add(', ') end
-    decemitter:add(argtype, ' a', i)
-    if argtype.is_float then
-      hasfloat = true
+  if #argtypes > 0 then
+    for i,argtype in ipairs(argtypes) do
+      if i>1 then decemitter:add(', ') end
+      decemitter:add(argtype, ' a', i)
+      if argtype.is_float then
+        hasfloat = true
+      end
     end
+  else
+    decemitter:add_text('void')
   end
   decemitter:add(')')
   local heading = decemitter:generate()

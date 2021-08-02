@@ -209,7 +209,7 @@ function PatternMatcher._match(ms: *PatternMatcher, s: isize, p: isize): isize
       elseif match_single(ms, s, p, ep) then
         s = s + 1 -- try with one more repetition
       else
-        return -1
+        break
       end
     end
     return -1

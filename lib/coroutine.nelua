@@ -415,7 +415,8 @@ to create, resume, yield or destroy a coroutine.
 - To use in multithread applications, you must compile with C compiler that supports `thread_local` qualifier.
 - Some unsupported sanitizers for C may trigger false warnings when using coroutines.
 - The `mco_coro` object is not thread safe, you should lock each coroutine into a thread.
-- Take care to not cause stack overflows, otherwise your program may crash or not, the behavior is undefined.
+- Stack space is fixed, it cannot grow. By default it has about 56KB of space, this can be changed on coroutine creation.
+- Take care to not cause stack overflows (run out of stack space), otherwise your program may crash or not, the behavior is undefined.
 - On WebAssembly you must compile with emscripten flag `-s ASYNCIFY=1`.
 
 # Introduction
@@ -442,7 +443,7 @@ you can  optionally set `user_data` on its creation and later retrieve with `mco
 
 To pass values between resume and yield,
 you can optionally use `mco_push` and `mco_pop` APIs,
-they are intended to pass temporary values using a FIFO style buffer.
+they are intended to pass temporary values using a LIFO style buffer.
 The storage system can also be used to send and receive initial values on coroutine creation or before it finishes.
 
 # Usage
@@ -576,7 +577,7 @@ typedef enum mco_state {
   MCO_DEAD = 0,  /* The coroutine has finished normally or was uninitialized before finishing. */
   MCO_NORMAL,    /* The coroutine is active but not running (that is, it has resumed another coroutine). */
   MCO_RUNNING,   /* The coroutine is active and running. */
-  MCO_SUSPENDED, /* The coroutine is suspended (in a call to yield, or it has not started running yet). */
+  MCO_SUSPENDED  /* The coroutine is suspended (in a call to yield, or it has not started running yet). */
 } mco_state;
 
 /* Coroutine result codes. */
@@ -2091,9 +2092,8 @@ const char* mco_result_description(mco_result res) {
       return "Invalid arguments";
     case MCO_INVALID_OPERATION:
       return "Invalid operation";
-    default:
-      return "Unknown error";
   }
+  return "Unknown error";
 }
 
 #ifdef __cplusplus

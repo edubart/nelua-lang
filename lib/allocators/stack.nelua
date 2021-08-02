@@ -59,15 +59,15 @@ local StackAllocHeader: type = @record{
   function StackAllocatorT:alloc(size: usize): pointer
     if unlikely(size == 0) then return nilptr end
     local base: usize = (@usize)(&self.buffer[0])
-    local offset: usize = align_forward(base + self.curr_offset + #@StackAllocHeader, ALIGN) - base
+    local addr: usize = align_forward(base + self.curr_offset + #@StackAllocHeader, ALIGN)
+    local offset: usize = addr - base
     local next_offset: usize = offset + size
-    if unlikely(next_offset > SIZE) then
-      -- out of memory
+    if unlikely(next_offset > SIZE) then -- out of memory
       return nilptr
     end
-    local p: pointer = &self.buffer[offset]
+    local p: pointer = (@pointer)(addr)
     -- push the current state in the stack header
-    local header: *StackAllocHeader = (@*StackAllocHeader)(&self.buffer[offset - #@StackAllocHeader])
+    local header: *StackAllocHeader = (@*StackAllocHeader)(addr - #@StackAllocHeader)
     header.prev_offset = (@uint32)(self.prev_offset)
     header.curr_offset = (@uint32)(self.curr_offset)
     self.prev_offset = offset
@@ -83,10 +83,11 @@ local StackAllocHeader: type = @record{
   ]]
   function StackAllocatorT:dealloc(p: pointer): void
     if unlikely(p == nilptr) then return end
-    local offset: usize = (@usize)(p) - (@usize)(&self.buffer[0])
+    local addr: usize = (@usize)(p)
+    local offset: usize = addr - (@usize)(&self.buffer[0])
     -- check if is the very last allocation
     check(offset == self.prev_offset, 'out of order dealloc')
-    local header: *StackAllocHeader = (@*StackAllocHeader)(&self.buffer[offset - #@StackAllocHeader])
+    local header: *StackAllocHeader = (@*StackAllocHeader)(addr - #@StackAllocHeader)
     -- pop the current state from the stack header
     self.prev_offset = header.prev_offset
     self.curr_offset = header.curr_offset

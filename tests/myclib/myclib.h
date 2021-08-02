@@ -1,1 +1,1 @@
-void myprint();
+void myprint(void);

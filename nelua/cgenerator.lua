@@ -147,14 +147,19 @@ end
 
 typevisitors[types.FunctionType] = function(context, type)
   local decemitter = CEmitter(context)
-  decemitter:add('typedef ', context:funcrettypename(type), ' (*', type.codename, ')(')
-  for i,argtype in ipairs(type.argtypes) do
-    if i>1 then
-      decemitter:add(', ')
+  decemitter:add('typedef ', context:funcrettypename(type), ' (*', type.codename, ')')
+  if #type.argtypes > 0 then
+    decemitter:add_text('(')
+    for i,argtype in ipairs(type.argtypes) do
+      if i>1 then
+        decemitter:add(', ')
+      end
+      decemitter:add(argtype)
     end
-    decemitter:add(argtype)
+    decemitter:add_ln(');')
+  else
+    decemitter:add_ln('(void);')
   end
-  decemitter:add_ln(');')
   table.insert(context.declarations, decemitter:generate())
 end
 
@@ -889,13 +894,19 @@ function visitors.Switch(context, node, emitter)
     end
     emitter:add_indent_ln("case ", caseexprs[#caseexprs], ': {') -- last case
     emitter:add(caseblock) -- block
-    emitter:add_indent_ln('  break;')
+    local laststmt = caseblock[#caseblock]
+    if not laststmt or not (laststmt.is_Return or laststmt.is_Continue or laststmt.is_Break) then
+      emitter:add_indent_ln('  break;')
+    end
     emitter:add_indent_ln("}")
   end
   if elsenode then -- add default case block
     emitter:add_indent_ln('default: {')
     emitter:add(elsenode)
-    emitter:add_indent_ln('  break;')
+    local laststmt = elsenode[#elsenode]
+    if not laststmt or not (laststmt.is_Return or laststmt.is_Continue or laststmt.is_Break) then
+      emitter:add_indent_ln('  break;')
+    end
     emitter:add_indent_ln("}")
   end
   context:pop_scope(node)
@@ -1244,15 +1255,19 @@ function visitors.FuncDef(context, node, emitter)
   context:pop_state()
   -- add function arguments
   local argsemitter = CEmitter(context)
-  argsemitter:add('(')
-  if varnode.is_ColonIndex then -- need to inject first argument `self`
-    local selftype = type.argtypes[1]
-    argsemitter:add(selftype, ' self')
-    if #argnodes > 0 then -- extra arguments?
-      argsemitter:add(', ')
+  if varnode.is_ColonIndex or #argnodes > 0 then
+    argsemitter:add('(')
+    if varnode.is_ColonIndex then -- need to inject first argument `self`
+      local selftype = type.argtypes[1]
+      argsemitter:add(selftype, ' self')
+      if #argnodes > 0 then -- extra arguments?
+        argsemitter:add(', ')
+      end
     end
+    argsemitter:add(argnodes, ')')
+  else
+    argsemitter:add('(void)')
   end
-  argsemitter:add(argnodes, ')')
   -- add function declaration
   if mustdecl then
     decemitter:add_ln(argsemitter, ';')
@@ -1294,7 +1309,11 @@ function visitors.Function(context, node, emitter)
   local funcscope = context:push_forked_scope(node)
   context:push_forked_state{funcscope = funcscope}
   -- add function arguments
-  argsemitter:add('(', argnodes, ')')
+  if #argnodes > 0 then
+    argsemitter:add('(', argnodes, ')')
+  else
+    argsemitter:add('(void)')
+  end
   decemitter:add_ln(argsemitter, ';')
   defemitter:add_ln(argsemitter, ' {')
   -- add function block
@@ -1347,7 +1366,9 @@ function visitors.BinaryOp(context, node, emitter)
         emitter:add(')')
       else
         emitter:add_ln('({') emitter:inc_indent()
-        emitter:add_indent_ln(type, ' t_;')
+        emitter:add_indent(type, ' t_ = ')
+        emitter:add_zeroed_type_literal(type)
+        emitter:add_ln(';')
         emitter:add_indent(primtypes.boolean, ' cond_ = ')
         emitter:add_val2boolean(anode)
         emitter:add_ln(';')

@@ -288,7 +288,7 @@ function CContext:define_function_builtin(name, qualifier, ret, args, body)
   end
   heademitter:add(ret, ' ', name)
   -- build arguments part
-  if type(args) == 'table' then
+  if #args > 0 then
     heademitter:add_text('(')
     for i=1,#args do
       if i > 1 then
@@ -300,6 +300,8 @@ function CContext:define_function_builtin(name, qualifier, ret, args, body)
       heademitter:add(argtype, ' ', argname)
     end
     heademitter:add_text(')')
+  else
+    heademitter:add_text('(void)')
   end
   -- build qualifier part
   if not self.pragmas.nostatic then

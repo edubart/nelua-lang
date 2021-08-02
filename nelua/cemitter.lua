@@ -121,7 +121,7 @@ function CEmitter:add_deref(val, valtype)
   valtype = valtype or val.attr.type
   assert(valtype.is_pointer)
   self:add_text('(*')
-  if  not self.context.pragmas.nochecks or valtype.is_unbounded_pointer then
+  if not self.context.pragmas.nochecks or valtype.is_unbounded_pointer then
     self:add('(', valtype.subtype, '*)')
   end
   if not self.context.pragmas.nochecks then -- check

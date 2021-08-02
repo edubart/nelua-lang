@@ -342,16 +342,16 @@ function os.now(): number
 ]]
   cemitdecl [[
 #if __STDC_VERSION__ >= 201112L && defined(TIME_UTC)
-  #define _HAVE_C11_TIMESPEC_GET
+  #define NELUA_HAVE_C11_TIMESPEC_GET
 #elif defined(_POSIX_TIMERS) && defined(_POSIX_MONOTONIC_CLOCK)
-  #define _HAVE_POSIX_MONOTONIC_CLOCK
+  #define NELUA_HAVE_POSIX_MONOTONIC_CLOCK
 #elif _POSIX_VERSION >= 200112L
   #include <sys/time.h>
-  #define _HAVE_POSIX_GETTIMEOFDAY
+  #define NELUA_HAVE_POSIX_GETTIMEOFDAY
 #endif
 ]]
   cemit [[
-#if defined(_HAVE_C11_TIMESPEC_GET)
+#if defined(NELUA_HAVE_C11_TIMESPEC_GET)
   static bool initialized = false;
   static struct timespec start = {0};
   errno = 0;
@@ -363,7 +363,7 @@ function os.now(): number
     ok = timespec_get(&ts, TIME_UTC) == TIME_UTC;
     ns = (int64_t)(ts.tv_sec - start.tv_sec)*1000000000 + (int64_t)(ts.tv_nsec - start.tv_nsec);
   }
-#elif defined(_HAVE_POSIX_MONOTONIC_CLOCK)
+#elif defined(NELUA_HAVE_POSIX_MONOTONIC_CLOCK)
   static bool initialized = false;
   static struct timespec start = {0};
   errno = 0;
@@ -375,7 +375,7 @@ function os.now(): number
     ok = clock_gettime(CLOCK_MONOTONIC, &ts) == 0;
     ns = (int64_t)(ts.tv_sec - start.tv_sec)*1000000000 + (int64_t)(ts.tv_nsec - start.tv_nsec);
   }
-#elif defined(_HAVE_POSIX_GETTIMEOFDAY)
+#elif defined(NELUA_HAVE_POSIX_GETTIMEOFDAY)
   static bool initialized = false;
   static struct timeval start = {0};
   errno = 0;
