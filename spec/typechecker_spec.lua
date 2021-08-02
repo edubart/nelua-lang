@@ -274,6 +274,11 @@ it("unary operators", function()
     local a = &f()
   ]], "cannot reference rvalues")
   expect.analyze_error([[
+    local function f(i: *cint) return $i end
+    local x: integer = 1
+    f(&(@cint)(x))
+  ]], "cannot reference rvalues")
+  expect.analyze_error([[
     local i = 1
     local a = &(-i)
   ]], "cannot reference rvalues")

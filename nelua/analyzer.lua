@@ -1254,7 +1254,7 @@ local function visitor_Call_type_cast(context, node, argnodes, type)
         attr.type = type
         attr.calleetype = primtypes.type
         attr.sideeffect = argattr.sideeffect
-        attr.lvalue = argattr.lvalue
+        attr.lvalue = argattr.lvalue and type.is_pointer
         if argnode.done then
           node.done = true
         end
