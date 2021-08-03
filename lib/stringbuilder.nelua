@@ -110,7 +110,12 @@ end
     local cap: usize = self.data.size
     if needed <= cap then return true end
     if cap == 0 then cap = INIT_CAPACITY end
-    repeat cap = cap * 2 until cap >= needed
+    repeat
+      cap = cap * 2
+      if cap <= INIT_CAPACITY then -- capacity overflow
+        return false
+      end
+    until cap >= needed
     self.data = self.allocator:spanrealloc0(self.data, cap)
     if self.data.size ~= cap then -- reallocation failed, try to allocate the minimum
       self.data = self.allocator:spanrealloc0(self.data, needed)

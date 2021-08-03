@@ -2664,12 +2664,15 @@ it("manual memory managment", function()
     local function malloc(size: usize): pointer <cimport'malloc',cinclude'<stdlib.h>',nodecl> end
     local function memset(s: pointer, c: int32, n: usize): pointer <cimport'memset',cinclude'<string.h>',nodecl> end
     local function free(ptr: pointer) <cimport'free',cinclude'<stdlib.h>',nodecl> end
-    local a = (@pointer(array(int64, 10)))(malloc(10 * 8))
-    memset(a, 0, 10*8)
-    assert(a[0] == 0)
-    a[0] = 1
-    assert(a[0] == 1)
-    free(a)
+    local p = malloc(10 * 8)
+    if p then
+      local a = (@pointer(array(int64, 10)))(p)
+      memset(a, 0, 10*8)
+      assert(a[0] == 0)
+      a[0] = 1
+      assert(a[0] == 1)
+      free(a)
+    end
   ]=])
 end)
 

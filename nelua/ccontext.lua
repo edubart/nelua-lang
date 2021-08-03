@@ -316,6 +316,7 @@ function CContext:define_function_builtin(name, qualifier, ret, args, body)
   declemitter:add(heademitter)
   declemitter:add_ln(';')
   -- build body part
+  defnemitter:add_text(' ')
   if type(body) == 'table' then
     defnemitter:add(table.unpack(body))
   else

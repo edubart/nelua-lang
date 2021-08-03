@@ -10,58 +10,49 @@ local vec2 = @record{x: integer, y: integer}
 -- raw pointers
 
 do -- alloc and dealloc
-  assert(allocator:alloc(0) == nilptr)
-  local p = allocator:alloc(4)
-  assert(p)
+  assert(allocator:xalloc(0) == nilptr)
+  local p = allocator:xalloc(4)
   allocator:dealloc(p)
   p = nilptr
   allocator:dealloc(p)
 end
 
 do -- alloc0
-  assert(allocator:alloc0(0) == nilptr)
-  local p = (@*vec2)(allocator:alloc0(#@vec2))
-  assert(p)
+  assert(allocator:xalloc0(0) == nilptr)
+  local p = (@*vec2)(allocator:xalloc0(#@vec2))
   assert(p.x == 0 and p.y == 0)
   allocator:dealloc(p)
 end
 
 do -- realloc
-  assert(allocator:realloc(nilptr, 0, 0) == nilptr)
-  local p = allocator:realloc(nilptr, 1, 0)
-  assert(p)
-  p = allocator:realloc(p, 4, 1)
-  assert(p)
-  p = allocator:realloc(p, 1, 4)
-  assert(p)
-  p = allocator:realloc(p, 0, 1)
+  assert(allocator:xrealloc(nilptr, 0, 0) == nilptr)
+  local p = allocator:xrealloc(nilptr, 1, 0)
+  p = allocator:xrealloc(p, 4, 1)
+  p = allocator:xrealloc(p, 1, 4)
+  p = allocator:xrealloc(p, 0, 1)
   assert(p == nilptr)
 end
 
 do -- realloc0
-  assert(allocator:realloc0(nilptr, 0, 0) == nilptr)
-  local p = (@*[0]vec2)(allocator:alloc0(#@vec2))
-  assert(p)
+  assert(allocator:xrealloc0(nilptr, 0, 0) == nilptr)
+  local p = (@*[0]vec2)(allocator:xalloc0(#@vec2))
   assert(p[0].x == 0 and p[0].y == 0)
   p[0] = vec2{x=1, y=2}
-  p = (@*[0]vec2)(allocator:realloc0(p, 2*#@vec2, #@vec2))
-  assert(p)
+  p = (@*[0]vec2)(allocator:xrealloc0(p, 2*#@vec2, #@vec2))
   assert(p[0].x == 1 and p[0].y == 2)
   assert(p[1].x == 0 and p[1].y == 0)
-  p = (@*[0]vec2)(allocator:realloc0(p, #@vec2, #@vec2))
-  assert(p)
+  p = (@*[0]vec2)(allocator:xrealloc0(p, #@vec2, #@vec2))
   assert(p[0].x == 1 and p[0].y == 2)
-  p = (@*[0]vec2)(allocator:realloc0(p, #@vec2, 0))
-  assert(p)
+  p = (@*[0]vec2)(allocator:xrealloc0(p, #@vec2, 0))
   assert(p[0].x == 0 and p[0].y == 0)
-  p = (@*[0]vec2)(allocator:realloc0(p, 0, #@vec2))
+  p = (@*[0]vec2)(allocator:xrealloc0(p, 0, #@vec2))
   assert(p == nilptr)
 end
 
 do -- copy
   memory.copy(nilptr, nilptr, 0)
-  local pa = (@*vec2)(allocator:alloc0(#@vec2))
-  local pb = (@*vec2)(allocator:alloc0(#@vec2))
+  local pa = (@*vec2)(allocator:xalloc0(#@vec2))
+  local pb = (@*vec2)(allocator:xalloc0(#@vec2))
   $pa = {x=1,y=2}
   memory.copy(pb, pa, #@vec2)
   assert(pb.x == 1 and pb.y == 2)
@@ -71,7 +62,7 @@ end
 
 do -- move
   memory.move(nilptr, nilptr, 0)
-  local p = (@*[0]vec2)(allocator:alloc0(2*#@vec2))
+  local p = (@*[0]vec2)(allocator:xalloc0(2*#@vec2))
   local pa, pb = &p[0], &p[1]
   $pa, $pb = {x=1,y=2}, {x=3,y=4}
   memory.move(&((@*[0]integer)(p))[1], p, 3 * #@integer)
@@ -82,7 +73,7 @@ end
 do -- set and zero
   memory.set(nilptr, 0, 0)
   memory.zero(nilptr, 0)
-  local p = (@*vec2)(allocator:alloc0(#@vec2))
+  local p = (@*vec2)(allocator:xalloc0(#@vec2))
   memory.set(p, 0xff, #@vec2)
   assert(p.x == 0xffffffffffffffff and p.y == 0xffffffffffffffff)
   memory.zero(p, #@vec2)
@@ -92,8 +83,8 @@ end
 
 do -- compare
   assert(memory.compare(nilptr, nilptr, 0) == 0)
-  local pa = (@*vec2)(allocator:alloc0(#@vec2))
-  local pb = (@*vec2)(allocator:alloc0(#@vec2))
+  local pa = (@*vec2)(allocator:xalloc0(#@vec2))
+  local pb = (@*vec2)(allocator:xalloc0(#@vec2))
   assert(memory.compare(pa, pb, #@vec2) == 0)
   pa.x = 1 pb.x = 2
   assert(memory.compare(pa, pb, #@vec2) == -1)
@@ -107,8 +98,8 @@ end
 
 do -- equals
   assert(memory.equals(nilptr, nilptr, 0) == true)
-  local pa = (@*vec2)(allocator:alloc0(#@vec2))
-  local pb = (@*vec2)(allocator:alloc0(#@vec2))
+  local pa = (@*vec2)(allocator:xalloc0(#@vec2))
+  local pb = (@*vec2)(allocator:xalloc0(#@vec2))
   assert(memory.equals(pa, pb, #@vec2))
   pa.x = 1
   assert(not memory.equals(pa, pb, #@vec2))
@@ -118,7 +109,7 @@ end
 
 do -- scan
   assert(memory.scan(nilptr, 0, 0) == nilptr)
-  local p = (@*vec2)(allocator:alloc0(#@vec2))
+  local p = (@*vec2)(allocator:xalloc0(#@vec2))
   p.x = 1 p.y = 2
   assert(memory.scan(p, 1, #@vec2) == &p.x)
   assert(memory.scan(p, 2, #@vec2) == &p.y)
@@ -128,7 +119,7 @@ end
 
 do -- find
   assert(memory.find(nilptr, 0, nilptr, 0) == nilptr)
-  local p = (@*vec2)(allocator:alloc0(#@vec2))
+  local p = (@*vec2)(allocator:xalloc0(#@vec2))
   p.x = 1 p.y = 2
   local x: integer, y: integer = 1, 2
   assert(memory.find(p, #@vec2, &x, #@integer) == &p.x)

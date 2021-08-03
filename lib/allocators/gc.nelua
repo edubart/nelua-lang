@@ -216,28 +216,36 @@ local function GC_sweep(self: *GC): void <noinline>
   end
   -- call all finalizers before deallocating
   if finalize then
-    for i: integer, ptr: pointer in ipairs(self.frees) do
+    local i: usize = 0
+    while i < self.frees.size do
+      local ptr: pointer = self.frees[i]
       if ptr then -- it's possible that the item was removed while iterating
         local item: *GCItem = self.items:peek(ptr)
         check(item, 'gc item not found to finalize')
-        if item.finalizer then
+        if item and item.finalizer then
           local finalizer: GCFinalizerCallback = item.finalizer
           item.finalizer = nilptr -- avoid finalizing again
           finalizer(ptr, item.userdata)
         end
       end
+      i = i + 1
     end
   end
   -- deallocate
-  for i: integer, ptr: pointer in ipairs(self.frees) do
+  local i: usize = 0
+  while i < self.frees.size do
+    local ptr: pointer = self.frees[i]
     if ptr then -- it's possible that the item was removed by a finalizer
       local item: GCItem = self.items:remove(ptr)
       check(item.ptr == ptr, 'gc item not found to deallocate')
-      self.membytes = self.membytes - item.size -- update memory
-      if not hasflag(item.flags, GCFlags.EXTERN) then -- deallocate
-        general_allocator:dealloc(ptr)
+      if item.ptr then
+        self.membytes = self.membytes - item.size -- update memory
+        if not hasflag(item.flags, GCFlags.EXTERN) then -- deallocate
+          general_allocator:dealloc(ptr)
+        end
       end
     end
+    i = i + 1
   end
   self.frees:clear()
 end

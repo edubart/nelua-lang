@@ -112,7 +112,10 @@ require 'iterators'
   -- Grow vector storage to accommodate at least one more element, used internally.
   local function vectorT_grow(self: *vectorT): void <noinline>
     local cap: usize = 1
-    if likely(self.data.size ~= 0) then cap = self.data.size * 2 end
+    if likely(self.data.size ~= 0) then
+      cap = self.data.size * 2
+      check(cap > self.data.size, 'capacity overflow')
+    end
     self.data = self.allocator:xspanrealloc(self.data, cap)
   end
 

@@ -51,7 +51,7 @@ require 'span'
   -- Like `alloc`, but raises an error in case the allocation fails.
   function Allocator:xalloc(size: usize): pointer
     local p: pointer = self:alloc(size)
-    assert(p ~= nilptr, 'out of memory')
+    if unlikely(p == nilptr and size > 0) then panic('out of memory') end
     return p
   end
 
@@ -69,7 +69,7 @@ require 'span'
   -- Like `alloc0`, but raises an error in case the allocation fails.
   function Allocator:xalloc0(size: usize): pointer
     local p: pointer = self:alloc0(size)
-    assert(p ~= nilptr, 'out of memory')
+    if unlikely(p == nilptr and size > 0) then panic('out of memory') end
     return p
   end
 
@@ -134,7 +134,7 @@ require 'span'
   -- Like `realloc`, but raises an error in case the allocation fails.
   function Allocator:xrealloc(p: pointer, newsize: usize, oldsize: usize): pointer
     local p: pointer = self:realloc(p, newsize, oldsize)
-    assert(p ~= nilptr, 'out of memory')
+    if unlikely(p == nilptr and newsize > 0) then panic('out of memory') end
     return p
   end
 
@@ -153,7 +153,7 @@ require 'span'
   -- Like `realloc0`, but raises an error in case the allocation fails.
   function Allocator:xrealloc0(p: pointer, newsize: usize, oldsize: usize): pointer
     local p: pointer = self:realloc0(p, newsize, oldsize)
-    assert(p ~= nilptr, 'out of memory')
+    if unlikely(p == nilptr and newsize > 0) then panic('out of memory') end
     return p
   end
 
@@ -178,7 +178,7 @@ require 'span'
   -- Like `spanalloc`, but raises an error in case the allocation fails.
   function Allocator:xspanalloc(T: type, size: usize): auto
     local s: span(T) = self:spanalloc(T, size)
-    assert(s.size == size, 'out of memory')
+    if unlikely(s.size ~= size) then panic('out of memory') end
     return s
   end
 
@@ -198,7 +198,7 @@ require 'span'
   -- Like `spanalloc0`, but raises an error in case the allocation fails.
   function Allocator:xspanalloc0(T: type, size: usize): auto
     local s: span(T) = self:spanalloc0(T, size)
-    assert(s.size == size, 'out of memory')
+    if unlikely(s.size ~= size) then panic('out of memory') end
     return s
   end
 
@@ -239,7 +239,7 @@ require 'span'
   -- Like `spanrealloc`, but raises an error in case the allocation fails.
   function Allocator:xspanrealloc(s: span_concept, size: usize): auto
     s = self:spanrealloc(s, size)
-    assert(s.size == size, 'out of memory')
+    if unlikely(s.size ~= size) then panic('out of memory') end
     return s
   end
 
@@ -265,7 +265,7 @@ require 'span'
   -- Like `spanrealloc0`, but raises an error in case the allocation fails.
   function Allocator:xspanrealloc0(s: span_concept, size: usize): auto
     s = self:spanrealloc0(s, size)
-    assert(s.size == size, 'out of memory')
+    if unlikely(s.size ~= size) then panic('out of memory') end
     return s
   end
 

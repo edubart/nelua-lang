@@ -139,7 +139,10 @@ require 'iterators'
   local function sequenceT_grow(self: *sequenceT): void <noinline>
     local cap: usize = 2
     local curcap: usize = self.impl.data.size
-    if likely(curcap ~= 0) then cap = curcap * 2 end
+    if likely(curcap ~= 0) then
+      cap = curcap * 2
+      check(cap > curcap, 'capacity overflow')
+    end
     self.impl.data = self.allocator:xspanrealloc(self.impl.data, cap)
     if unlikely(curcap == 0) then self.impl.data[0] = T() end
   end
