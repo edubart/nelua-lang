@@ -146,7 +146,7 @@ compilers_flags.generic = {
 -- GCC
 compilers_flags.gcc = tabler.update(tabler.copy(compilers_flags.generic), {
   cflags_base = "-fwrapv",
-  cflags_sanitize = "-Wall -Wextra -fsanitize=address,undefined",
+  cflags_sanitize = "-Wall -Wextra -fsanitize=address,undefined -fsanitize-address-use-after-scope",
   cflags_devel = "-g",
   cflags_debug = "-ggdb",
   cflags_release = "-O2 -fno-plt -DNDEBUG",
@@ -158,7 +158,6 @@ compilers_flags.gcc = tabler.update(tabler.copy(compilers_flags.generic), {
 -- TCC
 compilers_flags.tcc = tabler.update(tabler.copy(compilers_flags.generic), {
   cflags_base = "-w",
-  cflags_sanitize = "-b",
   cflags_devel = "-g",
   cflags_debug = "-g",
 })
