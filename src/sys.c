@@ -3,6 +3,7 @@
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
+#include <string.h>
 
 #ifndef _MSC_VER
   #include <unistd.h>
@@ -15,7 +16,6 @@
   #include <windows.h>
 #else
   #include <errno.h>
-  #include <string.h>
   #if defined (_POSIX_TIMERS) && _POSIX_TIMERS > 0
   #ifdef _POSIX_MONOTONIC_CLOCK
     #define HAVE_CLOCK_GETTIME
@@ -127,9 +127,44 @@ static int sys_rdtscp(lua_State *L) {
 }
 #endif
 
+int sys_setenv(lua_State* L) {
+  const char* name = luaL_checkstring(L, 1);
+  const char* value = luaL_optstring(L, 2, NULL);
+  int ok = 0;
+#if defined(_WIN32)
+  void* ud;
+  lua_Alloc allocf = lua_getallocf(L, &ud);
+  size_t len = strlen(name) + (value ? strlen(value) : 0) + 2; /* 1 for '\0', 1 for =. */
+  char* var = (char*)allocf(ud, NULL, 0, len);
+  if (var) {
+    if (value) {
+      snprintf(var, len, "%s=%s", name, value);
+    } else {
+      snprintf(var, len, "%s=", name);
+    }
+    /*
+    _putenv was chosen over SetEnvironmentVariable because variables set
+    with the latter seem to be invisible to getenv() calls and Lua uses
+    these in the 'os' module.
+    */
+    ok = _putenv(var) == 0;
+    allocf(ud, var, len, 0);
+  }
+#else
+  if (value) {
+    ok = setenv(name, value, 1) == 0;
+  } else {
+    ok = unsetenv(name) == 0;
+  }
+#endif
+  lua_pushboolean(L, ok);
+  return 1;
+}
+
 static const struct luaL_Reg sys_reg[] = {
   {"nanotime", sys_nanotime},
   {"isatty", sys_isatty},
+  {"setenv", sys_setenv},
 #ifdef SYS_RDTSC
   {"rdtsc", sys_rdtsc},
   {"rdtscp", sys_rdtscp},

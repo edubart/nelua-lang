@@ -146,9 +146,9 @@ compilers_flags.generic = {
 -- GCC
 compilers_flags.gcc = tabler.update(tabler.copy(compilers_flags.generic), {
   cflags_base = "-fwrapv",
-  cflags_sanitize = "-Wall -Wextra -fsanitize=address,undefined -fsanitize-address-use-after-scope",
+  cflags_sanitize = "-Wall -Wextra -fsanitize=address,undefined",
   cflags_devel = "-g",
-  cflags_debug = "-ggdb",
+  cflags_debug = "-fsanitize-undefined-trap-on-error -ggdb",
   cflags_release = "-O2 -fno-plt -DNDEBUG",
   cflags_maximum_performance = "-Ofast -fno-plt -flto -march=native -DNDEBUG",
   cmd_compile = '$(cc) -x c "$(cfile)" -o "$(binfile)" $(cflags)',

@@ -138,6 +138,16 @@ local function build_configs(conf)
     tabler.update(conf.pragmas, pragmas)
   end
 
+  if conf.sanitize then
+    -- set some sanitizer options for better debugging experience
+    local sys = _G.sys
+    if sys and sys.setenv then
+      if not os.getenv('UBSAN_OPTIONS') then
+        sys.setenv('UBSAN_OPTIONS', 'print_stacktrace=1')
+      end
+    end
+  end
+
   if conf.maximum_performance or conf.release then --luacov:disable
     conf.pragmas.nochecks = true
   end --luacov:enable
