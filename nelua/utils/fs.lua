@@ -316,7 +316,13 @@ end
 
 -- Prefix a path with the cache path.
 function fs.getusercachepath(path)
-  return fs.expanduser(fs.join('~', '.cache', path))
+ 	if platform.is_unix then
+		return fs.expanduser(fs.join('~', '.cache', path))
+	elseif platform.is_windows then
+		return fs.join(os.getenv('HOME'), '.cache', path)
+	else
+		return '.nelua_cache'
+	end
 end
 
 local modcache = {}
