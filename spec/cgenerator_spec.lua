@@ -3396,6 +3396,24 @@ it("forward type declaration", function()
     local Union <forwarddecl> = @union{}
     local Union = @union{i: integer, n: number}
   ]=])
+  expect.run_c([=[
+    local function f(x: integer): integer <forwarddecl> end
+    assert(f(1) == 1)
+    function f(x: integer): integer return x end
+
+    local Foo = @record{x: integer}
+    function Foo.f(x: integer): integer <forwarddecl> end
+    function Foo:g(x: integer): integer <forwarddecl> end
+    assert(Foo.f(1) == 1)
+    local foo: Foo = {1}
+    assert(foo:g(1) == 2)
+    function Foo.f(x: integer): integer return x end
+    function Foo:g(x: integer): integer return self.x + x end
+  ]=])
+  expect.run_error_c([=[
+    local function f(x: integer): integer <forwarddecl> end
+    assert(f(1) == 1)
+  ]=], "marked as forward declaration but was never defined")
 end)
 
 it("function assignment", function()

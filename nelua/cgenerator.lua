@@ -1214,15 +1214,18 @@ function visitors.FuncDef(context, node, emitter)
     context:ensure_builtin(attr.codename) -- ensure the builtin is declared and defined
     return -- nothing more to do
   end
-  local mustdecl, mustdefn = not attr.nodecl, not attr.cimport
+  local mustdecl, mustdefn = node.funcdecl and not attr.nodecl, node.funcdefn
+  if attr.forwarddecl and not attr.funcdefined then
+    node:raisef("function '%s' marked as forward declaration but was never defined", attr)
+  end
   if not (mustdecl or mustdefn) then -- do we need to declare or define?
     return -- nothing to do
   end
   -- lets declare or define the function
-  local varscope, varnode, argnodes, blocknode = node[1], node[2], node[3], node[6]
+  local varnode, argnodes, blocknode = node[2], node[3], node[6]
   local funcname = varnode
   -- handle function variable assignment
-  if not varscope then
+  if not attr.funcdeclared then
     if varnode.is_Id then
       funcname = context.rootscope:generate_name(context:declname(varnode.attr))
       emitter:add_indent_ln(varnode, ' = ', funcname, ';')
@@ -1231,8 +1234,6 @@ function visitors.FuncDef(context, node, emitter)
       if objtype.is_record then
         funcname = context.rootscope:generate_name(objtype.codename..'_funcdef_'..fieldname)
         emitter:add_indent_ln(varnode, ' = ', funcname, ';')
-      else
-        assert(objtype.is_type)
       end
     end
   end

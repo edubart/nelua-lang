@@ -262,6 +262,9 @@ typedefs.function_annots = {
   polymorphic = true,
   -- Force a polymorphic function to always be evaluated.
   alwayseval = true,
+  -- Mark a function for forward declaration.
+  -- This allows to call a function before defining it.
+  forwarddecl = true,
 }
 
 -- List of possible annotations for variables.

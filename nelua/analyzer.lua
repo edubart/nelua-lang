@@ -601,7 +601,7 @@ function visitors.Annotation(context, node, opts)
     end
   elseif name == 'codename' then
     objattr.fixedcodename = params
-  elseif name == 'cincomplete' or name =='forwarddecl' then
+  elseif istypedecl and (name == 'cincomplete' or name =='forwarddecl') then
     objattr.size = nil
     objattr.bitsize = nil
     objattr.align = nil
@@ -1655,7 +1655,7 @@ local function visitor_Type_MetaFieldIndex(context, node, objtype, name)
     end
     symbol.anonymous = true
     symbol.scope = context.rootscope
-  elseif infuncdef or inglobaldecl then
+  elseif (infuncdef or inglobaldecl) and not symbol.forwarddecl then
     if symbol.node ~= node then
       node:raisef("cannot redefine meta type field '%s' in record '%s'", name, objtype)
     end
@@ -2534,21 +2534,17 @@ function visitors.DoExpr(context, node)
 end
 
 local function visitor_FuncDef_variable(context, declscope, varnode)
-  local decl = not not declscope
   if declscope == 'global' then
     if not context.scope.is_topscope then
       varnode:raisef("global function can only be declared in top scope")
     end
     varnode.attr.global = true
   end
-  if declscope == 'global' or context.scope.is_topscope or decl then
+  if declscope == 'global' or context.scope.is_topscope or declscope then
     varnode.attr.staticstorage = true
   end
   local symbol = context:traverse_node(varnode)
-  if symbol and symbol.metafunc then
-    decl = true
-  end
-  return symbol, decl
+  return symbol
 end
 
 local function visitor_function_arguments(context, symbol, selftype, argnodes, checkpoly)
@@ -2565,7 +2561,7 @@ local function visitor_function_arguments(context, symbol, selftype, argnodes, c
   local off = 0
 
   if selftype then -- inject 'self' type as first argument
-    local selfsym = symbol.selfsym
+    local selfsym = funcscope.selfsym
     if not selfsym then
       selfsym = Symbol{
         name = 'self',
@@ -2574,7 +2570,7 @@ local function visitor_function_arguments(context, symbol, selftype, argnodes, c
         type = selftype,
         scope = funcscope,
       }
-      symbol.selfsym = selfsym
+      funcscope.selfsym = selfsym
     end
     argattrs[1] = selfsym
     funcscope:add_symbol(selfsym)
@@ -2653,7 +2649,7 @@ local function visitor_function_returns(context, node, retnodes, ispolyparent)
   return rettypes, hasauto
 end
 
-local function visitor_function_annotations(context, node, annotnodes, blocknode, symbol, type)
+local function visitor_function_annotations(context, node, annotnodes, blocknode, symbol, type, defn)
   if annotnodes then
     context:traverse_nodes(annotnodes, {symbol=symbol})
   end
@@ -2662,9 +2658,9 @@ local function visitor_function_annotations(context, node, annotnodes, blocknode
 
   do -- handle attributes and annotations
     -- annotation cimport
-    if attr.cimport then
+    if attr.cimport or (attr.forwarddecl and not defn) then
       if #blocknode ~= 0 then
-        blocknode:raisef("body of an import function must be empty")
+        blocknode:raisef("body of a function declaration must be empty")
       end
       if attr.codename == 'nelua_main' then
         context.hookmain = true
@@ -2698,7 +2694,7 @@ local function visitor_function_sideeffect(attr, functype, funcscope)
   if functype and not attr.nosideeffect then
     -- C imported function has side effects unless told otherwise,
     -- if any side effect call or upvalue assignment is detected the function also has side effects
-    if attr.cimport or funcscope.sideeffect then
+    if (attr.cimport or attr.forwarddecl) or funcscope.sideeffect then
       functype.sideeffect = true
     else
       functype.sideeffect = false
@@ -2782,6 +2778,9 @@ local function resolve_function_type(node, symbol, varnode, varsym, decl, argatt
   local attr = node.attr
   if ispolyparent then
     assert(not polysymbol)
+    if symbol.forwarddecl then
+      node:raisef("polymorphic functions cannot be forward declared")
+    end
     type = types.PolyFunctionType(argattrs, rettypes, node)
   else
     type = types.FunctionType(argattrs, rettypes, node)
@@ -2814,7 +2813,7 @@ function visitors.FuncDef(context, node, opts)
 
   local type = node.attr.ftype
   context:push_forked_state{infuncdef = node, inpolydef = polysymbol}
-  local varsym, decl = visitor_FuncDef_variable(context, declscope, varnode)
+  local varsym = visitor_FuncDef_variable(context, declscope, varnode)
   local attr, symbol
   if varsym then -- symbol may be nil in case of array/dot index
     symbol = varsym
@@ -2840,6 +2839,7 @@ function visitors.FuncDef(context, node, opts)
   context:pop_state()
 
   -- we must know if the symbols is going to be polymorphic
+  local forwarddecl
   if annotnodes then
     for i=1,#annotnodes do
       local annotname = annotnodes[i][1]
@@ -2847,7 +2847,30 @@ function visitors.FuncDef(context, node, opts)
         attr.polymorphic = true
       elseif annotname == 'cimport' then
         attr.cimport = true
+      elseif annotname == 'forwarddecl' then
+        forwarddecl = true
+        attr.forwarddecl = true
       end
+    end
+  end
+
+  -- detect if is a function declaration/definition
+  local decl = not not declscope or forwarddecl
+  local defn = not (attr.nodecl or attr.cimport or attr.hookmain or forwarddecl)
+  if symbol then
+    if not forwarddecl and symbol.forwarddecl then
+      defn = true
+      decl = false
+    elseif symbol.metafunc then
+      decl = true
+    end
+    if decl then
+      node.funcdecl = true
+      symbol.funcdeclared = true
+    end
+    if defn then
+      node.funcdefn = true
+      symbol.funcdefined = true
     end
   end
 
@@ -2881,6 +2904,7 @@ function visitors.FuncDef(context, node, opts)
 
     -- traverse the function arguments
     argattrs, ispolyparent = visitor_function_arguments(context, symbol, selftype, argnodes, not polysymbol)
+
     symbol.argattrs = argattrs
 
     -- traverse the function returns
@@ -2893,12 +2917,10 @@ function visitors.FuncDef(context, node, opts)
     end
 
     -- traverse annotation nodes
-    visitor_function_annotations(context, node, annotnodes, blocknode, symbol, type)
-
+    visitor_function_annotations(context, node, annotnodes, blocknode, symbol, type, defn)
     -- traverse the function block
     if not ispolyparent then -- poly functions never traverse the blocknode by itself
       context:traverse_node(blocknode)
-
       -- after traversing we should know auto types
       if hasautoret then
         if not type and rettypes and types.are_types_resolved(rettypes) then
@@ -2908,9 +2930,11 @@ function visitors.FuncDef(context, node, opts)
           node:raisef("a function return is set to 'auto', but the function never returns")
         end
       end
-    end
 
-    visitor_function_sideeffect(attr, type, funcscope)
+      if defn then
+        visitor_function_sideeffect(attr, type, funcscope)
+      end
+    end
 
     local resolutions_count = funcscope:resolve()
     context:pop_state()
@@ -2918,8 +2942,7 @@ function visitors.FuncDef(context, node, opts)
   until resolutions_count == 0
 
   -- type checking for returns
-  if type and type.is_procedure and not type.is_polyfunction and rettypes and #rettypes > 0 and
-     not(attr.nodecl or attr.cimport or attr.hookmain) then
+  if type and defn and type.is_function and rettypes and #rettypes > 0 then
     local canbeempty = tabler.iallfield(rettypes, 'is_nilable')
     if not canbeempty and not block_endswith_return(blocknode) then
       node:raisef("a return statement is missing before function end")
@@ -2986,7 +3009,7 @@ function visitors.Function(context, node)
     end
 
     -- traverse annotation nodes
-    visitor_function_annotations(context, node, annotnodes, blocknode, symbol, type)
+    visitor_function_annotations(context, node, annotnodes, blocknode, symbol, type, true)
 
     -- traverse the function block
     context:traverse_node(blocknode)

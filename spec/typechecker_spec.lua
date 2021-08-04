@@ -1636,7 +1636,7 @@ it("annotations", function()
   expect.analyze_ast("local Record: type <aligned(8)> = @record{x: integer}")
   expect.analyze_error(
     "local function f() <cimport,nodecl> return 0 end",
-    "body of an import function must be empty")
+    "body of a function declaration must be empty")
   expect.analyze_error("local a <cimport>", "must have an explicit type")
   expect.analyze_error("local a: integer <cimport,nodecl> = 2", "cannot assign imported variables")
   expect.analyze_error([[
@@ -1965,6 +1965,17 @@ it("forward type declaration", function()
     "cannot be of forward declared type")
   expect.analyze_error("local U <forwarddecl> = @union{}; local V = @union{u: U}",
     "cannot be of forward declared type")
+end)
+
+it("forward function declaration", function()
+  expect.analyze_ast("local function f() <forwarddecl> end; function f() end")
+  expect.analyze_ast("local function f(x: byte): void <forwarddecl> end; function f(x: byte): void end")
+  expect.analyze_error(
+    "local function f(x: auto): auto <forwarddecl> end function f() end",
+    "polymorphic functions cannot be forward declared")
+  expect.analyze_error(
+    "local function f(x: byte): void <forwarddecl> print(1) end",
+    "body of a function declaration must be empty")
 end)
 
 it("using annotation", function()

@@ -61,6 +61,8 @@ ASTNode.baseshape = shaper.shape{
   checked = shaper.boolean:is_optional(),
   -- Scope where the node is defined.
   scope = shaper.scope:is_optional(),
+  funcdefn = shaper.boolean:is_optional(),
+  funcdecl = shaper.boolean:is_optional(),
 }
 
 -- Tag for a generic ASTNode.
