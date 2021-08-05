@@ -1035,7 +1035,7 @@ function IntegralType:get_convertible_from_attr(attr, explicit, autoref)
   if not explicit and attr.comptime and attr.type.is_scalar then
     -- implicit conversion between two compile time scalar types,
     -- we can convert only if the compiler time value does not overflow/underflow the type
-    local value = attr.value
+    local value = bn.demotefloat(attr.value)
     if not traits.is_integral(value) then -- the value must be and integral
       return false, string.format(
         "constant value `%s` is fractional which is invalid for the type '%s'",

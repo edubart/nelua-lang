@@ -292,6 +292,7 @@ do -- string.rep
   assert_string_eq(string.rep('teste', 3, 'xuxu'), 'testexuxutestexuxuteste')
   assert_string_eq(string.rep('\1\0\1', 2, '\0\0'), '\1\0\1\0\0\1\0\1')
   assert_string_eq(string.rep('', 10, '.'), '.........')
+  assert_string_eq(string.rep('a', 2^3), 'aaaaaaaa')
 end
 
 do -- string.reverse

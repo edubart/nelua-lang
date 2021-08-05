@@ -184,4 +184,18 @@ function bn.compress(x)
   return tonumber(x)
 end
 
+--[[
+Demote a float to an integral number if there is not loss of precision.
+Returns `x` as a lua integer on success, otherwise `x`.
+]]
+function bn.demotefloat(x)
+  if math.type(x) == 'float' then
+    local i = math.floor(x)
+    if i == x then
+      return i
+    end
+  end
+  return x
+end
+
 return bn
