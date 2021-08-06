@@ -2379,9 +2379,13 @@ StringType.is_nameable = false
 StringType.is_stringview = true -- deprecated
 StringType.is_string = true
 StringType.is_stringy = true
+StringType.is_contiguous = true
+StringType.is_container = true
+StringType.is_oneindexing = true
 
 function StringType:_init(name)
   self.codename = 'nlstring'
+  self.subtype = primtypes.byte
   RecordType._init(self, {
     {name = 'data', type = types.PointerType(types.ArrayType(primtypes.byte, 0)) },
     {name = 'size', type = primtypes.usize}

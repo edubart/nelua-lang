@@ -553,4 +553,23 @@ do -- tointeger
   assert(tointeger(' \v\r123 \t\n', 10) == 123)
 end
 
+do -- indexing
+  local s = string.copy('hello')
+  assert(s[1] == 'h'_byte)
+  assert(s[5] == 'o'_byte)
+  s[1] = 'H'_byte
+  assert(s[1] == 'H'_byte)
+  assert(s == 'Hello')
+  s:destroy()
+end
+
+do -- iterating
+  local s = 'hello'
+  for i,v in pairs(s) do
+    assert(i >= 1 and i <= 5)
+    if i == 1 then assert(s[1] == 'h'_byte) end
+    if i == 5 then assert(s[5] == 'o'_byte) end
+  end
+end
+
 print 'string OK!'

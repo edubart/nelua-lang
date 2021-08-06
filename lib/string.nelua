@@ -90,7 +90,7 @@ function string.byte(s: string, i: facultative(isize)): byte
   if unlikely(i < 0) then i = s.size + i + 1 end
   --TODO: return nil instead on failure
   check(i >= 1 and (@usize)(i) <= s.size, 'index out of range')
-  return (@byte)(s.data[i-1])
+  return s.data[i-1]
 end
 
 --[[
@@ -388,6 +388,16 @@ Remarks: Similar to `subview` a reference of the current string data is returned
 ]]
 function string.span(s: string): span(byte) <inline>
   return (@span(byte)){data=s.data, size=s.size}
+end
+
+--[[
+Returns the reference of byte representing the character at index `i`.
+Argument `i` must be an integer between 1 and the string size.
+Used when indexing elements with square brackets (`[]`).
+]]
+function string.__atindex(s: string, i: usize): *byte <inline,nosideeffect>
+  check(i >= 1 and i <= s.size, 'index out of range')
+  return &s.data[i-1]
 end
 
 -- Return length of a string. Used by the length operator (`#`).

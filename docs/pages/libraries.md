@@ -1789,6 +1789,16 @@ Converts a string to a span of bytes.
 
 Remarks: Similar to `subview` a reference of the current string data is returned.
 
+### string.__atindex
+
+```nelua
+function string.__atindex(s: string, i: usize): *byte
+```
+
+Returns the reference of byte representing the character at index `i`.
+Argument `i` must be an integer between 1 and the string size.
+Used when indexing elements with square brackets (`[]`).
+
 ### string.__len
 
 ```nelua
