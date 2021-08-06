@@ -293,8 +293,21 @@ function compiler.compile_static_library(objfile, outfile)
   end
 end
 
+function compiler.setup_env(cflags)
+  if config.sanitize or cflags:match('%-fsanitize=[%w_,-]*undefined') then
+    -- enable sanitizer tracebacks for better debugging experience
+    local sys = _G.sys
+    if sys and sys.setenv then
+      if not os.getenv('UBSAN_OPTIONS') then
+        sys.setenv('UBSAN_OPTIONS', 'print_stacktrace=1')
+      end
+    end
+  end
+end
+
 function compiler.compile_binary(cfile, outfile, compileopts)
   local cflags = get_compiler_cflags(compileopts)
+  compiler.setup_env(cflags)
   local ccinfo = compiler.get_cc_info()
   local binext, isexe = detect_binary_extension(outfile, ccinfo)
   local binfile = outfile

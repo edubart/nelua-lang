@@ -233,6 +233,19 @@ function cbuiltins.nelua_alignof(context)
 ]], 'directives')
 end
 
+--[[
+Called before aborting when sanitizing.
+Its purpose is to generate traceback failed checks.
+]]
+function cbuiltins.nelua_ubsan_unreachable(context)
+  context:define_builtin_macro('nelua_ubsan_unreachable', [[
+#if defined(__GNUC__) || defined(__clang__)
+  void __ubsan_handle_builtin_unreachable(void*) __attribute__((weak));
+  #define nelua_ubsan_unreachable() {if(&__ubsan_handle_builtin_unreachable) __builtin_unreachable();}
+#endif
+]], 'directives')
+end
+
 -- Used by `nil` type at runtime.
 function cbuiltins.nlniltype(context)
   context:define_builtin_decl('nlniltype',
@@ -296,10 +309,11 @@ function cbuiltins.nelua_abort(context)
     context:ensure_builtin('abort')
     abortcall = 'abort()'
   end
-  context:ensure_builtins('fflush', 'stderr')
+  context:ensure_builtins('fflush', 'stderr', 'nelua_ubsan_unreachable')
   context:define_function_builtin('nelua_abort',
     'nelua_noreturn', primtypes.void, {}, {[[{
   fflush(stderr);
+  nelua_ubsan_unreachable();
   ]],abortcall,[[;
 }]]})
 end
