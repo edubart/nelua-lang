@@ -25,7 +25,8 @@ end
 -- Used by `likely` builtin.
 function cbuiltins.nelua_likely(context)
   context:define_builtin_macro('nelua_likely', [[
-#ifdef __GNUC__
+/* Macro used for branch prediction. */
+#if defined(__GNUC__) || defined(__clang__)
   #define nelua_likely(x) __builtin_expect(x, 1)
 #else
   #define nelua_likely(x) (x)
@@ -36,7 +37,8 @@ end
 -- Used by `unlikely` builtin.
 function cbuiltins.nelua_unlikely(context)
   context:define_builtin_macro('nelua_unlikely', [[
-#ifdef __GNUC__
+/* Macro used for branch prediction. */
+#if defined(__GNUC__) || defined(__clang__)
   #define nelua_unlikely(x) __builtin_expect(x, 0)
 #else
   #define nelua_unlikely(x) (x)
@@ -47,6 +49,7 @@ end
 -- Used by import and export builtins.
 function cbuiltins.nelua_extern(context)
   context:define_builtin_macro('nelua_extern', [[
+/* Macro used to import/export extern C functions. */
 #ifdef __cplusplus
   #define nelua_extern extern "C"
 #else
@@ -59,6 +62,7 @@ end
 function cbuiltins.nelua_cexport(context)
   context:ensure_builtin('nelua_extern')
   context:define_builtin_macro('nelua_cexport', [[
+/* Macro used to export C functions. */
 #ifdef _WIN32
   #define nelua_cexport nelua_extern __declspec(dllexport)
 #elif defined(__GNUC__)
@@ -73,6 +77,7 @@ end
 function cbuiltins.nelua_cimport(context)
   context:ensure_builtin('nelua_extern')
   context:define_builtin_macro('nelua_cimport', [[
+/* Macro used to import C functions. */
 #define nelua_cimport nelua_extern
 ]], 'directives')
 end
@@ -80,6 +85,7 @@ end
 -- Used by `<noinline>`.
 function cbuiltins.nelua_noinline(context)
   context:define_builtin_macro('nelua_noinline', [[
+/* Macro used to force not inlining a function. */
 #ifdef __GNUC__
   #define nelua_noinline __attribute__((noinline))
 #elif defined(_MSC_VER)
@@ -93,8 +99,11 @@ end
 -- Used by `<inline>`.
 function cbuiltins.nelua_inline(context)
   context:define_builtin_macro('nelua_inline', [[
+/* Macro used to force inlining a function. */
 #ifdef __GNUC__
   #define nelua_inline __attribute__((always_inline)) inline
+#elif defined(_MSC_VER)
+  #define nelua_noinline __forceinline
 #elif __STDC_VERSION__ >= 199901L
   #define nelua_inline inline
 #else
@@ -106,6 +115,7 @@ end
 -- Used by `<register>`.
 function cbuiltins.nelua_register(context)
   context:define_builtin_macro('nelua_register', [[
+/* Macro used to hint a variable to use a register. */
 #ifdef __STDC_VERSION__
   #define nelua_register register
 #else
@@ -117,6 +127,7 @@ end
 -- Used by `<noreturn>`.
 function cbuiltins.nelua_noreturn(context)
   context:define_builtin_macro('nelua_noreturn', [[
+/* Macro used to specify a function that never returns. */
 #if __STDC_VERSION__ >= 201112L
   #define nelua_noreturn _Noreturn
 #elif defined(__GNUC__)
@@ -132,6 +143,7 @@ end
 -- Used by `<atomic>`.
 function cbuiltins.nelua_atomic(context)
   context:define_builtin_macro('nelua_atomic', [[
+/* Macro used to declare atomic types. */
 #if __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_ATOMICS__)
   #define nelua_atomic _Atomic
 #elif __cplusplus >= 201103L
@@ -147,6 +159,7 @@ end
 -- Used by `<threadlocal>`.
 function cbuiltins.nelua_threadlocal(context)
   context:define_builtin_macro('nelua_threadlocal', [[
+/* Macro used to specify a alignment for structs. */
 #if __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_THREADS__)
   #define nelua_threadlocal _Thread_local
 #elif __cplusplus >= 201103L
@@ -165,7 +178,8 @@ end
 -- Used by `<packed>` on type declarations.
 function cbuiltins.nelua_packed(context)
   context:define_builtin_macro('nelua_packed', [[
-#if defined(__GNUC__)
+/* Macro used to specify a struct alignment. */
+#if defined(__GNUC__) || defined(__clang__)
   #define nelua_packed __attribute__((packed))
 #else
   #define nelua_packed
@@ -176,6 +190,7 @@ end
 -- Used by `<aligned>` on type declarations.
 function cbuiltins.nelua_aligned(context)
   context:define_builtin_macro('nelua_aligned', [[
+/* Macro used to specify a alignment for structs. */
 #if defined(__GNUC__)
   #define nelua_aligned(X) __attribute__((aligned(X)))
 #elif defined(_MSC_VER)
@@ -189,6 +204,7 @@ end
 -- Used by `<aligned>` on variable declarations.
 function cbuiltins.nelua_alignas(context)
   context:define_builtin_macro('nelua_alignas', [[
+/* Macro used set alignment for a type. */
 #if __STDC_VERSION__ >= 201112L
   #define nelua_alignas(X) _Alignas(X)
 #elif __cplusplus >= 201103L
@@ -206,6 +222,7 @@ end
 -- Used to assure some C compiler requirements.
 function cbuiltins.nelua_static_assert(context)
   context:define_builtin_macro('nelua_static_assert', [[
+/* Macro used to perform compile-time checks. */
 #if __STDC_VERSION__ >= 201112L
   #define nelua_static_assert _Static_assert
 #elif __cplusplus >= 201103L
@@ -219,6 +236,7 @@ end
 -- Used to assure some C compiler requirements.
 function cbuiltins.nelua_alignof(context)
   context:define_builtin_macro('nelua_alignof', [[
+/* Macro used to get alignment of a type. */
 #if __STDC_VERSION__ >= 201112L
   #define nelua_alignof _Alignof
 #elif __cplusplus >= 201103L
@@ -235,13 +253,22 @@ end
 
 --[[
 Called before aborting when sanitizing.
-Its purpose is to generate traceback failed checks.
+Its purpose is to generate traceback before aborting.
 ]]
 function cbuiltins.nelua_ubsan_unreachable(context)
+  context:ensure_builtin('nelua_extern')
   context:define_builtin_macro('nelua_ubsan_unreachable', [[
-#if defined(__GNUC__) || defined(__clang__)
-  void __ubsan_handle_builtin_unreachable(void*) __attribute__((weak));
+/* Macro used to generate traceback on aborts when sanitizing. */
+#if defined(__clang__) && defined(__has_feature)
+  #if __has_feature(undefined_behavior_sanitizer)
+    #define nelua_ubsan_unreachable __builtin_unreachable
+  #endif
+#elif defined(__GNUC__) && !defined(_WIN32)
+  nelua_extern void __ubsan_handle_builtin_unreachable(void*) __attribute__((weak));
   #define nelua_ubsan_unreachable() {if(&__ubsan_handle_builtin_unreachable) __builtin_unreachable();}
+#endif
+#ifndef nelua_ubsan_unreachable
+  #define nelua_ubsan_unreachable()
 #endif
 ]], 'directives')
 end
@@ -271,6 +298,7 @@ function cbuiltins.NLINF_(context, type)
   local name = 'NLINF'..S
   if context.usedbuiltins[name] then return name end
   context:define_builtin_macro(name, pegger.substitute([[
+/* Infinite number constant. */
 #ifdef HUGE_VAL$(S)
   #define NLINF$(S) HUGE_VAL$(S)
 #else
@@ -290,6 +318,7 @@ function cbuiltins.NLNAN_(context, type)
   local name = 'NLNAN'..S
   if context.usedbuiltins[name] then return name end
   context:define_builtin_macro(name, pegger.substitute([[
+/* Not a number constant. */
 #ifdef NAN
   #define NLNAN$(S) (($(T))NAN)
 #else

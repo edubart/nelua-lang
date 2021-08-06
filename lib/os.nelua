@@ -281,6 +281,7 @@ function os.tmpname(): string
   cinclude '<stdio.h>' -- for tmpnam
   cinclude '<stdbool.h>' -- for true/false
   cinclude [[
+/* Include POSIX APIs. */
 #if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
   #include <unistd.h>
 #endif
@@ -336,11 +337,13 @@ function os.now(): number
   cinclude '<stdbool.h>' -- for bool
   cinclude '<stdint.h>' -- for int64_t
   cinclude [[
+/* Include POSIX APIs. */
 #if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
   #include <unistd.h>
 #endif
 ]]
   cemitdecl [[
+/* Determine supported high resolution clock API. */
 #if __STDC_VERSION__ >= 201112L && defined(TIME_UTC)
   #define NELUA_HAVE_C11_TIMESPEC_GET
 #elif defined(_POSIX_TIMERS) && defined(_POSIX_MONOTONIC_CLOCK)
@@ -414,14 +417,19 @@ function os.sleep(secs: number): boolean
   cinclude '<stdbool.h>' -- for true
   cinclude '<errno.h>' -- for errno
   cinclude [[
+/* Include POSIX APIs. */
 #if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
   #include <unistd.h>
 #endif
 ]]
   cinclude [[
+/* Include Windows APIs. */
 #ifdef _WIN32
   #ifndef WIN32_LEAN_AND_MEAN
     #define WIN32_LEAN_AND_MEAN
+  #endif
+  #ifndef _WIN32_WINNT
+    #define _WIN32_WINNT 0x600
   #endif
   #include <windows.h>
 #endif

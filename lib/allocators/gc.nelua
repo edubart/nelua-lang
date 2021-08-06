@@ -41,6 +41,7 @@ The GC may scan uninitialized values generating warnings when some sanitizers ar
 The following is to disable these warnings.
 ]=]
 cemitdecl[=[
+/* Macro used suppress sanitizer errors when the GC is scanning. */
 #if defined(__has_feature)
   #if __has_feature(address_sanitizer)
     #define NELUA_GC_NO_SANITIZE __attribute__((no_sanitize_address))

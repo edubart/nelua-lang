@@ -88,6 +88,7 @@ function io.popen(prog: string, mode: facultative(string)) : (filestream, string
   cinclude '<stdio.h>' -- for popen/pclose
   cinclude '<stddef.h>' -- for NULL
   cinclude [[
+/* Include POSIX APIs. */
 #if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
   #include <unistd.h>
 #endif

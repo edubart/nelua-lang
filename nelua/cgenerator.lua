@@ -1482,44 +1482,46 @@ end
 function cgenerator.emit_warning_pragmas(context)
   if context.pragmas.nocwarnpragmas then return end
   local emitter = CEmitter(context)
-  emitter:add_ln('#ifdef __GNUC__')
-  emitter:add_ln('  #ifndef __cplusplus')
-  -- disallow implicit declarations
-  emitter:add_ln('    #pragma GCC diagnostic error   "-Wimplicit-function-declaration"')
-  emitter:add_ln('    #pragma GCC diagnostic error   "-Wimplicit-int"')
-  -- importing C functions can cause this warn
-  emitter:add_ln('    #pragma GCC diagnostic ignored "-Wincompatible-pointer-types"')
-  emitter:add_ln('  #else')
-  emitter:add_ln('    #pragma GCC diagnostic ignored "-Wwrite-strings"')
-  emitter:add_ln('    #pragma GCC diagnostic ignored "-Wnarrowing"')
-  emitter:add_ln('  #endif')
-  -- C zero initialization for anything
-  emitter:add_ln('  #pragma GCC diagnostic ignored "-Wmissing-braces"')
-  emitter:add_ln('  #pragma GCC diagnostic ignored "-Wmissing-field-initializers"')
-  -- may generate always true/false expressions for integers
-  emitter:add_ln('  #pragma GCC diagnostic ignored "-Wtype-limits"')
-  -- may generate unused variables, parameters, functions
-  emitter:add_ln('  #pragma GCC diagnostic ignored "-Wunused-parameter"')
-  emitter:add_ln('  #ifdef __clang__')
-  emitter:add_ln('    #pragma GCC diagnostic ignored "-Wunused"')
-  emitter:add_ln('    #pragma GCC diagnostic ignored "-Wparentheses-equality"')
-  emitter:add_ln('  #else')
-  emitter:add_ln('    #pragma GCC diagnostic ignored "-Wunused-value"')
-  emitter:add_ln('    #pragma GCC diagnostic ignored "-Wunused-variable"')
-  emitter:add_ln('    #pragma GCC diagnostic ignored "-Wunused-function"')
-  emitter:add_ln('    #pragma GCC diagnostic ignored "-Wunused-but-set-variable"')
-  emitter:add_ln('    #ifndef __cplusplus')
-  -- for ignoring const* on pointers
-  emitter:add_ln('      #pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"')
-  emitter:add_ln('    #endif')
-  emitter:add_ln('  #endif')
-  emitter:add_ln('#endif')
-  if ccompiler.get_cc_info().is_emscripten then --luacov:disable
-    emitter:add_ln('#ifdef __EMSCRIPTEN__')
-    -- will be fixed in future upstream release
-    emitter:add_ln('  #pragma GCC diagnostic ignored "-Wformat"')
-    emitter:add_ln('#endif')
-  end --luacov:enable
+  emitter:add[[
+/* Disable some warnings that the generated code can trigger. */
+#if defined(__clang__)
+  #pragma clang diagnostic ignored "-Wtype-limits"
+  #pragma clang diagnostic ignored "-Wwrite-strings"
+  #pragma clang diagnostic ignored "-Wunused"
+  #pragma clang diagnostic ignored "-Wunused-parameter"
+  #pragma clang diagnostic ignored "-Wmissing-field-initializers"
+  #pragma clang diagnostic ignored "-Wparentheses-equality"
+  #ifndef __cplusplus
+    #pragma clang diagnostic ignored "-Wmissing-braces"
+    #pragma clang diagnostic ignored "-Wincompatible-pointer-types"
+    #pragma clang diagnostic error   "-Wimplicit-function-declaration"
+    #pragma clang diagnostic error   "-Wimplicit-int"
+  #else
+    #pragma clang diagnostic ignored "-Wnarrowing"
+  #endif
+#elif defined(__GNUC__)
+  #pragma GCC diagnostic ignored "-Wtype-limits"
+  #pragma GCC diagnostic ignored "-Wwrite-strings"
+  #pragma GCC diagnostic ignored "-Wunused-parameter"
+  #pragma GCC diagnostic ignored "-Wunused-value"
+  #pragma GCC diagnostic ignored "-Wunused-variable"
+  #pragma GCC diagnostic ignored "-Wunused-function"
+  #pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+  #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+  #ifndef __cplusplus
+    #pragma GCC diagnostic ignored "-Wmissing-braces"
+    #pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
+    #pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
+    #pragma GCC diagnostic error   "-Wimplicit-function-declaration"
+    #pragma GCC diagnostic error   "-Wimplicit-int"
+  #else
+    #pragma GCC diagnostic ignored "-Wnarrowing"
+  #endif
+#endif
+#if defined(_WIN32) && !defined(_CRT_SECURE_NO_WARNINGS)
+  #define _CRT_SECURE_NO_WARNINGS
+#endif
+]]
   context:add_directive(emitter:generate(), 'warnings_pragmas') -- defines all the above pragmas
 end
 
@@ -1528,22 +1530,24 @@ function cgenerator.emit_feature_checks(context)
   if context.pragmas.nocstaticassert then return end
   local emitter = CEmitter(context)
   context:ensure_builtin('nelua_static_assert')
+  context:ensure_builtin('nelua_alignof')
+  emitter:add_ln('/* Checks if Nelua and C agrees on pointer size. */')
   -- it's important that pointer size is on agreement, otherwise primitives sizes will wrong
-  emitter:add_ln('nelua_static_assert(sizeof(void*) == ',primtypes.pointer.size,
-              ', "Nelua and C disagree on pointer size");')
+  emitter:add_ln('nelua_static_assert(',
+              'sizeof(void*) == ', primtypes.pointer.size, ' && ',
+              'nelua_alignof(void*) == ', primtypes.pointer.align,
+              ', "Nelua and C disagree on pointer size or alignment");')
   context:add_directive(emitter:generate(), 'features_checks')
 end
 
 function cgenerator.emit_features_setup(context)
   local emitter = CEmitter(context)
-  -- support for large files
   emitter:add([[
+/* Enable 64 bit offsets for stdio APIs. */
 #if !defined(_FILE_OFFSET_BITS) && __SIZEOF_LONG__ >= 8
   #define _FILE_OFFSET_BITS 64
 #endif
-]])
-  -- support for POSIX stuff
-  emitter:add([[
+/* Enable POSIX APIs in included headers. */
 #if !defined(_POSIX_C_SOURCE) && !defined(_XOPEN_SOURCE) && !defined(_GNU_SOURCE) && !defined(_DEFAULT_SOURCE)
   #if defined(__gnu_linux__)
     #define _GNU_SOURCE
