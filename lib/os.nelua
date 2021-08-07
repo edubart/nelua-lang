@@ -342,6 +342,18 @@ function os.now(): number
   #include <unistd.h>
 #endif
 ]]
+  cinclude [[
+/* Include Windows APIs. */
+#ifdef _WIN32
+  #ifndef WIN32_LEAN_AND_MEAN
+    #define WIN32_LEAN_AND_MEAN
+  #endif
+  #ifndef _WIN32_WINNT
+    #define _WIN32_WINNT 0x600
+  #endif
+  #include <windows.h>
+#endif
+]]
   cemitdecl [[
 /* Determine supported high resolution clock API. */
 #if __STDC_VERSION__ >= 201112L && defined(TIME_UTC)
@@ -354,7 +366,22 @@ function os.now(): number
 #endif
 ]]
   cemit [[
-#if defined(NELUA_HAVE_C11_TIMESPEC_GET)
+#ifdef _WIN32
+  static bool initialized = false;
+  static LARGE_INTEGER freq;
+  static LARGE_INTEGER start;
+  if(!initialized) {
+    initialized = true;
+    ok = (QueryPerformanceFrequency(&freq) != 0) && (QueryPerformanceCounter(&start) != 0);
+  } else {
+    LARGE_INTEGER qpc;
+    ok = QueryPerformanceCounter(&qpc) != 0;
+    int64_t ticks = qpc.QuadPart - start.QuadPart;
+    int64_t q = ticks / freq.QuadPart;
+    int64_t r = ticks % freq.QuadPart;
+    ns = (q * 1000000000) + ((r * 1000000000) / freq.QuadPart);
+  }
+#elif defined(NELUA_HAVE_C11_TIMESPEC_GET)
   static bool initialized = false;
   static struct timespec start = {0};
   errno = 0;

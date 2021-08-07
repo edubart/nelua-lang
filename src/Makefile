@@ -1,7 +1,7 @@
 ## Base configurations.
 INCS=-Ilua
 DEFS=-DNDEBUG
-CFLAGS=-Wall -O2 -fno-plt -fno-stack-protector -flto
+CFLAGS=-Wall -O2 -fno-plt -flto
 SRCS=lua/onelua.c lfs.c sys.c hasher.c lpeglabel/*.c
 HDRS=lua/*.h lpeglabel/*.h
 EXE=nelua-lua

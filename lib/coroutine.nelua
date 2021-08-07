@@ -919,8 +919,8 @@ typedef struct _mco_ctxbuf {
   void* stack_base;
 } _mco_ctxbuf;
 
-#ifdef __GNUC__
-#define _MCO_ASM_BLOB __attribute__((section(".text#")))
+#if defined(__GNUC__)
+#define _MCO_ASM_BLOB __attribute__((section(".text")))
 #elif defined(_MSC_VER)
 #define _MCO_ASM_BLOB __declspec(allocate(".text"))
 #pragma section(".text")

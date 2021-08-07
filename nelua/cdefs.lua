@@ -117,8 +117,7 @@ cdefs.for_compare_ops = {
 }
 
 cdefs.search_compilers = {
-  'gcc', 'clang',
-  'cc'
+  'gcc', 'clang', 'cc'
 }
 
 if platform.is_windows then --luacov:disable
@@ -132,11 +131,11 @@ local compilers_flags = {}
 cdefs.compilers_flags = compilers_flags
 
 -- Generic CC
-compilers_flags.generic = {
+compilers_flags.cc = {
   cflags_base = "",
   cflags_release = "-O2 -DNDEBUG",
   cflags_maximum_performance = "-O3 -DNDEBUG",
-  cflags_shared = "-shared -fPIC",
+  cflags_shared = "-shared",
   cflags_static = "-c",
   cmd_compile = '$(cc) "$(cfile)" -o "$(binfile)" $(cflags)',
   cmd_info = '$(cc) -E "$(cfile)" $(cflags)',
@@ -144,25 +143,34 @@ compilers_flags.generic = {
   ext = '.c',
 }
 -- GCC
-compilers_flags.gcc = tabler.update(tabler.copy(compilers_flags.generic), {
+compilers_flags.gcc = tabler.update(tabler.copy(compilers_flags.cc), {
   cflags_base = "-fwrapv",
   cflags_sanitize = "-Wall -Wextra -fsanitize=address,undefined",
   cflags_devel = "-g",
   cflags_debug = "-fsanitize-undefined-trap-on-error -ggdb",
-  cflags_release = "-O2 -fno-plt -DNDEBUG",
-  cflags_maximum_performance = "-Ofast -fno-plt -flto -march=native -DNDEBUG",
+  cflags_release = "-O2 -DNDEBUG -fno-plt",
+  cflags_shared = "-shared -fPIC",
+  cflags_maximum_performance = "-Ofast -march=native -DNDEBUG -fno-plt -flto",
   cmd_compile = '$(cc) -x c "$(cfile)" -o "$(binfile)" $(cflags)',
   cmd_info = '$(cc) -x c -E "$(cfile)" $(cflags)',
   cmd_defines = '$(cc) -x c -E -dM $(cflags) "$(cfile)"',
 })
+-- Clang
+compilers_flags.clang = tabler.copy(compilers_flags.gcc)
+-- MinGW32 Clang
+compilers_flags['mingw32-clang'] = tabler.update(tabler.copy(compilers_flags.gcc), {
+  cflags_release = "-O2 -DNDEBUG",
+  cflags_shared = "-shared",
+  cflags_maximum_performance = "-Ofast -march=native -DNDEBUG -flto -fuse-ld=lld",
+})
 -- TCC
-compilers_flags.tcc = tabler.update(tabler.copy(compilers_flags.generic), {
+compilers_flags.tcc = tabler.update(tabler.copy(compilers_flags.cc), {
   cflags_base = "-w",
   cflags_devel = "-g",
   cflags_debug = "-g",
 })
 -- C2M
-compilers_flags.c2m = tabler.update(tabler.copy(compilers_flags.generic), {
+compilers_flags.c2m = tabler.update(tabler.copy(compilers_flags.cc), {
   cflags_base = "-w",
   cflags_shared = "-c",
 })
@@ -173,8 +181,6 @@ compilers_flags['g++'] = tabler.update(tabler.copy(compilers_flags.gcc), {
   cmd_defines = '$(cc) -x c++ -E -dM $(cflags) "$(cfile)"',
   ext = '.cpp',
 })
--- Clang
-compilers_flags.clang = tabler.copy(compilers_flags.gcc)
 -- Clang (C++)
 compilers_flags['clang++'] = tabler.copy(compilers_flags['g++'])
 -- Zig CC

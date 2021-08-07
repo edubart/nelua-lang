@@ -22,18 +22,17 @@ function compiler.has_source_extension(filename)
 end
 
 local function get_compiler_flags(cc)
-  for ccname,flags in pairs(cdefs.compilers_flags) do
+  local foundccflags, foundccname
+  for ccname,ccflags in iterators.ospairs(cdefs.compilers_flags) do
     if cc == ccname then
-      return flags
+      return ccflags
     end
-  end
-  for ccname,flags in iterators.ospairs(cdefs.compilers_flags) do
-    if stringer.endswith(cc, ccname) then
-      return flags
+    if stringer.endswith(cc, ccname) and (not foundccname or #ccname > #foundccname) then
+      foundccflags, foundccname = ccflags, ccname
     end
   end
   --luacov:disable
-  return cdefs.compilers_flags.generic
+  return foundccflags or cdefs.compilers_flags.cc
 end --luacov: enable
 
 local function get_compiler_cflags(compileopts)
