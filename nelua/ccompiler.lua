@@ -153,10 +153,10 @@ local function get_cc_defines(cc, cflags, ...)
     cflags = cflags,
     cc = config.cc
   })
-  local ok, ret, stdout, stderr = executor.execex(cccmd)
+  local stdout, stderr = executor.evalex(cccmd)
   fs.deletefile(cfile)
-  if not ok or ret ~= 0 then --luacov:disable
-    except.raisef("failed to retrieve compiler defines: %s", stderr or '?')
+  if not stdout then --luacov:disable
+    except.raisef("failed to retrieve compiler defines: %s", stderr)
   end --luacov:enable
   return pegger.parse_c_defines(stdout)
 end
@@ -175,10 +175,10 @@ local function get_cc_info(cc, cflags)
     cflags = cflags,
     cc = config.cc
   })
-  local ok, ret, stdout, stderr = executor.execex(cccmd)
+  local stdout, stderr = executor.evalex(cccmd)
   fs.deletefile(cfile)
-  if not ok or ret ~= 0 then
-    except.raisef("failed to retrieve compiler information: %s", stderr or '?')
+  if not stdout then
+    except.raisef("failed to retrieve compiler information: %s", stderr)
   end
   local ccinfo = {}
   for name,value in stdout:gmatch('([a-zA-Z0-9_]+)%s*=%s*([^;\n]+);') do
@@ -303,9 +303,9 @@ function compiler.compile_static_library(objfile, outfile)
   local arcmd = string.format('%s rcs %s %s', ar, outfile, objfile)
   if config.verbose then console.info(arcmd) end
   -- compile the file
-  local success, status, _, stderr = executor.execex(arcmd)
-  if not success or status ~= 0 then --luacov:disable
-    except.raisef("static library compilation for '%s' failed:\n%s", outfile, stderr or '')
+  local stdout, stderr = executor.evalex(arcmd)
+  if not stdout then --luacov:disable
+    except.raisef("static library compilation for '%s' failed:\n%s", outfile, stderr)
   end --luacov:enable
   if stderr then
     io.stderr:write(stderr)
@@ -351,9 +351,9 @@ function compiler.compile_binary(cfile, outfile, compileopts)
   local cccmd = get_compile_args(cfile, midfile, cflags)
   if config.verbose then console.info(cccmd) end
   -- compile the file
-  local success, status, _, stderr = executor.execex(cccmd)
-  if not success or status ~= 0 then --luacov:disable
-    except.raisef("C compilation for '%s' failed:\n%s", binfile, stderr or '')
+  local stdout, stderr = executor.evalex(cccmd)
+  if not stdout then --luacov:disable
+    except.raisef("C compilation for '%s' failed:\n%s", binfile, stderr)
   end --luacov:enable
   if stderr then
     io.stderr:write(stderr)
@@ -367,8 +367,8 @@ function compiler.compile_binary(cfile, outfile, compileopts)
 end
 
 function compiler.get_gdb_version() --luacov:disable
-  local ok, ret, stdout = executor.execex(config.gdb .. ' -v')
-  if ok and ret and stdout:match("GNU gdb") then
+  local stdout = executor.evalex(config.gdb .. ' -v')
+  if stdout and stdout:match("GNU gdb") then
     return stdout:match('%d+%.%d+')
   end
 end --luacov:enable

@@ -410,6 +410,8 @@ typedefs.pp_constants = {
   bn = function() return require 'nelua.utils.bn' end,
   -- Traits module.
   traits = function() return require 'nelua.utils.traits' end,
+  -- Executor module.
+  executor = function() return require 'nelua.utils.executor' end,
   -- Memoize function.
   memoize = function() return require 'nelua.utils.memoize' end,
   -- Aster module.

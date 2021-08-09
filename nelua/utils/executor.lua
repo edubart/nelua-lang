@@ -126,5 +126,35 @@ function executor.execex(exe, args)
   return pexec(exe, args, true)
 end
 
+--[[
+Execute a command returning it's stdout.
+Args must be a table or nil, if args is nil then the args is extracted from exe.
+Returns the stdout plus stderr on success, otherwise nil plus an error message.
+]]
+function executor.evalex(exe, args)
+  exe, args = convertargs(exe, args)
+  local ok, status, stdout, stderr = pexec(exe, args, true)
+  if ok and status == 0 then
+    return stdout, stderr
+  end
+  local err
+  if stderr and #stderr > 0 then
+    err = stderr
+  else
+    err = 'command exited with code ' .. status
+  end
+  return nil, err
+end
+
+-- Like `executor.evalex`, but returns only stdout on success and raises an error on failure.
+function executor.eval(exe, args)
+  local stdout, stderr = executor.evalex(exe, args)
+  if not stdout then
+    error('failed to evaluate command:\n'..stderr)
+  end
+  return stdout
+end
+
+
 return executor
 -- luacov:enable

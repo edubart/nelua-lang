@@ -42,8 +42,8 @@ local function execute_git_command(args)
   local gitdir = fs.abspath(fs.join(fs.dirname(fs.dirname(fs.scriptname())), '.git'))
   if fs.isdir(gitdir) then -- git directory found
     local execargs = tabler.insertvalues({'-C', gitdir}, args)
-    local ok, status, stdout = executor.execex('git', execargs)
-    if ok and status and stdout ~= '' then
+    local stdout = executor.evalex('git', execargs)
+    if stdout and stdout ~= '' then
       return stdout
     end
   end
