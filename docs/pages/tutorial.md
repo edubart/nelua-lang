@@ -40,7 +40,13 @@ When running it you should get an output that looks like this:
 hello world
 ```
 
-Note that the compiler has generated a file called `helloworld.c`.
+Now run again with:
+```bash
+nelua --verbose examples/helloworld.nelua
+```
+
+You will notice some messages of what the compiler doing,
+and notice that it generated a file called `helloworld.c`.
 This is your program translated to C source code.
 If you know how to read C, I encourage you to open it and have a look.
 The compiler tries to generate efficient, compact, and readable C code.
@@ -57,9 +63,8 @@ do `nelua --cc x86_64-w64-mingw32-gcc examples/helloworld.nelua`.
 ## Syntax highlighting for editors
 
 Syntax definitions for the language are available for
-Visual Studio Code with [nelua-vscode](https://github.com/edubart/nelua-vscode) and
-for Sublime Text with [nelua-sublime](https://github.com/edubart/nelua-sublime).
-At the moment, only Sublime Text has a full definition, so I recommend using it.
+Sublime Text with [nelua-sublime](https://github.com/edubart/nelua-sublime).
+At the moment, only Sublime Text has a full definition, so I recommend giving it a try.
 If you use another code editor you can use Lua syntax highlighting,
 as it very similar (but of course, incomplete).
 
@@ -76,8 +81,7 @@ I highly recommend reading it if you haven't yet.
 
 As the language is being developed, this tutorial is quite short.
 However you can see and run more interesting examples of the language in the
-[examples](https://github.com/edubart/nelua-lang/tree/master/examples),
-[benchmarks](https://github.com/edubart/nelua-lang/tree/master/benchmarks), or
+[examples](https://github.com/edubart/nelua-lang/tree/master/examples) or
 [tests](https://github.com/edubart/nelua-lang/tree/master/tests)
  folders.
 

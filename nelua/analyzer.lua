@@ -653,8 +653,10 @@ function visitors.Id(context, node)
     if not symbol then
       local modname = typedefs.symbol_modules[name]
       if modname then
-        node:raisef("undeclared symbol '%s', maybe you forget to require module '%s'?",
+        node:raisef("undeclared symbol '%s', maybe you forgot to require module '%s'?",
           name, modname)
+      elseif state.infuncdef then
+        node:raisef("undeclared symbol '%s', maybe you forgot to declare it as 'global' or 'local'?", name)
       else
         node:raisef("undeclared symbol '%s'", name)
       end
@@ -1564,7 +1566,7 @@ function visitors.CallMethod(context, node)
         if not calleesym then
           if calleetype.is_string and not calleetype.metafields.sub then
             node:raisef("cannot index meta field '%s' for type '%s', \z
-              maybe you forget to require module 'string'?", name, calleetype)
+              maybe you forgot to require module 'string'?", name, calleetype)
           else
             node:raisef("cannot index meta field '%s' for type '%s'", name, calleetype)
           end
@@ -1645,7 +1647,7 @@ local function visitor_Type_MetaFieldIndex(context, node, objtype, name)
     else
       if objtype.is_string and not objtype.metafields.sub then
         node:raisef("cannot index meta field '%s' in record '%s', \z
-          maybe you forget to require module 'string'?", name, objtype)
+          maybe you forgot to require module 'string'?", name, objtype)
       else
         node:raisef("cannot index meta field '%s' in record '%s'", name, objtype)
       end

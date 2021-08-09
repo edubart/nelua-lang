@@ -40,7 +40,7 @@ Nelua is in alpha state. Most of its syntax is well defined,
 low level features that are found in C are implemented, and
 most of the Lua standard APIs are implemented. However
 some notable features found in Lua such as exceptions, tables,
-runtime dynamic typing, closures, and coroutines are not implemented yet.
+runtime dynamic typing, closures are not implemented yet.
 
 ## How is Nelua licensed?
 

@@ -86,7 +86,7 @@ specify a type:
 local b = false -- of deduced type 'boolean', initialized to false
 local s = 'test' -- of deduced type 'string', initialized to 'test'
 local one = 1 --  of type 'integer', initialized to 1
-local pi: number = 3.14 --  of type 'number', initialized to 1
+local pi: number = 3.14 --  local pi: number = 3.14 --  of type 'number', initialized to 3.14
 print(b,s,one,pi) -- outputs: false test 1 3.14
 ```
 
@@ -305,6 +305,10 @@ The compiler can generate more optimized code when using a switch
 instead of using many if statements for integers.
 {:.alert.alert-info}
 
+Note that, unlike C, there is no need to use "break" on each case statement,
+this is done automatically.
+{:.alert.alert-info}
+
 ### Do
 
 Do blocks are useful for creating arbitrary scopes to avoid collision of
@@ -417,7 +421,7 @@ with `i = i + step`. By default the step is always 1. When using negative steps,
 
 ```nelua
 for i=5,0,-1 do
-  print(i) -- outputs 5 4 3 2 1
+  print(i) -- outputs 5 4 3 2 1 0
 end
 ```
 
