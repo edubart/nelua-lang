@@ -307,6 +307,9 @@ end
 -- Build configs that depends on other configs.
 function configer.build(options)
   options = options or {}
+  for k,v in pairs(config) do
+    options[k] = v
+  end
   build_configs(options)
   metamagic.setmetaindex(config, options, true)
   return config
