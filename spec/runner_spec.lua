@@ -147,17 +147,14 @@ end)
 it("shared libraries", function()
   local ccinfo = ccompiler.get_cc_info()
   if ccinfo.is_gcc then
-    expect.run({'--shared', '-o', 'libmylib', 'tests/libmylib.nelua'})
-    expect.run({'-bo', 'mylib_test', 'tests/mylib_test.nelua'})
-    expect.execute('./mylib_test', [[
+    expect.run({'--shared', 'tests/libmylib.nelua'})
+    expect.run({'tests/mylib_test.nelua'},[[
 mylib - init
 mylib - in top scope
 mylib - sum
 the sum is:
 3
 mylib - terminate]])
-    os.remove('libmylib.so') os.remove('libmylib.dll') os.remove('libmylib.dylib')
-    os.remove('mylib_test') os.remove('mylib_test.exe')
   end
 end)
 
@@ -168,18 +165,14 @@ end)
 it("static libraries", function()
   local ccinfo = ccompiler.get_cc_info()
   if ccinfo.is_gcc then
-    expect.run({'--static', '-o', 'libmylib', 'tests/libmylib.nelua'})
-    expect.run({'-bo', 'mylib_test', 'tests/mylib_test.nelua'})
-    expect.execute('./mylib_test', [[
+    expect.run({'--static', 'tests/libmylib.nelua'})
+    expect.run({'tests/mylib_test.nelua'},[[
 mylib - init
 mylib - in top scope
 mylib - sum
 the sum is:
 3
 mylib - terminate]])
-    os.remove('libmylib.a')
-    os.remove('libmylib.o')
-    os.remove('mylib_test') os.remove('mylib_test.exe')
   end
 end)
 

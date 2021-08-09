@@ -1,8 +1,13 @@
--- Add the current folder to the linker's library search path,
--- we expect that 'mylib' library is available in the current path.
-## cflags "-L. -Wl,-rpath,'$ORIGIN'"
+##[[
+-- Add the current folder to the linker's library search path.
+cflags("-L "..config.output_dir)
+if ccinfo.is_linux then
+  -- We expect that 'mylib' library is available in the current path.
+  cflags "-Wl,-rpath,'$ORIGIN'"
+end
 -- Link mylib C library.
-## linklib 'mylib'
+linklib 'mylib'
+]]
 
 -- Import mylib functions.
 local function mylib_sum(x: integer, y: integer): integer <cimport> end

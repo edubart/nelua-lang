@@ -157,12 +157,14 @@ compilers_flags.gcc = tabler.update(tabler.copy(compilers_flags.cc), {
 })
 -- Clang
 compilers_flags.clang = tabler.copy(compilers_flags.gcc)
--- MinGW32 Clang
-compilers_flags['mingw32-clang'] = tabler.update(tabler.copy(compilers_flags.gcc), {
+-- MinGW32 GCC
+compilers_flags['mingw32-gcc'] = tabler.update(tabler.copy(compilers_flags.gcc), {
   cflags_release = "-O2 -DNDEBUG",
-  cflags_shared = "-shared",
-  cflags_maximum_performance = "-Ofast -march=native -DNDEBUG -flto -fuse-ld=lld",
+  cflags_shared = '-shared -Wl,--out-implib,"$(binfile).a"',
+  cflags_maximum_performance = "-Ofast -DNDEBUG -march=native -flto",
 })
+-- MinGW32 Clang
+compilers_flags['mingw32-clang'] = tabler.copy(compilers_flags['mingw32-gcc'])
 -- TCC
 compilers_flags.tcc = tabler.update(tabler.copy(compilers_flags.cc), {
   cflags_base = "-w",

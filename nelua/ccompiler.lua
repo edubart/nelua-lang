@@ -115,12 +115,19 @@ end
 
 local function get_compile_args(cfile, binfile, cflags)
   local ccflags = get_compiler_flags(config.cc)
-  return pegger.substitute(ccflags.cmd_compile, {
+  local templatedefs = {
     cfile = cfile,
     binfile = binfile,
     cflags = cflags,
     cc = config.cc
-  })
+  }
+  local cmd = ccflags.cmd_compile
+  while true do
+    local newcmd = pegger.substitute(cmd, templatedefs)
+    if newcmd == cmd then break end
+    cmd = newcmd
+  end
+  return cmd
 end
 
 local function gen_source_file(cc, code)
@@ -275,11 +282,24 @@ local function detect_binary_extension(outfile, ccinfo)
   --luacov:enable
 end
 
-function compiler.compile_static_library(objfile, outfile)
+local function find_ar()
   local ar = config.cc..'-ar' -- try cc-ar first
-  if not fs.findbinfile(ar) then --luacov:disable
-    ar = config.cc:gsub('%w+$', 'ar') -- fallback to ar
-  end --luacov:enable
+  --luacov:disable
+  if not fs.findbinfile(ar) then
+    local subar = config.cc:gsub('[%w+]+$', 'ar')
+    if subar:find('ar$') then
+      ar = subar
+    end
+  end
+  if not fs.findbinfile(ar) then
+    ar = 'ar'
+  end
+  --luacov:enable
+  return ar
+end
+
+function compiler.compile_static_library(objfile, outfile)
+  local ar = find_ar()
   local arcmd = string.format('%s rcs %s %s', ar, outfile, objfile)
   if config.verbose then console.info(arcmd) end
   -- compile the file

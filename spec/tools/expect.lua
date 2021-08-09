@@ -11,8 +11,6 @@ local traits = require 'nelua.utils.traits'
 local lua_generator = require 'nelua.luagenerator'
 local c_generator = require 'nelua.cgenerator'
 local differ = require 'spec.tools.differ'
-local executor = require 'nelua.utils.executor'
-local ccompiler = require 'nelua.ccompiler'
 local config = require 'nelua.configer'.get()
 local primtypes = require 'nelua.typedefs'.primtypes
 local aster = require 'nelua.aster'
@@ -130,7 +128,10 @@ function expect.run(args, expected_stdout, expected_stderr)
   end
 end
 
+--[[
 function expect.execute(exe, expected_stdout)
+  local executor = require 'nelua.utils.executor'
+  local ccompiler = require 'nelua.ccompiler'
   if ccompiler.get_cc_info().is_windows then exe = exe .. '.exe' end
   exe = fs.abspath(exe)
   local ok, status, sout, serr = executor.execex(exe)
@@ -141,6 +142,7 @@ function expect.execute(exe, expected_stdout)
   end
   expect.equal('', serr)
 end
+]]
 
 function expect.run_error(args, expected_stderr, expects_success)
   local status, sout, serr = run(args)

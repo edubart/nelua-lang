@@ -138,6 +138,12 @@ local function build_configs(conf)
     tabler.update(conf.pragmas, pragmas)
   end
 
+  -- determine output directory
+  local outpath = conf.output or (conf.eval and 'eval' or conf.input)
+  if outpath then
+    conf.output_dir = fs.dirname(fs.normcachepath(outpath, conf.cache_dir))
+  end
+
   if conf.maximum_performance or conf.release then --luacov:disable
     conf.pragmas.nochecks = true
   end --luacov:enable
