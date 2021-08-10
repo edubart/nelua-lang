@@ -171,14 +171,17 @@ end
   ]]
   function stringbuilderT:writebyte(c: byte, n: facultative(usize)): boolean
     ## if n.type.is_niltype then
-    local n: usize = 1
+    local p: span(byte) = self:prepare(1)
+    if unlikely(p:empty()) then return false end
+    p.data[0] = c
+    self.size = self.size + 1
     ## else
     if unlikely(n <= 0) then return true end
-    ## end
     local p: span(byte) = self:prepare(n)
     if unlikely(p:empty()) then return false end
     memory.set(p.data, c, n)
     self.size = self.size + n
+    ## end
     return true
   end
 

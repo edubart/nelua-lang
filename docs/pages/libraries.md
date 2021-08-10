@@ -1994,16 +1994,16 @@ function string.__bnot(a: scalar_coercion_concept): integer
 Converts the input string to an integer and returns its bitwise NOT.
 Use by the bitwise NOT operator (`~`).
 
-### tocstring
+### string.fillcstring
 
 ```nelua
-global function tocstring(buf: *[0]cchar, buflen: usize, s: string): boolean
+function string.fillcstring(s: string, buf: *[0]cchar, buflen: usize): boolean
 ```
 
-Convert a string to a `cstring` through a temporary buffer.
+Fills a `cstring` buffer.
 This is mainly used to ensure the string is zero terminated.
 
-Returns `true` in case of success.
+Returns `true` in case of success, otherwise `false` when the `buflen` is not enough.
 
 ### tostring
 

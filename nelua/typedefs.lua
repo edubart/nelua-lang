@@ -484,7 +484,6 @@ typedefs.symbol_modules = {
   -- globals in traits
   type = 'traits',
   -- globals in string
-  tocstring = 'string',
   tostring = 'string',
   tonumber = 'string',
   tointeger = 'string',

@@ -686,12 +686,12 @@ local function str2intbase(s: string, base: uinteger): integer
 end
 
 --[[
-Convert a string to a `cstring` through a temporary buffer.
+Fills a `cstring` buffer.
 This is mainly used to ensure the string is zero terminated.
 
-Returns `true` in case of success.
+Returns `true` in case of success, otherwise `false` when the `buflen` is not enough.
 ]]
-global function tocstring(buf: *[0]cchar, buflen: usize, s: string): boolean
+function string.fillcstring(s: string, buf: *[0]cchar, buflen: usize): boolean
   if buf and buflen >= s.size + 1 then
     memory.copy(buf, s.data, s.size)
     buf[s.size] = 0
@@ -775,7 +775,7 @@ global function tonumber(x: auto, base: facultative(integer)): auto
     return (@number)(x)
   ## elseif x.type.is_stringy then
     local endptr: cstring, tmpbuf: [65]cchar
-    assert(tocstring(&tmpbuf, #tmpbuf, x)) -- ensure it's zero terminated
+    assert(string.fillcstring(x, &tmpbuf, #tmpbuf)) -- ensure it's zero terminated
     errno = 0
     local n: float64 = strtod(&tmpbuf, &endptr)
     local len: usize = (@usize)(endptr) - (@usize)(&tmpbuf)
