@@ -8,16 +8,16 @@ assignees: ''
 
 **WARNING: Please, read this note carefully before submitting a feature request:**
 
-It is important to realise that **this is NOT A SUPPORT FORUM**, this is for ISSUES ONLY.
+It is important to realize that **this is NOT A SUPPORT FORUM**, this is for ISSUES ONLY.
 
 If you need support, have questions, ideas to discuss you should use
 the [Nelua Discussions](https://github.com/edubart/nelua-lang/discussions) forum or
 the [Nelua Discord server](https://discord.gg/7aaGeG7).
 
-Please, before submitting a new feature verify and check:
- - [ ] I tested it on latest Nelua version from master branch.
- - [ ] I checked there is no similar feature already implemented or requested.
- - [ ] I checked that the feature is not in the [roadmap](https://github.com/edubart/nelua-lang/projects).
+Please, before submitting a new issue, verify the following:
+ - You have tested it on latest Nelua version from master branch.
+ - You have checked that there is no similar feature already implemented or requested.
+ - You have checked that the feature is not in the [roadmap](https://github.com/edubart/nelua-lang/projects).
 
 ---
 
@@ -33,6 +33,7 @@ A clear and concise description of the feature your want.
 
 Provide minimal code example for the feature.
 Please, format the code properly and try to keep it as simple as possible, just focusing on the feature.
+
 ```lua
 -- Place the Nelua code here.
 ```

@@ -4,7 +4,6 @@
 
 [![Test Status](https://github.com/edubart/nelua-lang/workflows/test/badge.svg)](https://github.com/edubart/nelua-lang/actions)
 [![Discord](https://img.shields.io/discord/680417078959800322.svg)](https://discord.gg/7aaGeG7)
-[![Try on Repl.it](https://repl.it/badge/github/edubart/nelua-lang)](https://repl.it/@edubart/nelua-lang#examples/replit.lua)
 
 Nelua (stands for **N**ative **E**xtensible **Lua**) is a minimal, efficient,
 statically-typed and meta-programmable systems programming language heavily
@@ -20,7 +19,7 @@ inspired by Lua, which compiles to C and native code.
 - For small examples written in Nelua look the [Examples](./examples) folder .
 - For questions and discussions go to the [Discussions](https://github.com/edubart/nelua-lang/discussions).
 - For a chat with the community join the [Discord server](https://discord.gg/7aaGeG7).
-- For cool stuff made with Nelua check the [Show and tell page](https://github.com/edubart/nelua-lang/discussions/categories/show-and-tell)
+- For cool stuff made with Nelua check `#showcase` channel in the Discord server.
 
 After installing, you might want to check out the featured example, a Snake
 game leveraging the famous [SDL2](https://www.libsdl.org) library:
@@ -68,8 +67,9 @@ compile time via the preprocessor.
 
 Nelua provides support for both [garbage-collected](https://en.wikipedia.org/wiki/Garbage_collection_(computer_science))
 and [manual](https://en.wikipedia.org/wiki/Manual_memory_management)
-memory management in a way that the developer can easily choose between either
-for each allocation in the program.
+memory management in a way that the developer can easily choose between
+using garbage collection, or completely disabling
+garbage collection, or mixing both.
 
 Nelua first compiles to
 [C](https://en.wikipedia.org/wiki/C_(programming_language)), then it executes a
@@ -123,11 +123,19 @@ giving the project a star on github,
 testing out its features,
 reporting bugs,
 discussing ideas,
+helping other users,
 spreading it to the world,
 sharing projects made with it on github,
 creating tutorials or blog posts,
 improving its documentation
 or through a [donation or sponsorship](https://patreon.com/edubart).
+
+Nelua is open source,
+but not very open to contributions in the form of pull requests,
+if you would like something fixed or implemented in the core language
+try first submitting a bug report or opening a discussion instead of doing a PR.
+The authors prefer it this way, so that the ideal solution is always provided,
+without unwanted consequences on the project, thus keeping the quality of the software.
 
 Read more about contributing in the [contributing page](https://github.com/edubart/nelua-lang/blob/master/CONTRIBUTING.md).
 

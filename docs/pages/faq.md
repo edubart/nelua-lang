@@ -123,6 +123,7 @@ Nelua has syntax highlight plugins for the following editors:
 * [Sublime Text](https://github.com/edubart/nelua-sublime)
 * [Visual Studio Code](https://github.com/edubart/nelua-vscode)
 * [Text Adept](https://github.com/Andre-LA/ta-nelua-mirror)
+* [Vim](https://github.com/stefanos82/nelua.vim)
 
 If you use another editor and make a plugin for Nelua, please share it with the community.
 
@@ -133,6 +134,9 @@ and running in debug mode with the `--debug` command line argument.
 When doing this Nelua will run your application through GDB
 and print out readable backtraces for your code. For more advanced debugging,
 you can use any C debugger manually.
+
+You can also check for programming mistakes with `--sanitize` command line argument,
+this will catch many misuses that leads to crashes or undefined behavior.
 
 ## How do I make my code more efficient?
 
@@ -161,4 +165,6 @@ or through a [donation](https://patreon.com/edubart).
 ## Where can I discuss Nelua?
 
 Nelua developers and users generally discuss in the [Discord server](https://discord.gg/7aaGeG7).
+If you want elaborated answers and to keep you discussion on topic,
+you should use GitHub's [Discussions](https://github.com/edubart/nelua-lang/discussions) page.
 There is also a [Reddit community ](https://www.reddit.com/r/nelua/), although is inactive at the moment.

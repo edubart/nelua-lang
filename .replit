@@ -1,2 +1,0 @@
-language = "c"
-run = "make --quiet nelua-lua install PREFIX=~/.apt/usr && nelua examples/replit.lua"
