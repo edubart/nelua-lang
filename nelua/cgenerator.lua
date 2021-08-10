@@ -76,26 +76,29 @@ end
 
 typevisitors[types.PointerType] = function(context, type)
   local decemitter = CEmitter(context)
-  local index = nil
-  if type.subtype.is_composite and not type.subtype.nodecl and not context.declarations[type.subtype.codename] then
-    -- offset declaration of pointers before records/unions
-    index = #context.declarations+2
-  end
+  local subtype = type.subtype
   if type.is_unbounded_pointer then
-    decemitter:add_ln('typedef ', type.subtype.subtype, '* ', type.codename, ';')
+    subtype = subtype.subtype
+  end
+  local subcodename = subtype.codename
+  if subtype.is_composite and not subtype.nodecl and
+     not context.declarations[subcodename] and not context.ctypedefs[subcodename] then
+    -- just declared a typedef for composite type, because they may have cyclic dependency
+    local kindname = subtype.is_record and 'struct' or 'union'
+    decemitter:add_ln('typedef ', kindname, ' ', subcodename, ' ', subcodename, ';')
+    table.insert(context.latedecls, subtype)
+    context.ctypedefs[subcodename] = true
+    decemitter:add_ln('typedef ', subcodename, '* ', type.codename, ';')
   else
-    decemitter:add_ln('typedef ', type.subtype, '* ', type.codename, ';')
+    decemitter:add_ln('typedef ', subtype, '* ', type.codename, ';')
   end
-  if not index then
-    index = #context.declarations+1
-  end
-  table.insert(context.declarations, index, decemitter:generate())
+  table.insert(context.declarations, decemitter:generate())
 end
 
 local function typevisitor_CompositeType(context, type)
   local decemitter = CEmitter(context)
   local kindname = type.is_record and 'struct' or 'union'
-  if not context.pragmas.noctypedefs then
+  if not context.ctypedefs[type.codename] and not context.pragmas.noctypedefs then
     decemitter:add_ln('typedef ', kindname, ' ', type.codename, ' ', type.codename, ';')
   end
   table.insert(context.declarations, decemitter:generate())

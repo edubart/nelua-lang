@@ -34,7 +34,10 @@ function CContext:_init(visitors, typevisitors)
   assert(self.context, 'initialization from a promotion expected')
   self.visitors = visitors
   self.typevisitors = typevisitors
+  self.latedecls = {}
+  self.typedecldepth = 0
   self.declarations = {}
+  self.ctypedefs = {}
   self.definitions = {}
   self.cfiles = {}
   self.linklibs = {}
@@ -126,6 +129,7 @@ function CContext:ensure_type(type)
     declarations[codename] = typename -- mark as declared
     return typename
   end
+  self.typedecldepth = self.typedecldepth + 1
   declarations[codename] = codename -- mark as declared
   -- search visitor for any inherited type class
   local typevisitors = self.typevisitors
@@ -159,6 +163,13 @@ function CContext:ensure_type(type)
         local code = 'typedef '..kind..' '..ctype..' '..codename..';\n'
         declarations[#declarations+1] = code
       end
+    end
+  end
+  self.typedecldepth = self.typedecldepth - 1
+  if self.typedecldepth == 0 then
+    local latedecls = self.latedecls
+    while #latedecls > 0 do -- declare struct/union of pointers
+      self:ensure_type(table.remove(latedecls))
     end
   end
   return codename

@@ -13,7 +13,7 @@ If you insist doing a PR, typically for a small bug fix, then follow these guide
 - Don't send big pull requests (lots of changes), they are difficult to review. It's better to send small pull requests, one at a time.
 - Use different pull requests for different issues, each pull request should only address one issue.
 - When fixing a bug or adding a feature add tests related to your changes to assure the changes will always work as intended in the future and also to cover new lines added.
-- Verify that changes don't break the tests.
+- Verify that changes don't break the tests, you can check this with `make test`.
 - Follow the same coding style rules as the code base.
 - Pull requests just doing style changes are not welcome, a PR must address a real issue.
 
@@ -24,9 +24,3 @@ Describe why you or others may need this PR.
 ### Code example
 
 Provide minimal code example that this PR may allow.
-
-### Tests
-
-Check if all Nelua tests pass, you can check this with `make test`.
-If your PR addresses a bug or a new feature,
-then make sure to add a test for it in the test suite when possible.
