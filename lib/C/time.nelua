@@ -5,6 +5,8 @@ For a complete documentation about the functions,
 see [C time documentation](https://www.cplusplus.com/reference/ctime/).
 ]]
 
+require 'C'
+
 -- Types
 
 global C.clock_t: type <cimport'clock_t',cinclude'<time.h>',nodecl>

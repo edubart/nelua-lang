@@ -3413,3 +3413,331 @@ global C.TIME_UTC: cint
 
 
 ---
+## C.threads
+
+Library that imports symbols from the `<threads.h>` header according to C11 specifications.
+
+For a complete documentation about the functions,
+see [C11 threads documentation](https://en.cppreference.com/w/c/thread).
+
+### C.tss_dtor_t
+
+```nelua
+global C.tss_dtor_t: type = @function(pointer): void
+```
+
+
+
+### C.thrd_start_t
+
+```nelua
+global C.thrd_start_t: type = @function(pointer): cint
+```
+
+
+
+### C.tss_t
+
+```nelua
+global C.tss_t: type = @record{}
+```
+
+
+
+### C.thrd_t
+
+```nelua
+global C.thrd_t: type = @record{}
+```
+
+
+
+### C.once_flag
+
+```nelua
+global C.once_flag: type = @record{}
+```
+
+
+
+### C.mtx_t
+
+```nelua
+global C.mtx_t: type = @record{}
+```
+
+
+
+### C.cnd_t
+
+```nelua
+global C.cnd_t: type = @record{}
+```
+
+
+
+### C.thrd_create
+
+```nelua
+function C.thrd_create(thr: *C.thrd_t, func: C.thrd_start_t, arg: pointer): cint
+```
+
+
+
+### C.thrd_equal
+
+```nelua
+function C.thrd_equal(lhs: C.thrd_t, rhs: C.thrd_t): cint
+```
+
+
+
+### C.thrd_current
+
+```nelua
+function C.thrd_current(): C.thrd_t
+```
+
+
+
+### C.thrd_sleep
+
+```nelua
+function C.thrd_sleep(time_point: *C.timespec, remaining: *C.timespec): cint
+```
+
+
+
+### C.thrd_exit
+
+```nelua
+function C.thrd_exit(res: cint)
+```
+
+
+
+### C.thrd_detach
+
+```nelua
+function C.thrd_detach(thr: C.thrd_t): cint
+```
+
+
+
+### C.thrd_join
+
+```nelua
+function C.thrd_join(thr: C.thrd_t, res: *cint): cint
+```
+
+
+
+### C.thrd_yield
+
+```nelua
+function C.thrd_yield()
+```
+
+
+
+### C.mtx_init
+
+```nelua
+function C.mtx_init(mutex: *C.mtx_t, type: cint): cint
+```
+
+
+
+### C.mtx_lock
+
+```nelua
+function C.mtx_lock(mutex: *C.mtx_t): cint
+```
+
+
+
+### C.mtx_timedlock
+
+```nelua
+function C.mtx_timedlock(mutex: *C.mtx_t, time_point: *C.timespec): cint
+```
+
+
+
+### C.mtx_trylock
+
+```nelua
+function C.mtx_trylock(mutex: *C.mtx_t): cint
+```
+
+
+
+### C.mtx_unlock
+
+```nelua
+function C.mtx_unlock(mutex: *C.mtx_t): cint
+```
+
+
+
+### C.mtx_destroy
+
+```nelua
+function C.mtx_destroy(mutex: *C.mtx_t)
+```
+
+
+
+### C.call_once
+
+```nelua
+function C.call_once(flag: *C.once_flag, func: function(): void)
+```
+
+
+
+### C.cnd_init
+
+```nelua
+function C.cnd_init(cond: *C.cnd_t): cint
+```
+
+
+
+### C.cnd_signal
+
+```nelua
+function C.cnd_signal(cond: *C.cnd_t): cint
+```
+
+
+
+### C.cnd_broadcast
+
+```nelua
+function C.cnd_broadcast(cond: *C.cnd_t): cint
+```
+
+
+
+### C.cnd_wait
+
+```nelua
+function C.cnd_wait(cond: *C.cnd_t, mutex: *C.mtx_t): cint
+```
+
+
+
+### C.cnd_timedwait
+
+```nelua
+function C.cnd_timedwait(cond: *C.cnd_t, mutex: *C.mtx_t, time_point: *C.timespec): cint
+```
+
+
+
+### C.cnd_destroy
+
+```nelua
+function C.cnd_destroy(COND: *C.cnd_t)
+```
+
+
+
+### C.tss_create
+
+```nelua
+function C.tss_create(tss_id: *C.tss_t, destructor: C.tss_dtor_t): cint
+```
+
+
+
+### C.tss_get
+
+```nelua
+function C.tss_get(tss_id: C.tss_t): pointer
+```
+
+
+
+### C.tss_set
+
+```nelua
+function C.tss_set(tss_id: C.tss_t, val: pointer): cint
+```
+
+
+
+### C.tss_delete
+
+```nelua
+function C.tss_delete(tss_id: C.tss_t)
+```
+
+
+
+### C.thrd_success
+
+```nelua
+global C.thrd_success: cint
+```
+
+
+
+### C.thrd_busy
+
+```nelua
+global C.thrd_busy: cint
+```
+
+
+
+### C.thrd_error
+
+```nelua
+global C.thrd_error: cint
+```
+
+
+
+### C.thrd_nomem
+
+```nelua
+global C.thrd_nomem: cint
+```
+
+
+
+### C.thrd_timedout
+
+```nelua
+global C.thrd_timedout: cint
+```
+
+
+
+### C.mtx_plain
+
+```nelua
+global C.mtx_plain: cint
+```
+
+
+
+### C.mtx_recursive
+
+```nelua
+global C.mtx_recursive: cint
+```
+
+
+
+### C.mtx_timed
+
+```nelua
+global C.mtx_timed: cint
+```
+
+
+
+---

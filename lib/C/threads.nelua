@@ -1,0 +1,82 @@
+--[[
+Library that imports symbols from the `<threads.h>` header according to C11 specifications.
+
+For a complete documentation about the functions,
+see [C11 threads documentation](https://en.cppreference.com/w/c/thread).
+]]
+
+require 'C.time'
+
+##[[
+if not ccinfo.is_c11 or ccinfo.stdc_no_threads then
+  static_error 'C11 threads is not supported on the target'
+end
+if ccinfo.is_linux then
+  cflags '-pthread'
+end
+]]
+
+-- Types
+
+global C.tss_dtor_t: type <cimport'tss_dtor_t',cinclude'<threads.h>',nodecl> = @function(pointer): void
+global C.thrd_start_t: type <cimport'thrd_start_t',cinclude'<threads.h>',nodecl> = @function(pointer): cint
+
+global C.tss_t: type <cimport'tss_t',cinclude'<threads.h>',cincomplete,nodecl> = @record{}
+global C.thrd_t: type <cimport'thrd_t',cinclude'<threads.h>',cincomplete,nodecl> = @record{}
+global C.once_flag: type <cimport'once_flag',cinclude'<threads.h>',cincomplete,nodecl> = @record{}
+global C.mtx_t: type <cimport'mtx_t',cinclude'<threads.h>',cincomplete,nodecl> = @record{}
+global C.cnd_t: type <cimport'cnd_t',cinclude'<threads.h>',cincomplete,nodecl> = @record{}
+
+-- Threads
+
+function C.thrd_create(thr: *C.thrd_t, func: C.thrd_start_t, arg: pointer): cint <cimport'thrd_create',cinclude'<threads.h>',nodecl> end
+function C.thrd_equal(lhs: C.thrd_t, rhs: C.thrd_t): cint <cimport'thrd_equal',cinclude'<threads.h>',nodecl> end
+function C.thrd_current(): C.thrd_t <cimport'thrd_current',cinclude'<threads.h>',nodecl> end
+function C.thrd_sleep(time_point: *C.timespec, remaining: *C.timespec): cint <cimport'thrd_sleep',cinclude'<threads.h>',nodecl> end
+function C.thrd_exit(res: cint) <cimport'thrd_exit',cinclude'<threads.h>',nodecl> end
+function C.thrd_detach(thr: C.thrd_t): cint <cimport'thrd_detach',cinclude'<threads.h>',nodecl> end
+function C.thrd_join(thr: C.thrd_t, res: *cint): cint <cimport'thrd_join',cinclude'<threads.h>',nodecl> end
+function C.thrd_yield() <cimport'thrd_yield',cinclude'<threads.h>',nodecl> end
+
+-- Mutual exclusion
+
+function C.mtx_init(mutex: *C.mtx_t, type: cint): cint <cimport'mtx_init',cinclude'<threads.h>',nodecl> end
+function C.mtx_lock(mutex: *C.mtx_t): cint <cimport'mtx_lock',cinclude'<threads.h>',nodecl> end
+function C.mtx_timedlock(mutex: *C.mtx_t, time_point: *C.timespec): cint <cimport'mtx_timedlock',cinclude'<threads.h>',nodecl> end
+function C.mtx_trylock(mutex: *C.mtx_t): cint <cimport'mtx_trylock',cinclude'<threads.h>',nodecl> end
+function C.mtx_unlock(mutex: *C.mtx_t): cint <cimport'mtx_unlock',cinclude'<threads.h>',nodecl> end
+function C.mtx_destroy(mutex: *C.mtx_t) <cimport'mtx_destroy',cinclude'<threads.h>',nodecl> end
+
+-- Call once
+
+function C.call_once(flag: *C.once_flag, func: function(): void) <cimport'call_once',cinclude'<threads.h>',nodecl> end
+
+-- Condition variables
+
+function C.cnd_init(cond: *C.cnd_t): cint <cimport'cnd_init',cinclude'<threads.h>',nodecl> end
+function C.cnd_signal(cond: *C.cnd_t): cint <cimport'cnd_signal',cinclude'<threads.h>',nodecl> end
+function C.cnd_broadcast(cond: *C.cnd_t): cint <cimport'cnd_broadcast',cinclude'<threads.h>',nodecl> end
+function C.cnd_wait(cond: *C.cnd_t, mutex: *C.mtx_t): cint <cimport'cnd_wait',cinclude'<threads.h>',nodecl> end
+function C.cnd_timedwait(cond: *C.cnd_t, mutex: *C.mtx_t, time_point: *C.timespec): cint <cimport'cnd_timedwait',cinclude'<threads.h>',nodecl> end
+function C.cnd_destroy(COND: *C.cnd_t) <cimport'cnd_destroy',cinclude'<threads.h>',nodecl> end
+
+-- Thread-local storage
+
+function C.tss_create(tss_id: *C.tss_t, destructor: C.tss_dtor_t): cint <cimport'tss_create',cinclude'<threads.h>',nodecl> end
+function C.tss_get(tss_id: C.tss_t): pointer <cimport'tss_get',cinclude'<threads.h>',nodecl> end
+function C.tss_set(tss_id: C.tss_t, val: pointer): cint <cimport'tss_set',cinclude'<threads.h>',nodecl> end
+function C.tss_delete(tss_id: C.tss_t) <cimport'tss_delete',cinclude'<threads.h>',nodecl> end
+
+-- Identifiers for thread states and errors.
+
+global C.thrd_success: cint <const,cimport'thrd_success',cinclude'<threads.h>',nodecl>
+global C.thrd_busy: cint <const,cimport'thrd_busy',cinclude'<threads.h>',nodecl>
+global C.thrd_error: cint <const,cimport'thrd_error',cinclude'<threads.h>',nodecl>
+global C.thrd_nomem: cint <const,cimport'thrd_nomem',cinclude'<threads.h>',nodecl>
+global C.thrd_timedout: cint <const,cimport'thrd_timedout',cinclude'<threads.h>',nodecl>
+
+-- When passed to mtx_init, identifies the type of a mutex to create.
+
+global C.mtx_plain: cint <const,cimport'mtx_plain',cinclude'<threads.h>',nodecl>
+global C.mtx_recursive: cint <const,cimport'mtx_recursive',cinclude'<threads.h>',nodecl>
+global C.mtx_timed: cint <const,cimport'mtx_timed',cinclude'<threads.h>',nodecl>

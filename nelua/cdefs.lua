@@ -306,6 +306,9 @@ stdc_hosted = true;
 is_c = true;
 stdc_version = __STDC_VERSION__;
 #endif
+#if __STDC_VERSION__ >= 201112L
+is_c11 = true;
+#endif
 #if defined(__STDC_NO_THREADS__)
 stdc_no_threads = true;
 #endif
