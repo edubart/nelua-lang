@@ -217,7 +217,7 @@ function Type:_init(name, size)
   self.name = name
   if size == nil then
     self.size = 0
-  else
+  elseif size then
     self.size = size
   end
   if self.size then
@@ -229,7 +229,9 @@ function Type:_init(name, size)
   if not self.align and self.size then
     self.align = self.size
   end
-  self.align = math.min(self.align, typedefs.maxalign)
+  if self.align then
+    self.align = math.min(self.align, typedefs.maxalign)
+  end
 
   -- generate a codename in case not set yet
   if not self.codename then
@@ -774,6 +776,7 @@ end
 local BooleanType = types.typeclass()
 types.BooleanType = BooleanType
 BooleanType.is_boolean = true
+BooleanType.is_atomicable = true
 BooleanType.is_falseable = true
 
 function BooleanType:_init(name, size)
@@ -888,6 +891,7 @@ local ScalarType = types.typeclass()
 types.ScalarType = ScalarType
 ScalarType.is_arithmetic = true
 ScalarType.is_scalar = true
+ScalarType.is_atomicable = true
 ScalarType.get_convertible_from_type = Type.get_convertible_from_type
 
 function ScalarType:_init(name, size)
@@ -1490,7 +1494,7 @@ ArrayType.shape = shaper.fork_shape(Type.shape, {
 })
 
 function ArrayType:_init(subtype, length, node)
-  local size
+  local size = false
   if subtype.size then
     size = subtype.size * length
   end
@@ -1618,6 +1622,7 @@ local FunctionType = types.typeclass()
 types.FunctionType = FunctionType
 FunctionType.is_nameable = true
 FunctionType.is_function = true
+FunctionType.is_atomicable = true
 FunctionType.is_procedure = true
 FunctionType.is_falseable = true
 
@@ -2057,6 +2062,7 @@ function RecordType:typedesc()
   local ss = sstream()
   ss:add('record{')
   typedesc_addfields(ss, self.fields)
+  ss:add('}')
   return ss:tostring()
 end
 
@@ -2170,6 +2176,7 @@ function UnionType:typedesc()
   local ss = sstream()
   ss:add('union{')
   typedesc_addfields(ss, self.fields)
+  ss:add('}')
   return ss:tostring()
 end
 
@@ -2181,6 +2188,7 @@ end
 local PointerType = types.typeclass()
 types.PointerType = PointerType
 PointerType.is_pointer = true
+PointerType.is_atomicable = true
 PointerType.is_falseable = true
 
 PointerType.shape = shaper.fork_shape(Type.shape, {

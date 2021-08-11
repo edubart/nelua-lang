@@ -325,6 +325,12 @@ stdc_no_vla = true;
 is_cpp = true;
 cplusplus = __cplusplus;
 #endif
+#if __cplusplus >= 201103L
+is_cpp11 = true;
+#endif
+#if __cplusplus >= 202002L
+is_cpp20 = true;
+#endif
 
 /* Primitive sizes */
 #if defined(__CHAR_BIT__)

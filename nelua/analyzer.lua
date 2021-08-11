@@ -579,7 +579,7 @@ function visitors.Annotation(context, node, opts)
     if luatype(params) == 'string' then
       codename = params
     else
-      codename = symbol.name
+      codename = symbol.name:match('[%w_]+$')
     end
     if objattr._type then
       -- changing codename only on non primitives
@@ -630,8 +630,7 @@ function visitors.Annotation(context, node, opts)
     end
   elseif name == 'atomic' then
     local objtype = objattr.type
-    if not (objtype.is_scalar or objtype.is_boolean or
-            objtype.is_pointer or objtype.is_function) then
+    if not objtype.is_atomicable then
       node:raisef("variable of type '%s' cannot be atomic", objtype)
     end
   end

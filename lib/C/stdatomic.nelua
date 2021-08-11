@@ -1,0 +1,109 @@
+--[[
+Library that imports symbols from the `<stdatomic.h>` header according to C11 specifications.
+
+For a complete documentation about the functions,
+see [C11 threads documentation](https://en.cppreference.com/w/c/atomic).
+]]
+
+require 'C'
+
+##[[
+if not (ccinfo.is_c11 or ccinfo.is_cpp20) or ccinfo.stdc_no_atomics then
+  static_error 'C11 atomics is not supported on the target'
+end
+cinclude '<stdatomic.h>'
+]]
+
+local is_atomicable_ptr = #[concept(function(x)
+  return x.type.is_pointer and x.type.subtype.is_atomicable
+end)]#
+
+local is_atomicable = #[concept(function(x)
+  return x.type.is_atomicable
+end)]#
+
+-- Memory ordering constraints.
+global C.memory_order: type <cimport,nodecl> = @cint
+global C.memory_order_relaxed: C.memory_order <const,cimport,nodecl>
+global C.memory_order_consume: C.memory_order <const,cimport,nodecl>
+global C.memory_order_acquire: C.memory_order <const,cimport,nodecl>
+global C.memory_order_release: C.memory_order <const,cimport,nodecl>
+global C.memory_order_acq_rel: C.memory_order <const,cimport,nodecl>
+global C.memory_order_seq_cst: C.memory_order <const,cimport,nodecl>
+
+-- Lock-free atomic boolean flag.
+global C.atomic_flag: type <cimport,nodecl> = @record{__val: boolean}
+
+-- Breaks a dependency chain for `memory_order_consume`.
+function C.kill_dependency(y: is_atomicable): #[y.type]# <cimport,nodecl> end
+
+-- Sets an atomic_flag to `true` and returns the old value (uses `memory_order_seq_cst` order).
+function C.atomic_flag_test_and_set(object: *C.atomic_flag <volatile>): boolean <cimport,nodecl> end
+-- Sets an atomic_flag to `true` and returns the old value.
+function C.atomic_flag_test_and_set_explicit(object: *C.atomic_flag <volatile>, order: C.memory_order): boolean <cimport,nodecl> end
+
+-- Sets an C.atomic_flag to `false` (uses `memory_order_seq_cst` order).
+function C.atomic_flag_clear(object: *C.atomic_flag <volatile>): void <cimport,nodecl> end
+-- Sets an C.atomic_flag to `false`.
+function C.atomic_flag_clear_explicit(object: *C.atomic_flag <volatile>, order: C.memory_order): void <cimport,nodecl> end
+
+-- Initializes an existing atomic object.
+function C.atomic_init(obj: is_atomicable_ptr <volatile>, value: is_atomicable): void <cimport,nodecl> end
+
+-- Indicates whether the atomic object is lock-free.
+function C.atomic_is_lock_free(obj: is_atomicable_ptr <const,volatile>): boolean <cimport,nodecl> end
+
+-- Stores a value in an atomic object (uses `memory_order_seq_cst` order).
+function C.atomic_store(object: is_atomicable_ptr <volatile>, desired: is_atomicable): void <cimport,nodecl> end
+-- Stores a value in an atomic object.
+function C.atomic_store_explicit(object: is_atomicable_ptr <volatile>, desired: is_atomicable, order: C.memory_order): void <cimport,nodecl> end
+
+-- Reads a value from an atomic object (uses `memory_order_seq_cst` order).
+function C.atomic_load(object: is_atomicable_ptr <volatile>): #[object.type.subtype]# <cimport,nodecl> end
+-- Reads a value from an atomic object.
+function C.atomic_load_explicit(object: is_atomicable_ptr <volatile>, order: C.memory_order): #[object.type.subtype]# <cimport,nodecl> end
+
+-- Swaps a value with the value of an atomic object (uses `memory_order_seq_cst` order).
+function C.atomic_exchange(object: is_atomicable_ptr <volatile>, desired: is_atomicable): #[object.type.subtype]# <cimport,nodecl> end
+-- Swaps a value with the value of an atomic object.
+function C.atomic_exchange_explicit(object: is_atomicable_ptr <volatile>, desired: is_atomicable, order: C.memory_order): #[object.type.subtype]# <cimport,nodecl> end
+
+-- Swaps a value with the an atomic object if the old value is what is expected
+
+function C.atomic_compare_exchange_strong(object: is_atomicable_ptr <volatile>, expected: is_atomicable_ptr, desired: is_atomicable): boolean <cimport,nodecl> end
+function C.atomic_compare_exchange_strong_explicit(object: is_atomicable_ptr <volatile>, expected: is_atomicable_ptr, desired: is_atomicable, success: C.memory_order, failure: C.memory_order): boolean <cimport,nodecl> end
+function C.atomic_compare_exchange_weak(object: is_atomicable_ptr <volatile>, expected: is_atomicable_ptr, desired: is_atomicable): boolean <cimport,nodecl> end
+function C.atomic_compare_exchange_weak_explicit(object: is_atomicable_ptr <volatile>, expected: is_atomicable_ptr, desired: is_atomicable, success: C.memory_order, failure: C.memory_order): boolean <cimport,nodecl> end
+
+-- Atomic operations
+
+function C.atomic_fetch_add(object: is_atomicable_ptr <volatile>, arg: is_atomicable): #[object.type.subtype]# <cimport,nodecl> end
+function C.atomic_fetch_add_explicit(object: is_atomicable_ptr <volatile>, arg: is_atomicable, order: C.memory_order): #[object.type.subtype]# <cimport,nodecl> end
+function C.atomic_fetch_sub(object: is_atomicable_ptr <volatile>, arg: is_atomicable): #[object.type.subtype]# <cimport,nodecl> end
+function C.atomic_fetch_sub_explicit(object: is_atomicable_ptr <volatile>, arg: is_atomicable, order: C.memory_order): #[object.type.subtype]# <cimport,nodecl> end
+function C.atomic_fetch_or(object: is_atomicable_ptr <volatile>, arg: is_atomicable): #[object.type.subtype]# <cimport,nodecl> end
+function C.atomic_fetch_or_explicit(object: is_atomicable_ptr <volatile>, arg: is_atomicable, order: C.memory_order): #[object.type.subtype]# <cimport,nodecl> end
+function C.atomic_fetch_and(object: is_atomicable_ptr <volatile>, arg: is_atomicable): #[object.type.subtype]# <cimport,nodecl> end
+function C.atomic_fetch_and_explicit(object: is_atomicable_ptr <volatile>, arg: is_atomicable, order: C.memory_order): #[object.type.subtype]# <cimport,nodecl> end
+
+-- Generic memory order-dependent fence synchronization primitive.
+function C.atomic_thread_fence(order: C.memory_order): void <cimport,nodecl> end
+-- Fence between a thread and a signal handler executed in the same thread.
+function C.atomic_signal_fence(order: C.memory_order): void <cimport,nodecl> end
+
+-- Indicates that the given atomic type is lock-free
+
+global C.ATOMIC_BOOL_LOCK_FREE: cint <const,cimport,nodecl>
+global C.ATOMIC_CHAR_LOCK_FREE: cint <const,cimport,nodecl>
+global C.ATOMIC_CHAR16_T_LOCK_FREE: cint <const,cimport,nodecl>
+global C.ATOMIC_CHAR32_T_LOCK_FREE: cint <const,cimport,nodecl>
+global C.ATOMIC_WCHAR_T_LOCK_FREE: cint <const,cimport,nodecl>
+global C.ATOMIC_SHORT_LOCK_FREE: cint <const,cimport,nodecl>
+global C.ATOMIC_INT_LOCK_FREE: cint <const,cimport,nodecl>
+global C.ATOMIC_LONG_LOCK_FREE: cint <const,cimport,nodecl>
+global C.ATOMIC_LLONG_LOCK_FREE: cint <const,cimport,nodecl>
+global C.ATOMIC_POINTER_LOCK_FREE: cint <const,cimport,nodecl>
+
+-- Initializes a new atomic flag.
+global C.ATOMIC_FLAG_INIT: C.atomic_flag <const,cimport,nodecl>
+

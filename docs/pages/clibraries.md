@@ -3583,7 +3583,7 @@ function C.mtx_unlock(mutex: *C.mtx_t): cint
 ### C.mtx_destroy
 
 ```nelua
-function C.mtx_destroy(mutex: *C.mtx_t)
+function C.mtx_destroy(mutex: *C.mtx_t): void
 ```
 
 
@@ -3739,5 +3739,381 @@ global C.mtx_timed: cint
 ```
 
 
+
+---
+## C.stdatomic
+
+Library that imports symbols from the `<stdatomic.h>` header according to C11 specifications.
+
+For a complete documentation about the functions,
+see [C11 threads documentation](https://en.cppreference.com/w/c/atomic).
+
+### C.memory_order
+
+```nelua
+global C.memory_order: type = @cint
+```
+
+Memory ordering constraints.
+
+### C.memory_order_relaxed
+
+```nelua
+global C.memory_order_relaxed: C.memory_order
+```
+
+
+
+### C.memory_order_consume
+
+```nelua
+global C.memory_order_consume: C.memory_order
+```
+
+
+
+### C.memory_order_acquire
+
+```nelua
+global C.memory_order_acquire: C.memory_order
+```
+
+
+
+### C.memory_order_release
+
+```nelua
+global C.memory_order_release: C.memory_order
+```
+
+
+
+### C.memory_order_acq_rel
+
+```nelua
+global C.memory_order_acq_rel: C.memory_order
+```
+
+
+
+### C.memory_order_seq_cst
+
+```nelua
+global C.memory_order_seq_cst: C.memory_order
+```
+
+
+
+### C.atomic_flag
+
+```nelua
+global C.atomic_flag: type = @record{__val: boolean}
+```
+
+Lock-free atomic boolean flag.
+
+### C.kill_dependency
+
+```nelua
+function C.kill_dependency(y: is_atomicable): #[y.type]#
+```
+
+Breaks a dependency chain for `memory_order_consume`.
+
+### C.atomic_flag_test_and_set
+
+```nelua
+function C.atomic_flag_test_and_set(object: *C.atomic_flag <volatile>): boolean
+```
+
+Sets an atomic_flag to `true` and returns the old value (uses `memory_order_seq_cst` order).
+
+### C.atomic_flag_test_and_set_explicit
+
+```nelua
+function C.atomic_flag_test_and_set_explicit(object: *C.atomic_flag <volatile>, order: C.memory_order): boolean
+```
+
+Sets an atomic_flag to `true` and returns the old value.
+
+### C.atomic_flag_clear
+
+```nelua
+function C.atomic_flag_clear(object: *C.atomic_flag <volatile>): void
+```
+
+Sets an C.atomic_flag to `false` (uses `memory_order_seq_cst` order).
+
+### C.atomic_flag_clear_explicit
+
+```nelua
+function C.atomic_flag_clear_explicit(object: *C.atomic_flag <volatile>, order: C.memory_order): void
+```
+
+Sets an C.atomic_flag to `false`.
+
+### C.atomic_init
+
+```nelua
+function C.atomic_init(obj: is_atomicable_ptr <volatile>, value: is_atomicable): void
+```
+
+Initializes an existing atomic object.
+
+### C.atomic_is_lock_free
+
+```nelua
+function C.atomic_is_lock_free(obj: is_atomicable_ptr <const,volatile>): boolean
+```
+
+Indicates whether the atomic object is lock-free.
+
+### C.atomic_store
+
+```nelua
+function C.atomic_store(object: is_atomicable_ptr <volatile>, desired: is_atomicable): void
+```
+
+Stores a value in an atomic object (uses `memory_order_seq_cst` order).
+
+### C.atomic_store_explicit
+
+```nelua
+function C.atomic_store_explicit(object: is_atomicable_ptr <volatile>, desired: is_atomicable, order: C.memory_order): void
+```
+
+Stores a value in an atomic object.
+
+### C.atomic_load
+
+```nelua
+function C.atomic_load(object: is_atomicable_ptr <volatile>): #[object.type.subtype]#
+```
+
+Reads a value from an atomic object (uses `memory_order_seq_cst` order).
+
+### C.atomic_load_explicit
+
+```nelua
+function C.atomic_load_explicit(object: is_atomicable_ptr <volatile>, order: C.memory_order): #[object.type.subtype]#
+```
+
+Reads a value from an atomic object.
+
+### C.atomic_exchange
+
+```nelua
+function C.atomic_exchange(object: is_atomicable_ptr <volatile>, desired: is_atomicable): #[object.type.subtype]#
+```
+
+Swaps a value with the value of an atomic object (uses `memory_order_seq_cst` order).
+
+### C.atomic_exchange_explicit
+
+```nelua
+function C.atomic_exchange_explicit(object: is_atomicable_ptr <volatile>, desired: is_atomicable, order: C.memory_order): #[object.type.subtype]#
+```
+
+Swaps a value with the value of an atomic object.
+
+### C.atomic_compare_exchange_strong
+
+```nelua
+function C.atomic_compare_exchange_strong(object: is_atomicable_ptr <volatile>, expected: is_atomicable_ptr, desired: is_atomicable): boolean
+```
+
+
+
+### C.atomic_compare_exchange_strong_explicit
+
+```nelua
+function C.atomic_compare_exchange_strong_explicit(object: is_atomicable_ptr <volatile>, expected: is_atomicable_ptr, desired: is_atomicable, success: C.memory_order, failure: C.memory_order): boolean
+```
+
+
+
+### C.atomic_compare_exchange_weak
+
+```nelua
+function C.atomic_compare_exchange_weak(object: is_atomicable_ptr <volatile>, expected: is_atomicable_ptr, desired: is_atomicable): boolean
+```
+
+
+
+### C.atomic_compare_exchange_weak_explicit
+
+```nelua
+function C.atomic_compare_exchange_weak_explicit(object: is_atomicable_ptr <volatile>, expected: is_atomicable_ptr, desired: is_atomicable, success: C.memory_order, failure: C.memory_order): boolean
+```
+
+
+
+### C.atomic_fetch_add
+
+```nelua
+function C.atomic_fetch_add(object: is_atomicable_ptr <volatile>, arg: is_atomicable): #[object.type.subtype]#
+```
+
+
+
+### C.atomic_fetch_add_explicit
+
+```nelua
+function C.atomic_fetch_add_explicit(object: is_atomicable_ptr <volatile>, arg: is_atomicable, order: C.memory_order): #[object.type.subtype]#
+```
+
+
+
+### C.atomic_fetch_sub
+
+```nelua
+function C.atomic_fetch_sub(object: is_atomicable_ptr <volatile>, arg: is_atomicable): #[object.type.subtype]#
+```
+
+
+
+### C.atomic_fetch_sub_explicit
+
+```nelua
+function C.atomic_fetch_sub_explicit(object: is_atomicable_ptr <volatile>, arg: is_atomicable, order: C.memory_order): #[object.type.subtype]#
+```
+
+
+
+### C.atomic_fetch_or
+
+```nelua
+function C.atomic_fetch_or(object: is_atomicable_ptr <volatile>, arg: is_atomicable): #[object.type.subtype]#
+```
+
+
+
+### C.atomic_fetch_or_explicit
+
+```nelua
+function C.atomic_fetch_or_explicit(object: is_atomicable_ptr <volatile>, arg: is_atomicable, order: C.memory_order): #[object.type.subtype]#
+```
+
+
+
+### C.atomic_fetch_and
+
+```nelua
+function C.atomic_fetch_and(object: is_atomicable_ptr <volatile>, arg: is_atomicable): #[object.type.subtype]#
+```
+
+
+
+### C.atomic_fetch_and_explicit
+
+```nelua
+function C.atomic_fetch_and_explicit(object: is_atomicable_ptr <volatile>, arg: is_atomicable, order: C.memory_order): #[object.type.subtype]#
+```
+
+
+
+### C.atomic_thread_fence
+
+```nelua
+function C.atomic_thread_fence(order: C.memory_order): void
+```
+
+Generic memory order-dependent fence synchronization primitive.
+
+### C.atomic_signal_fence
+
+```nelua
+function C.atomic_signal_fence(order: C.memory_order): void
+```
+
+Fence between a thread and a signal handler executed in the same thread.
+
+### C.ATOMIC_BOOL_LOCK_FREE
+
+```nelua
+global C.ATOMIC_BOOL_LOCK_FREE: cint
+```
+
+
+
+### C.ATOMIC_CHAR_LOCK_FREE
+
+```nelua
+global C.ATOMIC_CHAR_LOCK_FREE: cint
+```
+
+
+
+### C.ATOMIC_CHAR16_T_LOCK_FREE
+
+```nelua
+global C.ATOMIC_CHAR16_T_LOCK_FREE: cint
+```
+
+
+
+### C.ATOMIC_CHAR32_T_LOCK_FREE
+
+```nelua
+global C.ATOMIC_CHAR32_T_LOCK_FREE: cint
+```
+
+
+
+### C.ATOMIC_WCHAR_T_LOCK_FREE
+
+```nelua
+global C.ATOMIC_WCHAR_T_LOCK_FREE: cint
+```
+
+
+
+### C.ATOMIC_SHORT_LOCK_FREE
+
+```nelua
+global C.ATOMIC_SHORT_LOCK_FREE: cint
+```
+
+
+
+### C.ATOMIC_INT_LOCK_FREE
+
+```nelua
+global C.ATOMIC_INT_LOCK_FREE: cint
+```
+
+
+
+### C.ATOMIC_LONG_LOCK_FREE
+
+```nelua
+global C.ATOMIC_LONG_LOCK_FREE: cint
+```
+
+
+
+### C.ATOMIC_LLONG_LOCK_FREE
+
+```nelua
+global C.ATOMIC_LLONG_LOCK_FREE: cint
+```
+
+
+
+### C.ATOMIC_POINTER_LOCK_FREE
+
+```nelua
+global C.ATOMIC_POINTER_LOCK_FREE: cint
+```
+
+
+
+### C.ATOMIC_FLAG_INIT
+
+```nelua
+global C.ATOMIC_FLAG_INIT: C.atomic_flag
+```
+
+Initializes a new atomic flag.
 
 ---

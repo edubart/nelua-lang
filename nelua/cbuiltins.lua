@@ -146,9 +146,9 @@ function cbuiltins.nelua_atomic(context)
 /* Macro used to declare atomic types. */
 #if __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_ATOMICS__)
   #define nelua_atomic _Atomic
-#elif __cplusplus >= 201103L
-  #include <atomic>
-  #define nelua_atomic(T) std::atomic<T>
+#elif __cplusplus >= 202002L
+  #include <stdatomic.h>
+  #define nelua_atomic _Atomic
 #else
   #define nelua_atomic(a) a
   #error "Atomic is unsupported."
