@@ -15,7 +15,7 @@ require 'memory'
 local function snprintf(s: cstring, maxlen: csize, format: cstring, ...: cvarargs): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
 
 local MAX_FORMAT <comptime> = 32
-local MAX_ITEM <comptime> = 120
+local MAX_ITEM <comptime> = 128
 
 -- Helper to check if a byte is a digit.
 local function isdigit(x: byte): boolean <inline>
@@ -218,8 +218,8 @@ end
 
   -- Helper to format an argument.
   local function formatarg(self: *stringbuilderT, c: byte,
-                           buff: cstring, maxitem: usize, form: *[MAX_FORMAT]byte, arg1: auto): (boolean, cint)
-    local nb: cint = -1
+                           buff: cstring, maxitem: usize, form: *[MAX_FORMAT]byte, arg1: auto): (boolean, isize)
+    local nb: isize = -1
     ## if primtypes.cint:is_convertible_from(arg1.type) then
       if c == 'c'_byte then
         local n: cint = (@cint)(arg1)
@@ -227,12 +227,10 @@ end
         goto next
       end
     ## end if primtypes.integer:is_convertible_from(arg1.type) then
-      if c == 'd'_byte or
-         c == 'i'_byte or
+      if c == 'd'_byte or c == 'i'_byte or
          c == 'o'_byte or
          c == 'u'_byte or
-         c == 'x'_byte or
-         c == 'X'_byte then
+         c == 'x'_byte or c == 'X'_byte then
         local lenmod: cstring <cimport(#['PRIi' .. primtypes.integer.bitsize]#),nodecl,cinclude'<inttypes.h>'>
         addlenmod(form, lenmod, #lenmod - 1)
         local n: integer = (@integer)(arg1)
@@ -240,13 +238,10 @@ end
         goto next
       end
     ## end if primtypes.number:is_convertible_from(arg1.type) then
-      if c == 'a'_byte or
-         c == 'A'_byte or
+      if c == 'a'_byte or c == 'A'_byte or
          c == 'f'_byte or
-         c == 'e'_byte or
-         c == 'E'_byte or
-         c == 'g'_byte or
-         c == 'G'_byte then
+         c == 'e'_byte or c == 'E'_byte or
+         c == 'g'_byte or c == 'G'_byte then
         local n: number = (@number)(arg1)
         nb = snprintf(buff, maxitem, &form[0], n)
         goto next
@@ -269,24 +264,27 @@ end
       ## else
       local s: string = tostring(arg1)
       ## end
-      maxitem = s.size + 1
-      buff = (@cstring)(self:prepare(maxitem).data)
-      if buff then
-        if form[1] == c and form[2] == 0 then -- just copy the string
+      local slen: usize = s.size + 1
+      if form[1] == c and form[2] == 0 then -- just copy the string
+        buff = (@cstring)(self:prepare(slen).data)
+        if buff then
           memory.copy(buff, s.data, s.size)
-          nb = s.size
-        else
-          ## if arg1.type.is_string then
-          -- the string may not be null terminated (in case of a string view)
-          -- copy to force null termination
-          -- TODO: this may be expansive, should we implement a custom snprintf later?
-          s = string.copy(s)
-          ## end
-          nb = snprintf(buff, maxitem, &form[0], s.data)
-          ## if arg1.type.is_string then
-          s:destroy()
-          ## end
+          nb = (@isize)(s.size)
         end
+      else
+        ## if arg1.type.is_string then
+        -- the string may not be null terminated (in case of a string view)
+        -- copy to force null termination
+        -- TODO: this may be expansive, should we implement a custom snprintf later?
+        s = string.copy(s)
+        ## end
+        buff = (@cstring)(self:prepare(slen > maxitem and slen or maxitem).data)
+        if buff then
+          nb = snprintf(buff, maxitem, &form[0], s.data)
+        end
+        ## if arg1.type.is_string then
+        s:destroy()
+        ## end
       end
       ## if not arg1.type.is_stringy then
       s:destroy()
@@ -298,7 +296,7 @@ end
     end
     assert(false, 'invalid format for argument')
   ::next::
-    assert(nb >= 0 and nb < (@isize)(maxitem), 'unexpected number of bytes written in sprintf')
+    assert(nb >= 0, 'unexpected number of bytes written in sprintf')
     return true, nb
   end
 
@@ -335,7 +333,7 @@ end
           c = fmt.data[pos]
           pos = pos + 1
           argi = argi + 1
-          local ok: boolean, nb: cint = false, -1
+          local ok: boolean, nb: isize = false, -1
           ## for i=1,select('#', ...) do
           if #[i]# == argi then
             ok, nb = formatarg(self, c, buff, maxitem, &form, #[select(i, ...)]#)

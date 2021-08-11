@@ -448,6 +448,7 @@ do -- string format
   assert_string_eq(string.format('%s: %d', 'test', 1), 'test: 1')
   s = string.rep('xuxu', 500) assert_string_eq(string.format('%s', s), s) s:destroy()
   assert_string_eq(string.format('a number here: %d !', 1337), 'a number here: 1337 !')
+  assert_string_eq(string.format('%-30s %s', 'a', 'b'), 'a                              b')
 end
 
 do -- print
