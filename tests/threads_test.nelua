@@ -1,0 +1,43 @@
+require 'C.stdatomic'
+require 'C.threads'
+
+local counter: integer <atomic> = 0
+local mutex: C.mtx_t
+
+local function thread_safe_print(...: varargs)
+  assert(C.mtx_lock(&mutex) == C.thrd_success)
+  print(...)
+  assert(C.mtx_unlock(&mutex) == C.thrd_success)
+end
+
+local function add_thread(arg: pointer): cint
+  local tid: isize = (@isize)(arg)
+  thread_safe_print('started thread', tid)
+  for i=1,1000 do
+    C.atomic_fetch_add(&counter, 1)
+  end
+  return tid
+end
+
+-- Initialize mutex.
+assert(C.mtx_init(&mutex, C.mtx_plain) == C.thrd_success)
+
+-- Create threads.
+local thrds: [10]C.thrd_t
+for i:isize=0,<10 do
+  assert(C.thrd_create(&thrds[i], add_thread, (@pointer)(i)) == C.thrd_success)
+end
+
+-- Wait threads.
+for i=0,<10 do
+  local res: cint
+  assert(C.thrd_join(&thrds[i], &res) == C.thrd_success)
+  assert(res == i)
+  thread_safe_print('joined thread', i)
+end
+
+-- Destroy mutex.
+C.mtx_destroy(&mutex)
+
+print('counter', counter)
+assert(counter == 10000)

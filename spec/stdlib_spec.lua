@@ -75,5 +75,8 @@ end)
 it("coroutine", function()
   expect.run_c_from_file('tests/coroutine_test.nelua')
 end)
+it("threads", function()
+  expect.run_c_from_file('tests/threads_test.nelua')
+end)
 
 end)
