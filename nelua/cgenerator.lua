@@ -1147,11 +1147,12 @@ function visitors.VarDecl(context, node, emitter)
           end
           defemitter:add_ln(';')
         end
-      elseif not defined and not vartype.is_comptime and valnode and not valnode.attr.comptime then
-        -- could be a call
+      elseif not defined and not vartype.is_comptime and valnode and
+                             not valnode.attr.comptime and not lastcallindex then -- could be a call
         emitter:add_indent_ln(valnode, ';')
       end
-    elseif not vartype.is_comptime and valnode and not valnode.attr.comptime then  -- could be a call
+    elseif not vartype.is_comptime and valnode and
+           not valnode.attr.comptime and not lastcallindex then -- could be a call
       emitter:add_indent_ln(valnode, ';')
     end
     if varattr.cinclude then
@@ -1188,7 +1189,8 @@ function visitors.Assign(context, node, emitter)
       defemitter:add_indent(varnode, ' = ')
       defemitter:add_converted_val(vartype, asgnvalname, asgnvaltype)
       defemitter:add_ln(';')
-    elseif not vartype.is_comptime and valnode and not valnode.attr.comptime then -- could be a call
+    elseif not vartype.is_comptime and valnode and
+           not valnode.attr.comptime and not lastcallindex then -- could be a call
       emitter:add_indent_ln(valnode, ';')
     end
   end

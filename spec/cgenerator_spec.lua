@@ -3741,4 +3741,18 @@ it("record field aliases", function()
   ]=])
 end)
 
+it("issue with multiple returns and dead code elimination", function()
+  expect.run_c([=[
+    local n = 0
+    local function f()
+      n = n + 1
+      return 1, 2
+    end
+
+    local a, b = f()
+    assert(b == 2)
+    assert(n == 1)
+  ]=])
+end)
+
 end)
