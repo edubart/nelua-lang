@@ -9,322 +9,322 @@ require 'C'
 
 -- Basic operations
 
-function C.fabs(x: float64): float64 <cimport'fabs',cinclude'<math.h>',nodecl> end
-function C.fabsf(x: float32): float32 <cimport'fabsf',cinclude'<math.h>',nodecl> end
-function C.fabsl(x: clongdouble): clongdouble <cimport'fabsl',cinclude'<math.h>',nodecl> end
+function C.fabs(x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.fabsf(x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.fabsl(x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.fmod(x: float64, y: float64): float64 <cimport'fmod',cinclude'<math.h>',nodecl> end
-function C.fmodf(x: float32, y: float32): float32 <cimport'fmodf',cinclude'<math.h>',nodecl> end
-function C.fmodl(x: clongdouble, y: clongdouble): clongdouble <cimport'fmodl',cinclude'<math.h>',nodecl> end
+function C.fmod(x: float64, y: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.fmodf(x: float32, y: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.fmodl(x: clongdouble, y: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.remainder(x: float64, y: float64): float64 <cimport'remainder',cinclude'<math.h>',nodecl> end
-function C.remainderf(x: float32, y: float32): float32 <cimport'remainderf',cinclude'<math.h>',nodecl> end
-function C.remainderl(x: clongdouble, y: clongdouble): clongdouble <cimport'remainderl',cinclude'<math.h>',nodecl> end
+function C.remainder(x: float64, y: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.remainderf(x: float32, y: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.remainderl(x: clongdouble, y: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.remquo(x: float64, y: float64, quo: *cint): float64 <cimport'remquo',cinclude'<math.h>',nodecl> end
-function C.remquof(x: float32, y: float32, quo: *cint): float32 <cimport'remquof',cinclude'<math.h>',nodecl> end
-function C.remquol(x: clongdouble, y: clongdouble, quo: *cint): clongdouble <cimport'remquol',cinclude'<math.h>',nodecl> end
+function C.remquo(x: float64, y: float64, quo: *cint): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.remquof(x: float32, y: float32, quo: *cint): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.remquol(x: clongdouble, y: clongdouble, quo: *cint): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.fma(x: float64, y: float64, z: float64): float64 <cimport'fma',cinclude'<math.h>',nodecl> end
-function C.fmaf(x: float32, y: float32, z: float32): float32 <cimport'fmaf',cinclude'<math.h>',nodecl> end
-function C.fmal(x: clongdouble, y: clongdouble, z: clongdouble): clongdouble <cimport'fmal',cinclude'<math.h>',nodecl> end
+function C.fma(x: float64, y: float64, z: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.fmaf(x: float32, y: float32, z: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.fmal(x: clongdouble, y: clongdouble, z: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.fmax(x: float64, y: float64): float64 <cimport'fmax',cinclude'<math.h>',nodecl> end
-function C.fmaxf(x: float32, y: float32): float32 <cimport'fmaxf',cinclude'<math.h>',nodecl> end
-function C.fmaxl(x: clongdouble, y: clongdouble): clongdouble <cimport'fmaxl',cinclude'<math.h>',nodecl> end
+function C.fmax(x: float64, y: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.fmaxf(x: float32, y: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.fmaxl(x: clongdouble, y: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.fmin(x: float64, y: float64): float64 <cimport'fmin',cinclude'<math.h>',nodecl> end
-function C.fminf(x: float32, y: float32): float32 <cimport'fminf',cinclude'<math.h>',nodecl> end
-function C.fminl(x: clongdouble, y: clongdouble): clongdouble <cimport'fminl',cinclude'<math.h>',nodecl> end
+function C.fmin(x: float64, y: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.fminf(x: float32, y: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.fminl(x: clongdouble, y: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.fdim(x: float64, y: float64): float64 <cimport'fdim',cinclude'<math.h>',nodecl> end
-function C.fdimf(x: float32, y: float32): float32 <cimport'fdimf',cinclude'<math.h>',nodecl> end
-function C.fdiml(x: clongdouble, y: clongdouble): clongdouble <cimport'fdiml',cinclude'<math.h>',nodecl> end
+function C.fdim(x: float64, y: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.fdimf(x: float32, y: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.fdiml(x: clongdouble, y: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.nan(tagb: cstring): float64 <cimport'nan',cinclude'<math.h>',nodecl> end
-function C.nanf(tagb: cstring): float32 <cimport'nanf',cinclude'<math.h>',nodecl> end
-function C.nanl(tagb: cstring): clongdouble <cimport'nanl',cinclude'<math.h>',nodecl> end
+function C.nan(tagb: cstring): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.nanf(tagb: cstring): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.nanl(tagb: cstring): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
 -- Exponential functions
 
-function C.exp(x: float64): float64 <cimport'exp',cinclude'<math.h>',nodecl> end
-function C.expf(x: float32): float32 <cimport'expf',cinclude'<math.h>',nodecl> end
-function C.expl(x: clongdouble): clongdouble <cimport'expl',cinclude'<math.h>',nodecl> end
+function C.exp(x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.expf(x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.expl(x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.exp2(x: float64): float64 <cimport'exp2',cinclude'<math.h>',nodecl> end
-function C.exp2f(x: float32): float32 <cimport'exp2f',cinclude'<math.h>',nodecl> end
-function C.exp2l(x: clongdouble): clongdouble <cimport'exp2l',cinclude'<math.h>',nodecl> end
+function C.exp2(x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.exp2f(x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.exp2l(x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.expm1(x: float64): float64 <cimport'expm1',cinclude'<math.h>',nodecl> end
-function C.expm1f(x: float32): float32 <cimport'expm1f',cinclude'<math.h>',nodecl> end
-function C.expm1l(x: clongdouble): clongdouble <cimport'expm1l',cinclude'<math.h>',nodecl> end
+function C.expm1(x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.expm1f(x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.expm1l(x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.log(x: float64): float64 <cimport'log',cinclude'<math.h>',nodecl> end
-function C.logf(x: float32): float32 <cimport'logf',cinclude'<math.h>',nodecl> end
-function C.logl(x: clongdouble): clongdouble <cimport'logl',cinclude'<math.h>',nodecl> end
+function C.log(x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.logf(x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.logl(x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.log10(x: float64): float64 <cimport'log10',cinclude'<math.h>',nodecl> end
-function C.log10f(x: float32): float32 <cimport'log10f',cinclude'<math.h>',nodecl> end
-function C.log10l(x: clongdouble): clongdouble <cimport'log10l',cinclude'<math.h>',nodecl> end
+function C.log10(x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.log10f(x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.log10l(x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.log1p(x: float64): float64 <cimport'log1p',cinclude'<math.h>',nodecl> end
-function C.log1pf(x: float32): float32 <cimport'log1pf',cinclude'<math.h>',nodecl> end
-function C.log1pl(x: clongdouble): clongdouble <cimport'log1pl',cinclude'<math.h>',nodecl> end
+function C.log1p(x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.log1pf(x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.log1pl(x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.log2(x: float64): float64 <cimport'log2',cinclude'<math.h>',nodecl> end
-function C.log2f(x: float32): float32 <cimport'log2f',cinclude'<math.h>',nodecl> end
-function C.log2l(x: clongdouble): clongdouble <cimport'log2l',cinclude'<math.h>',nodecl> end
+function C.log2(x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.log2f(x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.log2l(x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.logb(x: float64): float64 <cimport'logb',cinclude'<math.h>',nodecl> end
-function C.logbf(x: float32): float32 <cimport'logbf',cinclude'<math.h>',nodecl> end
-function C.logbl(x: clongdouble): clongdouble <cimport'logbl',cinclude'<math.h>',nodecl> end
+function C.logb(x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.logbf(x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.logbl(x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
 -- Power functions
 
-function C.pow(x: float64, y: float64): float64 <cimport'pow',cinclude'<math.h>',nodecl> end
-function C.powf(x: float32, y: float32): float32 <cimport'powf',cinclude'<math.h>',nodecl> end
-function C.powl(x: clongdouble, y: clongdouble): clongdouble <cimport'powl',cinclude'<math.h>',nodecl> end
+function C.pow(x: float64, y: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.powf(x: float32, y: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.powl(x: clongdouble, y: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.sqrt(x: float64): float64 <cimport'sqrt',cinclude'<math.h>',nodecl> end
-function C.sqrtf(x: float32): float32 <cimport'sqrtf',cinclude'<math.h>',nodecl> end
-function C.sqrtl(x: clongdouble): clongdouble <cimport'sqrtl',cinclude'<math.h>',nodecl> end
+function C.sqrt(x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.sqrtf(x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.sqrtl(x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.cbrt(x: float64): float64 <cimport'cbrt',cinclude'<math.h>',nodecl> end
-function C.cbrtf(x: float32): float32 <cimport'cbrtf',cinclude'<math.h>',nodecl> end
-function C.cbrtl(x: clongdouble): clongdouble <cimport'cbrtl',cinclude'<math.h>',nodecl> end
+function C.cbrt(x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.cbrtf(x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.cbrtl(x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.hypot(x: float64, y: float64): float64 <cimport'hypot',cinclude'<math.h>',nodecl> end
-function C.hypotf(x: float32, y: float32): float32 <cimport'hypotf',cinclude'<math.h>',nodecl> end
-function C.hypotl(x: clongdouble, y: clongdouble): clongdouble <cimport'hypotl',cinclude'<math.h>',nodecl> end
+function C.hypot(x: float64, y: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.hypotf(x: float32, y: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.hypotl(x: clongdouble, y: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
 -- Trigonometric functions
 
-function C.cos(x: float64): float64 <cimport'cos',cinclude'<math.h>',nodecl> end
-function C.cosf(x: float32): float32 <cimport'cosf',cinclude'<math.h>',nodecl> end
-function C.cosl(x: clongdouble): clongdouble <cimport'cosl',cinclude'<math.h>',nodecl> end
+function C.cos(x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.cosf(x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.cosl(x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.sin(x: float64): float64 <cimport'sin',cinclude'<math.h>',nodecl> end
-function C.sinf(x: float32): float32 <cimport'sinf',cinclude'<math.h>',nodecl> end
-function C.sinl(x: clongdouble): clongdouble <cimport'sinl',cinclude'<math.h>',nodecl> end
+function C.sin(x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.sinf(x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.sinl(x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.tan(x: float64): float64 <cimport'tan',cinclude'<math.h>',nodecl> end
-function C.tanf(x: float32): float32 <cimport'tanf',cinclude'<math.h>',nodecl> end
-function C.tanl(x: clongdouble): clongdouble <cimport'tanl',cinclude'<math.h>',nodecl> end
+function C.tan(x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.tanf(x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.tanl(x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.acos(x: float64): float64 <cimport'acos',cinclude'<math.h>',nodecl> end
-function C.acosf(x: float32): float32 <cimport'acosf',cinclude'<math.h>',nodecl> end
-function C.acosl(x: clongdouble): clongdouble <cimport'acosl',cinclude'<math.h>',nodecl> end
+function C.acos(x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.acosf(x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.acosl(x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.asin(x: float64): float64 <cimport'asin',cinclude'<math.h>',nodecl> end
-function C.asinf(x: float32): float32 <cimport'asinf',cinclude'<math.h>',nodecl> end
-function C.asinl(x: clongdouble): clongdouble <cimport'asinl',cinclude'<math.h>',nodecl> end
+function C.asin(x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.asinf(x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.asinl(x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.atan(x: float64): float64 <cimport'atan',cinclude'<math.h>',nodecl> end
-function C.atanf(x: float32): float32 <cimport'atanf',cinclude'<math.h>',nodecl> end
-function C.atanl(x: clongdouble): clongdouble <cimport'atanl',cinclude'<math.h>',nodecl> end
+function C.atan(x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.atanf(x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.atanl(x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.atan2(y: float64, x: float64): float64 <cimport'atan2',cinclude'<math.h>',nodecl> end
-function C.atan2f(y: float32, x: float32): float32 <cimport'atan2f',cinclude'<math.h>',nodecl> end
-function C.atan2l(y: clongdouble, x: clongdouble): clongdouble <cimport'atan2l',cinclude'<math.h>',nodecl> end
+function C.atan2(y: float64, x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.atan2f(y: float32, x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.atan2l(y: clongdouble, x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
 -- Hyperbolic functions
 
-function C.cosh(x: float64): float64 <cimport'cosh',cinclude'<math.h>',nodecl> end
-function C.coshf(x: float32): float32 <cimport'coshf',cinclude'<math.h>',nodecl> end
-function C.coshl(x: clongdouble): clongdouble <cimport'coshl',cinclude'<math.h>',nodecl> end
+function C.cosh(x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.coshf(x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.coshl(x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.sinh(x: float64): float64 <cimport'sinh',cinclude'<math.h>',nodecl> end
-function C.sinhf(x: float32): float32 <cimport'sinhf',cinclude'<math.h>',nodecl> end
-function C.sinhl(x: clongdouble): clongdouble <cimport'sinhl',cinclude'<math.h>',nodecl> end
+function C.sinh(x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.sinhf(x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.sinhl(x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.tanh(x: float64): float64 <cimport'tanh',cinclude'<math.h>',nodecl> end
-function C.tanhf(x: float32): float32 <cimport'tanhf',cinclude'<math.h>',nodecl> end
-function C.tanhl(x: clongdouble): clongdouble <cimport'tanhl',cinclude'<math.h>',nodecl> end
+function C.tanh(x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.tanhf(x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.tanhl(x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.acosh(x: float64): float64 <cimport'acosh',cinclude'<math.h>',nodecl> end
-function C.acoshf(x: float32): float32 <cimport'acoshf',cinclude'<math.h>',nodecl> end
-function C.acoshl(x: clongdouble): clongdouble <cimport'acoshl',cinclude'<math.h>',nodecl> end
+function C.acosh(x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.acoshf(x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.acoshl(x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.asinh(x: float64): float64 <cimport'asinh',cinclude'<math.h>',nodecl> end
-function C.asinhf(x: float32): float32 <cimport'asinhf',cinclude'<math.h>',nodecl> end
-function C.asinhl(x: clongdouble): clongdouble <cimport'asinhl',cinclude'<math.h>',nodecl> end
+function C.asinh(x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.asinhf(x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.asinhl(x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.atanh(x: float64): float64 <cimport'atanh',cinclude'<math.h>',nodecl> end
-function C.atanhf(x: float32): float32 <cimport'atanhf',cinclude'<math.h>',nodecl> end
-function C.atanhl(x: clongdouble): clongdouble <cimport'atanhl',cinclude'<math.h>',nodecl> end
+function C.atanh(x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.atanhf(x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.atanhl(x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
 -- Error and gamma functions
 
-function C.erf(x: float64): float64 <cimport'erf',cinclude'<math.h>',nodecl> end
-function C.erff(x: float32): float32 <cimport'erff',cinclude'<math.h>',nodecl> end
-function C.erfl(x: clongdouble): clongdouble <cimport'erfl',cinclude'<math.h>',nodecl> end
+function C.erf(x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.erff(x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.erfl(x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.erfc(x: float64): float64 <cimport'erfc',cinclude'<math.h>',nodecl> end
-function C.erfcf(x: float32): float32 <cimport'erfcf',cinclude'<math.h>',nodecl> end
-function C.erfcl(x: clongdouble): clongdouble <cimport'erfcl',cinclude'<math.h>',nodecl> end
+function C.erfc(x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.erfcf(x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.erfcl(x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.tgamma(x: float64): float64 <cimport'tgamma',cinclude'<math.h>',nodecl> end
-function C.tgammaf(x: float32): float32 <cimport'tgammaf',cinclude'<math.h>',nodecl> end
-function C.tgammal(x: clongdouble): clongdouble <cimport'tgammal',cinclude'<math.h>',nodecl> end
+function C.tgamma(x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.tgammaf(x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.tgammal(x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.lgamma(x: float64): float64 <cimport'lgamma',cinclude'<math.h>',nodecl> end
-function C.lgammaf(x: float32): float32 <cimport'lgammaf',cinclude'<math.h>',nodecl> end
-function C.lgammal(x: clongdouble): clongdouble <cimport'lgammal',cinclude'<math.h>',nodecl> end
+function C.lgamma(x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.lgammaf(x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.lgammal(x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
 -- Nearest integer floating-point operations
 
-function C.ceil(x: float64): float64 <cimport'ceil',cinclude'<math.h>',nodecl> end
-function C.ceilf(x: float32): float32 <cimport'ceilf',cinclude'<math.h>',nodecl> end
-function C.ceill(x: clongdouble): clongdouble <cimport'ceill',cinclude'<math.h>',nodecl> end
+function C.ceil(x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.ceilf(x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.ceill(x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.floor(x: float64): float64 <cimport'floor',cinclude'<math.h>',nodecl> end
-function C.floorf(x: float32): float32 <cimport'floorf',cinclude'<math.h>',nodecl> end
-function C.floorl(x: clongdouble): clongdouble <cimport'floorl',cinclude'<math.h>',nodecl> end
+function C.floor(x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.floorf(x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.floorl(x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.trunc(x: float64): float64 <cimport'trunc',cinclude'<math.h>',nodecl> end
-function C.truncf(x: float32): float32 <cimport'truncf',cinclude'<math.h>',nodecl> end
-function C.truncl(x: clongdouble): clongdouble <cimport'truncl',cinclude'<math.h>',nodecl> end
+function C.trunc(x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.truncf(x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.truncl(x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.round(x: float64): float64 <cimport'round',cinclude'<math.h>',nodecl> end
-function C.roundf(x: float32): float32 <cimport'roundf',cinclude'<math.h>',nodecl> end
-function C.roundl(x: clongdouble): clongdouble <cimport'roundl',cinclude'<math.h>',nodecl> end
+function C.round(x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.roundf(x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.roundl(x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.lround(x: float64): clong <cimport'lround',cinclude'<math.h>',nodecl> end
-function C.lroundf(x: float32): clong <cimport'lroundf',cinclude'<math.h>',nodecl> end
-function C.lroundl(x: clongdouble): clong <cimport'lroundl',cinclude'<math.h>',nodecl> end
+function C.lround(x: float64): clong <cimport,cinclude'<math.h>',nodecl> end
+function C.lroundf(x: float32): clong <cimport,cinclude'<math.h>',nodecl> end
+function C.lroundl(x: clongdouble): clong <cimport,cinclude'<math.h>',nodecl> end
 
-function C.llround(x: float64): clonglong <cimport'llround',cinclude'<math.h>',nodecl> end
-function C.llroundf(x: float32): clonglong <cimport'llroundf',cinclude'<math.h>',nodecl> end
-function C.llroundl(x: clongdouble): clonglong <cimport'llroundl',cinclude'<math.h>',nodecl> end
+function C.llround(x: float64): clonglong <cimport,cinclude'<math.h>',nodecl> end
+function C.llroundf(x: float32): clonglong <cimport,cinclude'<math.h>',nodecl> end
+function C.llroundl(x: clongdouble): clonglong <cimport,cinclude'<math.h>',nodecl> end
 
-function C.rint(x: float64): float64 <cimport'rint',cinclude'<math.h>',nodecl> end
-function C.rintf(x: float32): float32 <cimport'rintf',cinclude'<math.h>',nodecl> end
-function C.rintl(x: clongdouble): clongdouble <cimport'rintl',cinclude'<math.h>',nodecl> end
+function C.rint(x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.rintf(x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.rintl(x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.lrint(x: float64): clong <cimport'lrint',cinclude'<math.h>',nodecl> end
-function C.lrintf(x: float32): clong <cimport'lrintf',cinclude'<math.h>',nodecl> end
-function C.lrintl(x: clongdouble): clong <cimport'lrintl',cinclude'<math.h>',nodecl> end
+function C.lrint(x: float64): clong <cimport,cinclude'<math.h>',nodecl> end
+function C.lrintf(x: float32): clong <cimport,cinclude'<math.h>',nodecl> end
+function C.lrintl(x: clongdouble): clong <cimport,cinclude'<math.h>',nodecl> end
 
-function C.llrint(x: float64): clonglong <cimport'llrint',cinclude'<math.h>',nodecl> end
-function C.llrintf(x: float32): clonglong <cimport'llrintf',cinclude'<math.h>',nodecl> end
-function C.llrintl(x: clongdouble): clonglong <cimport'llrintl',cinclude'<math.h>',nodecl> end
+function C.llrint(x: float64): clonglong <cimport,cinclude'<math.h>',nodecl> end
+function C.llrintf(x: float32): clonglong <cimport,cinclude'<math.h>',nodecl> end
+function C.llrintl(x: clongdouble): clonglong <cimport,cinclude'<math.h>',nodecl> end
 
-function C.nearbyint(x: float64): float64 <cimport'nearbyint',cinclude'<math.h>',nodecl> end
-function C.nearbyintf(x: float32): float32 <cimport'nearbyintf',cinclude'<math.h>',nodecl> end
-function C.nearbyintl(x: clongdouble): clongdouble <cimport'nearbyintl',cinclude'<math.h>',nodecl> end
+function C.nearbyint(x: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.nearbyintf(x: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.nearbyintl(x: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
 -- Floating-point manipulation functions
 
-function C.frexp(x: float64, exponent: *cint): float64 <cimport'frexp',cinclude'<math.h>',nodecl> end
-function C.frexpf(x: float32, exponent: *cint): float32 <cimport'frexpf',cinclude'<math.h>',nodecl> end
-function C.frexpl(x: clongdouble, exponent: *cint): clongdouble <cimport'frexpl',cinclude'<math.h>',nodecl> end
+function C.frexp(x: float64, exponent: *cint): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.frexpf(x: float32, exponent: *cint): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.frexpl(x: clongdouble, exponent: *cint): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.ldexp(x: float64, exponent: cint): float64 <cimport'ldexp',cinclude'<math.h>',nodecl> end
-function C.ldexpf(x: float32, exponent: cint): float32 <cimport'ldexpf',cinclude'<math.h>',nodecl> end
-function C.ldexpl(x: clongdouble, exponent: cint): clongdouble <cimport'ldexpl',cinclude'<math.h>',nodecl> end
+function C.ldexp(x: float64, exponent: cint): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.ldexpf(x: float32, exponent: cint): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.ldexpl(x: clongdouble, exponent: cint): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.modf(x: float64, iptr: *float64): float64 <cimport'modf',cinclude'<math.h>',nodecl> end
-function C.modff(x: float32, iptr: *float32): float32 <cimport'modff',cinclude'<math.h>',nodecl> end
-function C.modfl(x: clongdouble, iptr: *clongdouble): clongdouble <cimport'modfl',cinclude'<math.h>',nodecl> end
+function C.modf(x: float64, iptr: *float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.modff(x: float32, iptr: *float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.modfl(x: clongdouble, iptr: *clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.scalbln(x: float64, n: clong): float64 <cimport'scalbln',cinclude'<math.h>',nodecl> end
-function C.scalblnf(x: float32, n: clong): float32 <cimport'scalblnf',cinclude'<math.h>',nodecl> end
-function C.scalblnl(x: clongdouble, n: clong): clongdouble <cimport'scalblnl',cinclude'<math.h>',nodecl> end
+function C.scalbln(x: float64, n: clong): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.scalblnf(x: float32, n: clong): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.scalblnl(x: clongdouble, n: clong): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.scalbn(x: float64, n: cint): float64 <cimport'scalbn',cinclude'<math.h>',nodecl> end
-function C.scalbnf(x: float32, n: cint): float32 <cimport'scalbnf',cinclude'<math.h>',nodecl> end
-function C.scalbnl(x: clongdouble, n: cint): clongdouble <cimport'scalbnl',cinclude'<math.h>',nodecl> end
+function C.scalbn(x: float64, n: cint): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.scalbnf(x: float32, n: cint): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.scalbnl(x: clongdouble, n: cint): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.ilogb(x: float64): cint <cimport'ilogb',cinclude'<math.h>',nodecl> end
-function C.ilogbf(x: float32): cint <cimport'ilogbf',cinclude'<math.h>',nodecl> end
-function C.ilogbl(x: clongdouble): cint <cimport'ilogbl',cinclude'<math.h>',nodecl> end
+function C.ilogb(x: float64): cint <cimport,cinclude'<math.h>',nodecl> end
+function C.ilogbf(x: float32): cint <cimport,cinclude'<math.h>',nodecl> end
+function C.ilogbl(x: clongdouble): cint <cimport,cinclude'<math.h>',nodecl> end
 
-function C.nextafter(x: float64, y: float64): float64 <cimport'nextafter',cinclude'<math.h>',nodecl> end
-function C.nextafterf(x: float32, y: float32): float32 <cimport'nextafterf',cinclude'<math.h>',nodecl> end
-function C.nextafterl(x: clongdouble, y: clongdouble): clongdouble <cimport'nextafterl',cinclude'<math.h>',nodecl> end
+function C.nextafter(x: float64, y: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.nextafterf(x: float32, y: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.nextafterl(x: clongdouble, y: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.nexttoward(x: float64, y: clongdouble): float64 <cimport'nexttoward',cinclude'<math.h>',nodecl> end
-function C.nexttowardf(x: float32, y: clongdouble): float32 <cimport'nexttowardf',cinclude'<math.h>',nodecl> end
-function C.nexttowardl(x: clongdouble, y: clongdouble): clongdouble <cimport'nexttowardl',cinclude'<math.h>',nodecl> end
+function C.nexttoward(x: float64, y: clongdouble): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.nexttowardf(x: float32, y: clongdouble): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.nexttowardl(x: clongdouble, y: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
-function C.copysign(x: float64, y: float64): float64 <cimport'copysign',cinclude'<math.h>',nodecl> end
-function C.copysignf(x: float32, y: float32): float32 <cimport'copysignf',cinclude'<math.h>',nodecl> end
-function C.copysignl(x: clongdouble, y: clongdouble): clongdouble <cimport'copysignl',cinclude'<math.h>',nodecl> end
+function C.copysign(x: float64, y: float64): float64 <cimport,cinclude'<math.h>',nodecl> end
+function C.copysignf(x: float32, y: float32): float32 <cimport,cinclude'<math.h>',nodecl> end
+function C.copysignl(x: clongdouble, y: clongdouble): clongdouble <cimport,cinclude'<math.h>',nodecl> end
 
 -- Classification functions (actually C macros)
 
-function C.fpclassify(x: float64): cint <cimport'fpclassify',cinclude'<math.h>',nodecl> end
-function C.fpclassifyf(x: float32): cint <cimport'fpclassify',cinclude'<math.h>',nodecl> end
-function C.fpclassifyl(x: clongdouble): cint <cimport'fpclassify',cinclude'<math.h>',nodecl> end
+function C.fpclassify(x: float64): cint <cimport,cinclude'<math.h>',nodecl> end
+function C.fpclassifyf(x: float32): cint <cimport,cinclude'<math.h>',nodecl> end
+function C.fpclassifyl(x: clongdouble): cint <cimport,cinclude'<math.h>',nodecl> end
 
-function C.isfinite(x: float64): cint <cimport'isfinite',cinclude'<math.h>',nodecl> end
-function C.isfinitef(x: float32): cint <cimport'isfinite',cinclude'<math.h>',nodecl> end
-function C.isfinitel(x: clongdouble): cint <cimport'isfinite',cinclude'<math.h>',nodecl> end
+function C.isfinite(x: float64): cint <cimport,cinclude'<math.h>',nodecl> end
+function C.isfinitef(x: float32): cint <cimport,cinclude'<math.h>',nodecl> end
+function C.isfinitel(x: clongdouble): cint <cimport,cinclude'<math.h>',nodecl> end
 
-function C.isinf(x: float64): cint <cimport'isinf',cinclude'<math.h>',nodecl> end
-function C.isinff(x: float32): cint <cimport'isinf',cinclude'<math.h>',nodecl> end
-function C.isinfl(x: clongdouble): cint <cimport'isinf',cinclude'<math.h>',nodecl> end
+function C.isinf(x: float64): cint <cimport,cinclude'<math.h>',nodecl> end
+function C.isinff(x: float32): cint <cimport,cinclude'<math.h>',nodecl> end
+function C.isinfl(x: clongdouble): cint <cimport,cinclude'<math.h>',nodecl> end
 
-function C.isnan(x: float64): cint <cimport'isnan',cinclude'<math.h>',nodecl> end
-function C.isnanf(x: float32): cint <cimport'isnan',cinclude'<math.h>',nodecl> end
-function C.isnanl(x: clongdouble): cint <cimport'isnan',cinclude'<math.h>',nodecl> end
+function C.isnan(x: float64): cint <cimport,cinclude'<math.h>',nodecl> end
+function C.isnanf(x: float32): cint <cimport,cinclude'<math.h>',nodecl> end
+function C.isnanl(x: clongdouble): cint <cimport,cinclude'<math.h>',nodecl> end
 
-function C.isnormal(x: float64): cint <cimport'isnormal',cinclude'<math.h>',nodecl> end
-function C.isnormalf(x: float32): cint <cimport'isnormal',cinclude'<math.h>',nodecl> end
-function C.isnormall(x: clongdouble): cint <cimport'isnormal',cinclude'<math.h>',nodecl> end
+function C.isnormal(x: float64): cint <cimport,cinclude'<math.h>',nodecl> end
+function C.isnormalf(x: float32): cint <cimport,cinclude'<math.h>',nodecl> end
+function C.isnormall(x: clongdouble): cint <cimport,cinclude'<math.h>',nodecl> end
 
-function C.signbit(x: float64): cint <cimport'signbit',cinclude'<math.h>',nodecl> end
-function C.signbitf(x: float32): cint <cimport'signbit',cinclude'<math.h>',nodecl> end
-function C.signbitl(x: clongdouble): cint <cimport'signbit',cinclude'<math.h>',nodecl> end
+function C.signbit(x: float64): cint <cimport,cinclude'<math.h>',nodecl> end
+function C.signbitf(x: float32): cint <cimport,cinclude'<math.h>',nodecl> end
+function C.signbitl(x: clongdouble): cint <cimport,cinclude'<math.h>',nodecl> end
 
 -- Comparison macros (actually C macros)
 
-function C.isgreater(x: float64, y: float64): cint <cimport'isgreater',cinclude'<math.h>',nodecl> end
-function C.isgreaterf(x: float32, y: float32): cint <cimport'isgreater',cinclude'<math.h>',nodecl> end
-function C.isgreaterl(x: clongdouble, y: clongdouble): cint <cimport'isgreater',cinclude'<math.h>',nodecl> end
+function C.isgreater(x: float64, y: float64): cint <cimport,cinclude'<math.h>',nodecl> end
+function C.isgreaterf(x: float32, y: float32): cint <cimport,cinclude'<math.h>',nodecl> end
+function C.isgreaterl(x: clongdouble, y: clongdouble): cint <cimport,cinclude'<math.h>',nodecl> end
 
-function C.isgreaterequal(x: float64, y: float64): cint <cimport'isgreaterequal',cinclude'<math.h>',nodecl> end
-function C.isgreaterequalf(x: float32, y: float32): cint <cimport'isgreaterequal',cinclude'<math.h>',nodecl> end
-function C.isgreaterequall(x: clongdouble, y: clongdouble): cint <cimport'isgreaterequal',cinclude'<math.h>',nodecl> end
+function C.isgreaterequal(x: float64, y: float64): cint <cimport,cinclude'<math.h>',nodecl> end
+function C.isgreaterequalf(x: float32, y: float32): cint <cimport,cinclude'<math.h>',nodecl> end
+function C.isgreaterequall(x: clongdouble, y: clongdouble): cint <cimport,cinclude'<math.h>',nodecl> end
 
-function C.isless(x: float64, y: float64): cint <cimport'isless',cinclude'<math.h>',nodecl> end
-function C.islessf(x: float32, y: float32): cint <cimport'isless',cinclude'<math.h>',nodecl> end
-function C.islessl(x: clongdouble, y: clongdouble): cint <cimport'isless',cinclude'<math.h>',nodecl> end
+function C.isless(x: float64, y: float64): cint <cimport,cinclude'<math.h>',nodecl> end
+function C.islessf(x: float32, y: float32): cint <cimport,cinclude'<math.h>',nodecl> end
+function C.islessl(x: clongdouble, y: clongdouble): cint <cimport,cinclude'<math.h>',nodecl> end
 
-function C.islessequal(x: float64, y: float64): cint <cimport'islessequal',cinclude'<math.h>',nodecl> end
-function C.islessequalf(x: float32, y: float32): cint <cimport'islessequal',cinclude'<math.h>',nodecl> end
-function C.islessequall(x: clongdouble, y: clongdouble): cint <cimport'islessequal',cinclude'<math.h>',nodecl> end
+function C.islessequal(x: float64, y: float64): cint <cimport,cinclude'<math.h>',nodecl> end
+function C.islessequalf(x: float32, y: float32): cint <cimport,cinclude'<math.h>',nodecl> end
+function C.islessequall(x: clongdouble, y: clongdouble): cint <cimport,cinclude'<math.h>',nodecl> end
 
-function C.islessgreater(x: float64, y: float64): cint <cimport'islessgreater',cinclude'<math.h>',nodecl> end
-function C.islessgreaterf(x: float32, y: float32): cint <cimport'islessgreater',cinclude'<math.h>',nodecl> end
-function C.islessgreaterl(x: clongdouble, y: clongdouble): cint <cimport'islessgreater',cinclude'<math.h>',nodecl> end
+function C.islessgreater(x: float64, y: float64): cint <cimport,cinclude'<math.h>',nodecl> end
+function C.islessgreaterf(x: float32, y: float32): cint <cimport,cinclude'<math.h>',nodecl> end
+function C.islessgreaterl(x: clongdouble, y: clongdouble): cint <cimport,cinclude'<math.h>',nodecl> end
 
-function C.isunordered(x: float64, y: float64): cint <cimport'isunordered',cinclude'<math.h>',nodecl> end
-function C.isunorderedf(x: float32, y: float32): cint <cimport'isunordered',cinclude'<math.h>',nodecl> end
-function C.isunorderedl(x: clongdouble, y: clongdouble): cint <cimport'isunordered',cinclude'<math.h>',nodecl> end
+function C.isunordered(x: float64, y: float64): cint <cimport,cinclude'<math.h>',nodecl> end
+function C.isunorderedf(x: float32, y: float32): cint <cimport,cinclude'<math.h>',nodecl> end
+function C.isunorderedl(x: clongdouble, y: clongdouble): cint <cimport,cinclude'<math.h>',nodecl> end
 
 -- Constants
 
-global C.HUGE_VALF: float32 <const,cimport'HUGE_VALF',cinclude'<math.h>',nodecl>
-global C.HUGE_VAL: float64 <const,cimport'HUGE_VAL',cinclude'<math.h>',nodecl>
-global C.HUGE_VALL: clongdouble <const,cimport'HUGE_VALL',cinclude'<math.h>',nodecl>
+global C.HUGE_VALF: float32 <const,cimport,cinclude'<math.h>',nodecl>
+global C.HUGE_VAL: float64 <const,cimport,cinclude'<math.h>',nodecl>
+global C.HUGE_VALL: clongdouble <const,cimport,cinclude'<math.h>',nodecl>
 
-global C.INFINITY: cfloat <const,cimport'INFINITY',cinclude'<math.h>',nodecl>
-global C.NAN: cfloat <const,cimport'NAN',cinclude'<math.h>',nodecl>
+global C.INFINITY: cfloat <const,cimport,cinclude'<math.h>',nodecl>
+global C.NAN: cfloat <const,cimport,cinclude'<math.h>',nodecl>
 
-global C.FP_FAST_FMAF: float32 <const,cimport'FP_FAST_FMAF',cinclude'<math.h>',nodecl>
-global C.FP_FAST_FMA: float64 <const,cimport'FP_FAST_FMA',cinclude'<math.h>',nodecl>
-global C.FP_FAST_FMAL: clongdouble <const,cimport'FP_FAST_FMAL',cinclude'<math.h>',nodecl>
+global C.FP_FAST_FMAF: float32 <const,cimport,cinclude'<math.h>',nodecl>
+global C.FP_FAST_FMA: float64 <const,cimport,cinclude'<math.h>',nodecl>
+global C.FP_FAST_FMAL: clongdouble <const,cimport,cinclude'<math.h>',nodecl>
 
-global C.FP_ILOGB0: cint <const,cimport'FP_ILOGB0',cinclude'<math.h>',nodecl>
-global C.FP_ILOGBNAN: cint <const,cimport'FP_ILOGBNAN',cinclude'<math.h>',nodecl>
+global C.FP_ILOGB0: cint <const,cimport,cinclude'<math.h>',nodecl>
+global C.FP_ILOGBNAN: cint <const,cimport,cinclude'<math.h>',nodecl>
 
-global C.math_errhandling: cint <const,cimport'math_errhandling',cinclude'<math.h>',nodecl>
-global C.MATH_ERRNO: cint <const,cimport'MATH_ERRNO',cinclude'<math.h>',nodecl>
-global C.MATH_ERREXCEPT: cint <const,cimport'MATH_ERREXCEPT',cinclude'<math.h>',nodecl>
+global C.math_errhandling: cint <const,cimport,cinclude'<math.h>',nodecl>
+global C.MATH_ERRNO: cint <const,cimport,cinclude'<math.h>',nodecl>
+global C.MATH_ERREXCEPT: cint <const,cimport,cinclude'<math.h>',nodecl>
 
-global C.FP_NORMAL: cint <const,cimport'FP_NORMAL',cinclude'<math.h>',nodecl>
-global C.FP_SUBNORMAL: cint <const,cimport'FP_SUBNORMAL',cinclude'<math.h>',nodecl>
-global C.FP_ZERO: cint <const,cimport'FP_ZERO',cinclude'<math.h>',nodecl>
-global C.FP_INFINITE: cint <const,cimport'FP_INFINITE',cinclude'<math.h>',nodecl>
-global C.FP_NAN: cint <const,cimport'FP_NAN',cinclude'<math.h>',nodecl>
+global C.FP_NORMAL: cint <const,cimport,cinclude'<math.h>',nodecl>
+global C.FP_SUBNORMAL: cint <const,cimport,cinclude'<math.h>',nodecl>
+global C.FP_ZERO: cint <const,cimport,cinclude'<math.h>',nodecl>
+global C.FP_INFINITE: cint <const,cimport,cinclude'<math.h>',nodecl>
+global C.FP_NAN: cint <const,cimport,cinclude'<math.h>',nodecl>

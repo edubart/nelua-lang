@@ -8,7 +8,7 @@ The hash map share similarities with Lua tables but should not be used like them
 the main differences are:
  * There is no array part.
  * The length operator returns number of elements in the map.
- * Indexing automatically inserts a key-value pair, to avoid this use `peek()` or `has()` methods.
+ * Indexing automatically inserts a key-value pair, to avoid this use `peek()` method.
  * Values cannot be `nil` or set to `nil`.
  * Can only use `pairs()` to iterate.
 
@@ -162,9 +162,11 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
 
   --[[
   Sets the number of buckets to at least `bucket_count` and rehashes the container when needed.
-  The number of new buckets will always be least
+  The number of new buckets will always be at least
   the smallest appropriate value to not exceed the maximum load factor,
   thus rehashing with 0 `bucket_count` can be used to shrink the hash map.
+
+  Rehash invalidates all references to element values previously returned.
 
   *Complexity*: Average case O(n).
   ]]
@@ -269,8 +271,9 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   end
 
   --[[
-  Returns a reference to the value that is mapped to a key,
-  performing an insertion if such key does not exist.
+  Returns a reference to the value that is mapped to a key.
+  If such key does not exist, then it's inserted and a rehash may happen.
+  The reference will remain valid until next rehash (when growing).
   This allows indexing the hash map with square brackets `[]`.
 
   *Complexity*: Average case O(1).
@@ -282,6 +285,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   --[[
   Returns a reference to the value that is mapped to a key.
   If no such element exists, returns `nilptr`.
+  The reference will remain valid until next rehash (when growing).
 
   *Complexity*: Average case O(1).
   ]]
@@ -297,6 +301,9 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   Removes an element with a key from the container (if it exists).
   Returns the removed value that was was actually removed.
   If the key does not exist, then returns a zeroed value.
+
+  It's safe to remove an element while iterating.
+  References to element values previously returned will remain valid.
 
   *Complexity*: Average case O(1).
   ]]
@@ -351,7 +358,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   --[[
   Advances the container iterator returning its key and value.
 
-  *Remarks*: The input key is actually ignored.
+  *Remarks*: The input `key` is actually ignored.
   ]]
   function hashmap_iteratorT:next(key: K): (boolean, K, V) <inline>
     if unlikely(self.index == INVALID_INDEX) then
@@ -372,7 +379,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   --[[
   Advances the container iterator returning its key and value by reference.
 
-  *Remarks*: The input key is actually ignored.
+  *Remarks*: The input `key` is actually ignored.
   ]]
   function hashmap_iteratorT:mnext(key: K): (boolean, K, *V) <inline>
     if unlikely(self.index == INVALID_INDEX) then

@@ -7,18 +7,18 @@ see [C signal documentation](https://www.cplusplus.com/reference/csignal/).
 
 require 'C'
 
-function C.signal(sig: cint, handler: function(cint)): function(cint): void <cimport'signal',cinclude'<signal.h>',nodecl> end
-function C.raise(sig: cint): cint <cimport'raise',cinclude'<signal.h>',nodecl> end
+function C.signal(sig: cint, handler: function(cint)): function(cint): void <cimport,cinclude'<signal.h>',nodecl> end
+function C.raise(sig: cint): cint <cimport,cinclude'<signal.h>',nodecl> end
 
 -- Constants
 
-global C.SIG_DFL: function(cint): void <const,cimport'SIG_DFL',cinclude'<signal.h>',nodecl>
-global C.SIG_IGN: function(cint): void <const,cimport'SIG_IGN',cinclude'<signal.h>',nodecl>
-global C.SIG_ERR: function(cint): void <const,cimport'SIG_ERR',cinclude'<signal.h>',nodecl>
+global C.SIG_DFL: function(cint): void <const,cimport,cinclude'<signal.h>',nodecl>
+global C.SIG_IGN: function(cint): void <const,cimport,cinclude'<signal.h>',nodecl>
+global C.SIG_ERR: function(cint): void <const,cimport,cinclude'<signal.h>',nodecl>
 
-global C.SIGTERM: cint <const,cimport'SIGTERM',cinclude'<signal.h>',nodecl>
-global C.SIGSEGV: cint <const,cimport'SIGSEGV',cinclude'<signal.h>',nodecl>
-global C.SIGINT: cint <const,cimport'SIGINT',cinclude'<signal.h>',nodecl>
-global C.SIGILL: cint <const,cimport'SIGILL',cinclude'<signal.h>',nodecl>
-global C.SIGABRT: cint <const,cimport'SIGABRT',cinclude'<signal.h>',nodecl>
-global C.SIGFPE: cint <const,cimport'SIGFPE',cinclude'<signal.h>',nodecl>
+global C.SIGTERM: cint <const,cimport,cinclude'<signal.h>',nodecl>
+global C.SIGSEGV: cint <const,cimport,cinclude'<signal.h>',nodecl>
+global C.SIGINT: cint <const,cimport,cinclude'<signal.h>',nodecl>
+global C.SIGILL: cint <const,cimport,cinclude'<signal.h>',nodecl>
+global C.SIGABRT: cint <const,cimport,cinclude'<signal.h>',nodecl>
+global C.SIGFPE: cint <const,cimport,cinclude'<signal.h>',nodecl>

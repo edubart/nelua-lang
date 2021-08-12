@@ -3274,15 +3274,15 @@ see [C time documentation](https://www.cplusplus.com/reference/ctime/).
 ### C.clock_t
 
 ```nelua
-global C.clock_t: type
+global C.clock_t: type = @cclock_t
 ```
 
-
+Types
 
 ### C.time_t
 
 ```nelua
-global C.time_t: type
+global C.time_t: type = @ctime_t
 ```
 
 
@@ -3736,6 +3736,22 @@ global C.mtx_recursive: cint
 
 ```nelua
 global C.mtx_timed: cint
+```
+
+
+
+### C.ONCE_FLAG_INIT
+
+```nelua
+global C.ONCE_FLAG_INIT: C.once_flag
+```
+
+
+
+### C.TSS_DTOR_ITERATIONS
+
+```nelua
+global C.TSS_DTOR_ITERATIONS: cint
 ```
 
 

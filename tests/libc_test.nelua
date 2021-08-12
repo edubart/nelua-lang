@@ -5,9 +5,11 @@ require 'C.locale'
 require 'C.math'
 require 'C.signal'
 require 'C.stdarg'
+-- require 'C.stdatomic'
 require 'C.stdio'
 require 'C.stdlib'
 require 'C.string'
+-- require 'C.threads'
 require 'C.time'
 
 do -- math

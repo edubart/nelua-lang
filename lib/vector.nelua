@@ -141,8 +141,8 @@ require 'iterators'
 
   --[[
   Inserts element `v` at position `pos` in the vector.
-  Elements with index greater or equal than `pos` are shifted up.
-  The index `pos` must be valid (in the vector bounds).
+  Elements with position greater or equal than `pos` are shifted up.
+  The position `pos` must be valid (within vector bounds).
   ]]
   function vectorT:insert(pos: usize, v: T): void
     check(pos <= self.size, 'position out of bounds')
@@ -158,8 +158,8 @@ require 'iterators'
 
   --[[
   Removes element at position `pos` in the vector and returns its value.
-  Elements with index greater than `pos` are shifted down.
-  The index `pos` must be valid (in the vector bounds).
+  Elements with position greater than `pos` are shifted down.
+  The position `pos` must be valid (within vector bounds).
   ]]
   function vectorT:remove(pos: usize): T
     check(pos < self.size, 'position out of bounds')
@@ -207,13 +207,14 @@ require 'iterators'
   end
 
   --[[
-  Returns reference to element at index `pos`.
-  The index must be valid.
+  Returns reference to element at position `pos`.
+  Position `pos` must be valid (within vector bounds).
+  The reference will remain valid until the vector grows.
   Used when indexing elements with square brackets (`[]`).
   ]]
-  function vectorT:__atindex(i: usize): *T <inline,nosideeffect>
-    check(i < self.size, 'position out of bounds')
-    return &self.data[i]
+  function vectorT:__atindex(pos: usize): *T <inline,nosideeffect>
+    check(pos < self.size, 'position out of bounds')
+    return &self.data[pos]
   end
 
   --[[

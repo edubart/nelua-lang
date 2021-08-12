@@ -9,10 +9,10 @@ require 'C'
 
 -- Global variables
 
-global C.errno: cint <cimport'errno',cinclude'<errno.h>',nodecl>
+global C.errno: cint <cimport,cinclude'<errno.h>',nodecl>
 
 -- Constants
 
-global C.EDOM: cint <const,cimport'EDOM',cinclude'<errno.h>',nodecl>
-global C.EILSEQ: cint <const,cimport'EILSEQ',cinclude'<errno.h>',nodecl>
-global C.ERANGE: cint <const,cimport'ERANGE',cinclude'<errno.h>',nodecl>
+global C.EDOM: cint <const,cimport,cinclude'<errno.h>',nodecl>
+global C.EILSEQ: cint <const,cimport,cinclude'<errno.h>',nodecl>
+global C.ERANGE: cint <const,cimport,cinclude'<errno.h>',nodecl>

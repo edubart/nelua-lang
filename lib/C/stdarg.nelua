@@ -7,8 +7,8 @@ see [C stdarg documentation](https://www.cplusplus.com/reference/cstdarg/).
 
 require 'C'
 
-function C.va_start(ap: cvalist, paramN: auto): void <cimport'va_start',cinclude'<stdarg.h>',nodecl> end
-function C.va_end(ap: cvalist): void <cimport'va_end',cinclude'<stdarg.h>',nodecl> end
+function C.va_start(ap: cvalist, paramN: auto): void <cimport,cinclude'<stdarg.h>',nodecl> end
+function C.va_end(ap: cvalist): void <cimport,cinclude'<stdarg.h>',nodecl> end
 function C.va_arg(ap: *cvalist, T: type): auto <inline,cinclude'<stdarg.h>'>
   local va: T <noinit>
   ## cemit(function(emitter) emitter:add_indent_ln(va, ' = va_arg(*', ap, ', ', T.value, ');') end)

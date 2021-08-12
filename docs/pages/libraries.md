@@ -2733,8 +2733,8 @@ function vectorT:insert(pos: usize, v: T): void
 ```
 
 Inserts element `v` at position `pos` in the vector.
-Elements with index greater or equal than `pos` are shifted up.
-The index `pos` must be valid (in the vector bounds).
+Elements with position greater or equal than `pos` are shifted up.
+The position `pos` must be valid (within vector bounds).
 
 ### vectorT:remove
 
@@ -2743,8 +2743,8 @@ function vectorT:remove(pos: usize): T
 ```
 
 Removes element at position `pos` in the vector and returns its value.
-Elements with index greater than `pos` are shifted down.
-The index `pos` must be valid (in the vector bounds).
+Elements with position greater than `pos` are shifted down.
+The position `pos` must be valid (within vector bounds).
 
 ### vectorT:removevalue
 
@@ -2776,11 +2776,12 @@ Returns the number of elements the vector can store before triggering a realloca
 ### vectorT:__atindex
 
 ```nelua
-function vectorT:__atindex(i: usize): *T
+function vectorT:__atindex(pos: usize): *T
 ```
 
-Returns reference to element at index `pos`.
-The index must be valid.
+Returns reference to element at position `pos`.
+Position `pos` must be valid (within vector bounds).
+The reference will remain valid until the vector grows.
 Used when indexing elements with square brackets (`[]`).
 
 ### vectorT:__len
@@ -2819,7 +2820,7 @@ in case absent then `DefaultAllocator` is used.
 The sequence library provides a dynamic sized array of values,
 like vector, but with the following semantics:
 
-* Its elements starts at index 1 and go up to its length (like lua tables).
+* Its elements starts at position 1 and go up to its length (like lua tables).
 * Internally it just contains a pointer,
 thus the list itself is passed by reference by default (like lua tables again).
 * Indexing the next elements after the end makes the sequence grow automatically.
@@ -2932,8 +2933,8 @@ function sequenceT:insert(pos: usize, v: T): void
 ```
 
 Inserts element `v` at position `pos` in the sequence.
-Elements with index greater or equal than `pos` are shifted up.
-The `pos` must be valid (in the sequence bounds).
+Elements with position greater or equal than `pos` are shifted up.
+The `pos` must be valid (within sequence bounds).
 
 ### sequenceT:remove
 
@@ -2942,8 +2943,8 @@ function sequenceT:remove(pos: usize): T
 ```
 
 Removes element at position `pos` in the sequence and returns its value.
-Elements with index greater than `pos` are shifted down.
-The `pos` must be valid (in the sequence bounds).
+Elements with position greater than `pos` are shifted down.
+The `pos` must be valid (within sequence bounds).
 
 ### sequenceT:removevalue
 
@@ -2975,12 +2976,13 @@ Returns the number of elements the sequence can store before triggering a reallo
 ### sequenceT:__atindex
 
 ```nelua
-function sequenceT:__atindex(i: usize): *T
+function sequenceT:__atindex(pos: usize): *T
 ```
 
-Returns reference to element at index `i`.
-If `i` is the sequence size plus 1, then a zeroed element is added and return its reference.
-Argument `i` must be at most the sequence size plus 1.
+Returns reference to element at position `pos`.
+If `pos` is the sequence size plus 1, then a zeroed element is added and return its reference.
+Argument `pos` must be at most the sequence size plus 1.
+The reference will remain valid until the sequence grows.
 Used when indexing elements with square brackets (`[]`).
 
 ### sequenceT:__len
@@ -2990,7 +2992,7 @@ function sequenceT:__len(): isize
 ```
 
 Returns the number of elements in the sequence.
-It never counts the element at 0.
+It never counts the element at position `0`.
 Used by the length operator (`#`).
 
 ### sequenceT.__convert
@@ -3246,7 +3248,7 @@ The hash map share similarities with Lua tables but should not be used like them
 the main differences are:
  * There is no array part.
  * The length operator returns number of elements in the map.
- * Indexing automatically inserts a key-value pair, to avoid this use `peek()` or `has()` methods.
+ * Indexing automatically inserts a key-value pair, to avoid this use `peek()` method.
  * Values cannot be `nil` or set to `nil`.
  * Can only use `pairs()` to iterate.
 
@@ -3332,9 +3334,11 @@ function hashmapT:rehash(bucket_count: usize): void
 ```
 
 Sets the number of buckets to at least `bucket_count` and rehashes the container when needed.
-The number of new buckets will always be least
+The number of new buckets will always be at least
 the smallest appropriate value to not exceed the maximum load factor,
 thus rehashing with 0 `bucket_count` can be used to shrink the hash map.
+
+Rehash invalidates all references to element values previously returned.
 
 *Complexity*: Average case O(n).
 
@@ -3363,8 +3367,9 @@ Used internally to find or make a value at a key returning it's node index.
 function hashmapT:__atindex(key: K): *V
 ```
 
-Returns a reference to the value that is mapped to a key,
-performing an insertion if such key does not exist.
+Returns a reference to the value that is mapped to a key.
+If such key does not exist, then it's inserted and a rehash may happen.
+The reference will remain valid until next rehash (when growing).
 This allows indexing the hash map with square brackets `[]`.
 
 *Complexity*: Average case O(1).
@@ -3377,6 +3382,7 @@ function hashmapT:peek(key: K): *V
 
 Returns a reference to the value that is mapped to a key.
 If no such element exists, returns `nilptr`.
+The reference will remain valid until next rehash (when growing).
 
 *Complexity*: Average case O(1).
 
@@ -3389,6 +3395,9 @@ function hashmapT:remove(key: K): V
 Removes an element with a key from the container (if it exists).
 Returns the removed value that was was actually removed.
 If the key does not exist, then returns a zeroed value.
+
+It's safe to remove an element while iterating.
+References to element values previously returned will remain valid.
 
 *Complexity*: Average case O(1).
 

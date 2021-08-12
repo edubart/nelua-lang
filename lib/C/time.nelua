@@ -11,7 +11,7 @@ require 'C'
 global C.clock_t: type = @cclock_t
 global C.time_t: type = @ctime_t
 
-global C.tm: type <cimport'tm',cinclude'<time.h>',nodecl,ctypedef> = @record{
+global C.tm: type <cimport,cinclude'<time.h>',nodecl,ctypedef> = @record{
   tm_sec: cint,
   tm_min: cint,
   tm_hour: cint,
@@ -22,28 +22,28 @@ global C.tm: type <cimport'tm',cinclude'<time.h>',nodecl,ctypedef> = @record{
   tm_yday: cint,
   tm_isdst: cint
 }
-global C.timespec: type <cimport'timespec',cinclude'<time.h>',nodecl,ctypedef> = @record{
+global C.timespec: type <cimport,cinclude'<time.h>',nodecl,ctypedef> = @record{
   tv_sec: C.time_t,
   tv_nsec: clong
 }
 
 -- Time manipulation
 
-function C.clock(): C.clock_t <cimport'clock',cinclude'<time.h>',nodecl> end
-function C.difftime(time1: C.time_t, time0: C.time_t): float64 <cimport'difftime',cinclude'<time.h>',nodecl> end
-function C.mktime(tp: *C.tm): C.time_t <cimport'mktime',cinclude'<time.h>',nodecl> end
-function C.strftime(s: cstring, maxsize: csize, format: cstring, tp: *C.tm): csize <cimport'strftime',cinclude'<time.h>',nodecl> end
-function C.time(timer: *C.time_t): C.time_t <cimport'time',cinclude'<time.h>',nodecl> end
+function C.clock(): C.clock_t <cimport,cinclude'<time.h>',nodecl> end
+function C.difftime(time1: C.time_t, time0: C.time_t): float64 <cimport,cinclude'<time.h>',nodecl> end
+function C.mktime(tp: *C.tm): C.time_t <cimport,cinclude'<time.h>',nodecl> end
+function C.strftime(s: cstring, maxsize: csize, format: cstring, tp: *C.tm): csize <cimport,cinclude'<time.h>',nodecl> end
+function C.time(timer: *C.time_t): C.time_t <cimport,cinclude'<time.h>',nodecl> end
 
 -- Conversion
 
-function C.asctime(tp: *C.tm): cstring <cimport'asctime',cinclude'<time.h>',nodecl> end
-function C.ctime(timer: *C.time_t): cstring <cimport'ctime',cinclude'<time.h>',nodecl> end
-function C.gmtime(timer: *C.time_t): *C.tm <cimport'gmtime',cinclude'<time.h>',nodecl> end
-function C.localtime(timer: *C.time_t): *C.tm <cimport'localtime',cinclude'<time.h>',nodecl> end
-function C.timespec_get(ts: *C.timespec, base: cint): cint <cimport'timespec_get',cinclude'<time.h>',nodecl> end
+function C.asctime(tp: *C.tm): cstring <cimport,cinclude'<time.h>',nodecl> end
+function C.ctime(timer: *C.time_t): cstring <cimport,cinclude'<time.h>',nodecl> end
+function C.gmtime(timer: *C.time_t): *C.tm <cimport,cinclude'<time.h>',nodecl> end
+function C.localtime(timer: *C.time_t): *C.tm <cimport,cinclude'<time.h>',nodecl> end
+function C.timespec_get(ts: *C.timespec, base: cint): cint <cimport,cinclude'<time.h>',nodecl> end
 
 -- Constants
 
-global C.CLOCKS_PER_SEC: C.clock_t <const,cimport'CLOCKS_PER_SEC',cinclude'<time.h>',nodecl>
-global C.TIME_UTC: cint <const,cimport'TIME_UTC',cinclude'<time.h>',nodecl>
+global C.CLOCKS_PER_SEC: C.clock_t <const,cimport,cinclude'<time.h>',nodecl>
+global C.TIME_UTC: cint <const,cimport,cinclude'<time.h>',nodecl>
