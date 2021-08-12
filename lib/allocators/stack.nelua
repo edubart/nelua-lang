@@ -30,7 +30,7 @@ local StackAllocHeader: type = @record{
   curr_offset: uint32
 }
 
-## local make_StackAllocatorT = generalize(function(SIZE, ALIGN)
+## local function make_StackAllocatorT(SIZE, ALIGN)
   ##[[
   ALIGN = ALIGN or 8
   static_assert(ALIGN >= 4, 'align must be at least 4')
@@ -140,7 +140,7 @@ local StackAllocHeader: type = @record{
   ## implement_allocator_interface(StackAllocatorT)
 
   ## return StackAllocatorT
-## end)
+## end
 
 --[[
 Generic used to instantiate a stack allocator type in the form of `StackAllocator(SIZE, ALIGN)`.
@@ -149,4 +149,4 @@ Argument `SIZE` is the fixed stack buffer size in bytes, must be multiple of `AL
 Argument `ALIGN` is the default alignment for new allocations,
 must be at least 4 and in power of two, in case absent then `8` is used.
 ]]
-global StackAllocator: type = #[make_StackAllocatorT]#
+global StackAllocator: type = #[generalize(make_StackAllocatorT)]#

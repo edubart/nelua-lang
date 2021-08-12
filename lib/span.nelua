@@ -13,7 +13,7 @@ Spans are also known as "fat pointer" or "slice" in some other languages.
 
 require 'iterators'
 
-## local make_spanT = generalize(function(T)
+## local function make_spanT(T)
   ##[[
   static_assert(traits.is_type(T), "invalid type '%s", T)
   static_assert(not T.is_comptime, "spans cannot be of type '%s'", T)
@@ -100,11 +100,11 @@ require 'iterators'
   end
 
   ## return spanT
-## end)
+## end
 
 --[[
 Generic used to instantiate a span type in the form of `span(T)`.
 
 Argument `T` is the value type that the span will store.
 ]]
-global span: type = #[make_spanT]#
+global span: type = #[generalize(make_spanT)]#

@@ -57,7 +57,7 @@ local INIT_CAPACITY: usize <comptime> = 16
 -- Constant used to test invalid index.
 local INVALID_INDEX: usize <comptime> = (@usize)(-1)
 
-## local make_hashmapT = generalize(function(K, V, HashFunc, Allocator)
+## local function make_hashmapT(K, V, HashFunc, Allocator)
   ## static_assert(traits.is_type(K), "invalid type '%s'", K)
   ## static_assert(traits.is_type(V), "invalid type '%s'", V)
   ## if not Allocator then
@@ -408,7 +408,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   end
 
   ## return hashmapT
-## end)
+## end
 
 --[[
 Generic used to instantiate a hash map type in the form of `hashmap(K, V, HashFunc, Allocator)`.
@@ -420,4 +420,4 @@ in case absent then `hash.hash` is used.
 Argument `Allocator` is an allocator type for the container storage,
 in case absent then then `DefaultAllocator` is used.
 ]]
-global hashmap: type = #[make_hashmapT]#
+global hashmap: type = #[generalize(make_hashmapT)]#

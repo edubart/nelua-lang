@@ -10,7 +10,7 @@ use a vector or sequence in that case.
 require 'memory'
 require 'iterators'
 
-## local make_listT = generalize(function(T, Allocator)
+## local function make_listT(T, Allocator)
   ## static_assert(traits.is_type(T), "invalid type '%s'", T)
   ## if not Allocator then
   require 'allocators.default'
@@ -320,7 +320,7 @@ require 'iterators'
   end
 
   ## return listT
-## end)
+## end
 
 --[[
 Generic used to instantiate a list type in the form of `list(T, Allocator)`.
@@ -329,4 +329,4 @@ Argument `T` is the value type that the list will store.
 Argument `Allocator` is an allocator type for the container storage,
 in case absent then then `DefaultAllocator` is used.
 ]]
-global list: type = #[make_listT]#
+global list: type = #[generalize(make_listT)]#

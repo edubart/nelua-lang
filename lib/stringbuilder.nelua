@@ -53,7 +53,7 @@ local function addlenmod(form: *[MAX_FORMAT]byte, lenmod: cstring, lenmodsize: c
   form[l + lenmodsize] = 0
 end
 
-## local make_stringbuilderT = generalize(function(Allocator)
+## local function make_stringbuilderT(Allocator)
   ## if not Allocator then
   require 'allocators.default'
   ## Allocator = DefaultAllocator
@@ -403,7 +403,7 @@ end
   end
 
   ## return stringbuilderT
-## end)
+## end
 
 --[[
 The default string builder using `DefaultAllocator`.
@@ -414,7 +414,7 @@ where `Allocator` is an allocator type for the string builder buffer.
 global stringbuilder: type = #[make_stringbuilderT()]#
 
 -- This allows instantiating `stringbuilder` as generic too.
-## stringbuilder.value.generic = types.GenericType(make_stringbuilderT)
+## stringbuilder.value.generic = types.GenericType(generalize(make_stringbuilderT))
 
 -- Some string methods are used in polymorphic functions, like `tostring`.
 require 'string'

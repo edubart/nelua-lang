@@ -36,7 +36,7 @@ end
 
 local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,cinclude'<string.h>'> end
 
-## local make_ArenaT = generalize(function(SIZE, ALIGN)
+## local function make_ArenaT(SIZE, ALIGN)
   ## ALIGN = ALIGN or 8
   ## static_assert(SIZE % ALIGN == 0, 'size must be multiple of align')
   ## static_assert(ALIGN & (ALIGN-1) == 0, 'align must be a power of two')
@@ -142,7 +142,7 @@ local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,c
   ## implement_allocator_interface(ArenaAllocatorT)
 
   ## return ArenaAllocatorT
-## end)
+## end
 
 --[[
 Generic used to instantiate a arena allocator type in the form of `ArenaAllocator(SIZE, ALIGN)`.
@@ -151,4 +151,4 @@ Argument `SIZE` is the arena fixed buffer size in bytes, must be multiple of `AL
 Argument `ALIGN` is the default alignment for new allocations,
 must be at least 4 and in power of two, in case absent then `8` is used.
 ]]
-global ArenaAllocator: type = #[make_ArenaT]#
+global ArenaAllocator: type = #[generalize(make_ArenaT)]#

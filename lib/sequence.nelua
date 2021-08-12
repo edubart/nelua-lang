@@ -15,7 +15,7 @@ can hold only sequences of a fixed value type.
 require 'memory'
 require 'iterators'
 
-## local make_sequenceT = generalize(function(T, Allocator)
+## local function make_sequenceT(T, Allocator)
   ## static_assert(traits.is_type(T), "invalid type '%s'", T)
   ## if not Allocator then
   require 'allocators.default'
@@ -286,7 +286,7 @@ require 'iterators'
   end
 
   ## return sequenceT
-## end)
+## end
 
 --[[
 Generic used to instantiate a sequence type in the form of `sequence(T, Allocator)`.
@@ -295,4 +295,4 @@ Argument `T` is the value type that the sequence will store.
 Argument `Allocator` is an allocator type for the container storage,
 in case absent then `DefaultAllocator` is used.
 ]]
-global sequence: type = #[make_sequenceT]#
+global sequence: type = #[generalize(make_sequenceT)]#

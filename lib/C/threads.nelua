@@ -8,6 +8,9 @@ see [C11 threads documentation](https://en.cppreference.com/w/c/thread).
 require 'C.time'
 
 ##[[
+if not pragmas.nogc then
+  static_error "multithreading and GC is not supported, please enable pragma 'nogc'"
+end
 if not (ccinfo.is_apple or ccinfo.is_windows) and
        (ccinfo.is_c11 or ccinfo.is_cpp11) and
        not ccinfo.stdc_no_threads then -- C11 threads is supported

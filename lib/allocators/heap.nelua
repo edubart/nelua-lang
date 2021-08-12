@@ -417,7 +417,7 @@ function Heap:realloc(p: pointer, size: usize): pointer
   return p
 end
 
-## local make_HeapAllocatorT = generalize(function(SIZE)
+## local function make_HeapAllocatorT(SIZE)
   ## static_assert(traits.is_number(SIZE), 'size must be a number')
 
   local SIZE: usize <comptime> = #[SIZE]#
@@ -483,11 +483,11 @@ end
   ## implement_allocator_interface(HeapAllocatorT)
 
   ## return HeapAllocatorT
-## end)
+## end
 
 --[[
 Generic used to instantiate a heap allocator type in the form of `HeapAllocator(SIZE)`.
 
 Argument `SIZE` is the size of the heap in bytes.
 ]]
-global HeapAllocator: type = #[make_HeapAllocatorT]#
+global HeapAllocator: type = #[generalize(make_HeapAllocatorT)]#

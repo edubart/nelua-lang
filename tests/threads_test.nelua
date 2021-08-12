@@ -1,3 +1,5 @@
+## pragmas.nogc = true
+
 require 'C.stdatomic'
 require 'C.threads'
 

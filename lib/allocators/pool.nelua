@@ -15,7 +15,7 @@ The implementation is based on
 
 require 'allocators.allocator'
 
-## local make_PoolAllocatorT = generalize(function(T, SIZE)
+## local function make_PoolAllocatorT(T, SIZE)
   ##[[
   static_assert(traits.is_type(T), 'T must be a type')
   static_assert(traits.is_number(SIZE), 'size must be a number')
@@ -128,7 +128,7 @@ require 'allocators.allocator'
   ## implement_allocator_interface(PoolAllocatorT)
 
   ## return PoolAllocatorT
-## end)
+## end
 
 --[[
 Generic used to instantiate a arena allocator type in the form of `PoolAllocator(T, SIZE)`.
@@ -138,4 +138,4 @@ Argument `SIZE` is the maximum number of elements in the pool.
 
 The pool will effectively have an internal buffer with `#T * SIZE` bytes.
 ]]
-global PoolAllocator: type = #[make_PoolAllocatorT]#
+global PoolAllocator: type = #[generalize(make_PoolAllocatorT)]#
