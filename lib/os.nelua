@@ -23,8 +23,6 @@ local function getenv(name: cstring): cstring <cimport,cinclude'<stdlib.h>',node
 local function exit(status: cint): void <cimport,cinclude'<stdlib.h>',nodecl> end
 local function remove(pathname: cstring): cint <cimport,cinclude'<stdio.h>',nodecl> end
 
-local clock_t <cimport,cinclude'<time.h>',nodecl> = #[types.IntegralType('clock_t', primtypes.clong.size, false, primtypes.clong.align)]#
-local time_t <cimport,cinclude'<time.h>',nodecl> = #[types.IntegralType('time_t', primtypes.clong.size, false, primtypes.clong.align)]#
 local tm: type <cimport'tm',cinclude'<time.h>',nodecl,ctypedef> = @record{
   tm_year: cint,
   tm_mon: cint,
@@ -34,11 +32,11 @@ local tm: type <cimport'tm',cinclude'<time.h>',nodecl,ctypedef> = @record{
   tm_sec: cint,
   tm_isdst: cint
 }
-local CLOCKS_PER_SEC: clock_t <cimport,cinclude'<time.h>',nodecl>
-local function clock(): clock_t <cimport,cinclude'<time.h>',nodecl> end
-local function time(tloc: *time_t): time_t <cimport,cinclude'<time.h>',nodecl> end
-local function mktime(tp: *tm): time_t <cimport,cinclude'<time.h>',nodecl> end
-local function localtime(timer: *time_t): *tm <cimport,cinclude'<time.h>',nodecl> end
+local CLOCKS_PER_SEC: cclock_t <cimport,cinclude'<time.h>',nodecl>
+local function clock(): cclock_t <cimport,cinclude'<time.h>',nodecl> end
+local function time(tloc: *ctime_t): ctime_t <cimport,cinclude'<time.h>',nodecl> end
+local function mktime(tp: *tm): ctime_t <cimport,cinclude'<time.h>',nodecl> end
+local function localtime(timer: *ctime_t): *tm <cimport,cinclude'<time.h>',nodecl> end
 local function strftime(s: cstring, maxsize: csize, format: cstring, tp: *tm): csize <cimport,cinclude'<time.h>',nodecl> end
 
 local errno: cint <cimport,cinclude'<errno.h>',nodecl>
@@ -57,7 +55,7 @@ end
 
 -- Returns a human-readable date and time representation using the current locale.
 function os.date(): string
-  local t: time_t = time(nilptr)
+  local t: ctime_t = time(nilptr)
   local buf: [250]cchar
   --TODO: all the other options from Lua
   local size: csize = strftime(&buf[0], 250, "%c", localtime(&t))
@@ -238,7 +236,7 @@ When called with a record `os.timedesc`, `os.time` also normalizes all the field
 so that they represent the same time as before the call but with values inside their valid ranges.
 ]]
 function os.time(desc: facultative(os.timedesc)): integer
-  local t: time_t
+  local t: ctime_t
   ## if desc.type.is_niltype then
     t = time(nilptr)
     assert(t > 0, 'time result cannot be represented in this installation')

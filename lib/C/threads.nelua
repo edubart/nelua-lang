@@ -165,7 +165,10 @@ static inline void thrd_yield(void) {
 static inline int mtx_init(mtx_t *mtx, int type) {
   int res;
   pthread_mutexattr_t attr;
-  pthread_mutexattr_init(&attr);
+  res = pthread_mutexattr_init(&attr);
+  if(res != 0) {
+    return thrd_err_from(res);
+  }
   if(type & mtx_timed) {
     pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_TIMED_NP);
   }

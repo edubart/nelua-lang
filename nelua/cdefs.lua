@@ -73,6 +73,8 @@ cdefs.primitive_typenames = {
   nlculonglong  = 'unsigned long long',
   nlcsize       = {'size_t', '<stddef.h>'},
   nlclongdouble = 'long double',
+  nlcclock_t    = {'clock_t', '<time.h>'},
+  nlctime_t     = {'time_t', '<time.h>'},
 }
 
 cdefs.builtins_headers = {

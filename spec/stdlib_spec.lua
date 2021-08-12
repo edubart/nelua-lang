@@ -2,6 +2,7 @@ local lester = require 'nelua.thirdparty.lester'
 local describe, it = lester.describe, lester.it
 
 local expect = require 'spec.tools.expect'
+local ccompiler = require 'nelua.ccompiler'
 
 describe("standard library", function()
 
@@ -75,8 +76,12 @@ end)
 it("coroutine", function()
   expect.run_c_from_file('tests/coroutine_test.nelua')
 end)
-it("threads", function()
-  expect.run_c_from_file('tests/threads_test.nelua')
-end)
+
+local ccinfo = ccompiler.get_cc_info()
+if (ccinfo.is_gcc or ccinfo.is_clang) and not ccinfo.is_emscripten then
+  it("threads", function()
+    expect.run_c_from_file('tests/threads_test.nelua')
+  end)
+end
 
 end)

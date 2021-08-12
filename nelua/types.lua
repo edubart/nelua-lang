@@ -204,6 +204,7 @@ Type.shape = shaper.shape {
   is_hashmap = shaper.optional_boolean,
   is_filestream = shaper.optional_boolean,
   is_time_t = shaper.optional_boolean,
+  is_clock_t = shaper.optional_boolean,
 }
 
 -- This is used to check if a table is a 'bn'.

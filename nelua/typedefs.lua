@@ -98,6 +98,8 @@ primtypes.cdouble     = primtypes.float64
 primtypes.cfloat      = primtypes.float32
 primtypes.cvarargs    = types.CVarargsType('cvarargs')
 primtypes.cvalist     = types.CVaList('cvalist')
+primtypes.cclock_t    = types.IntegralType('cclock_t', clongsize, false)
+primtypes.ctime_t     = types.IntegralType('ctime_t', cptrsize, false)
 
 -- The following types are predefined aliases, but can be customized by the user.
 if cptrsize >= 4 then
