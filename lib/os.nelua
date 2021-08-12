@@ -353,7 +353,7 @@ function os.now(): number
 #endif
 ]]
   cemitdecl [[
-/* Determine supported high resolution clock API. */
+/* Determine supported high resolution time API. */
 #if __STDC_VERSION__ >= 201112L && defined(TIME_UTC) && !defined(__ANDROID__)
   #define NELUA_HAVE_C11_TIMESPEC_GET
 #elif defined(_POSIX_TIMERS) && defined(_POSIX_MONOTONIC_CLOCK)

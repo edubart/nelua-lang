@@ -197,8 +197,8 @@ end)
 
 it("nil", function()
   expect.generate_c("local a: niltype", "nlniltype a;")
-  expect.generate_c("local a: niltype = nil", "nlniltype a = NLNIL;")
-  expect.generate_c("local function f(a: niltype) end f(nil)", "f(NLNIL);")
+  expect.generate_c("local a: niltype = nil", "nlniltype a = NELUA_NIL;")
+  expect.generate_c("local function f(a: niltype) end f(nil)", "f(NELUA_NIL);")
   expect.generate_c("local function f() <nosideeffect> return nil end assert(f() == f())",
     "(f(), f(), true)")
   expect.generate_c("local function f() <nosideeffect> return nil end assert(f() ~= f())",
@@ -508,12 +508,12 @@ it("operation on comptime variables", function()
     local huge2f: float32 = #[-math.huge]#
     local nanf: float32 = #[0.0/0.0]#
   ]], {
-    "huge1 = NLINF",
-    "huge2 = -NLINF",
-    "nan = NLNAN",
-    "huge1f = NLINFF",
-    "huge2f = -NLINFF",
-    "nanf = NLNANF",
+    "huge1 = NELUA_INF",
+    "huge2 = -NELUA_INF",
+    "nan = NELUA_NAN",
+    "huge1f = NELUA_INFF",
+    "huge2f = -NELUA_INFF",
+    "nanf = NELUA_NANF",
   })
   expect.generate_c([[
     local s <comptime> = 'hello\n'_cstring
@@ -787,7 +787,7 @@ it("function return", function()
   ]], "int64_t f(void) {\n  return 0;")
   expect.generate_c([[
     local function f(): niltype return end
-  ]], "return NLNIL;")
+  ]], "return NELUA_NIL;")
   expect.generate_c([[
     local function f(): string return (@string){} end
   ]], "nlstring f(void) {\n  return (nlstring){0};")
@@ -980,7 +980,7 @@ it("unary operator `deref`", function()
     function R:foo(alloc: auto) end
     local r = R()
     r:foo()
-  ]], {"r = (R){", "((&r), NLNIL)"})
+  ]], {"r = (R){", "((&r), NELUA_NIL)"})
   expect.generate_c([[
     local a: *[0]integer
     local function f(x: [0]integer) end
@@ -2734,26 +2734,26 @@ it("annotations", function()
   expect.generate_c("local a: int64 <volatile, codename 'a'>", "volatile int64_t a")
   expect.generate_c("local R <nickname 'RR'> = @record{x:integer} local r: R", "struct RR {")
   expect.generate_c("do local a: int64 <register> end",
-    (ccompiler.get_cc_info().is_cpp and "" or "register ").."int64_t a")
+    (ccompiler.get_cc_info().is_cpp and "" or "NELUA_REGISTER ").."int64_t a")
   expect.generate_c("local a: pointer <restrict>", "void* __restrict a")
-  expect.generate_c("local a: int64 <atomic>", "nelua_atomic(int64_t) a")
-  expect.generate_c("local a: int64 <threadlocal>", "nelua_threadlocal int64_t a")
+  expect.generate_c("local a: int64 <atomic>", "NELUA_ATOMIC(int64_t) a")
+  expect.generate_c("local a: int64 <threadlocal>", "NELUA_THREAD_LOCAL int64_t a")
   expect.generate_c("local a: int64 <nodecl>", "")
-  expect.generate_c("local a: cint <cimport>", "nelua_cimport int a;")
+  expect.generate_c("local a: cint <cimport>", "NELUA_CIMPORT int a;")
   expect.generate_c("local a: int64 <noinit>; a = 2", {"a;", "a = 2;"})
-  expect.generate_c("local a: int64 <cexport>", "nelua_cexport int64_t a;")
+  expect.generate_c("local a: int64 <cexport>", "NELUA_CEXPORT int64_t a;")
   expect.generate_c("do local a <static> = 1 end", "static int64_t a = 1;", true)
   expect.generate_c("local a: int64 <cattribute 'vector_size(16)'>", "int64_t __attribute__((vector_size(16))) a")
   expect.generate_c("local a: number <cqualifier 'in'> = 1", "in double a = 1.0;")
   expect.generate_c("local R <aligned(16)> = @record{x: integer}; local r: R",
-    {"struct nelua_aligned(16) R", "sizeof(R) == 16"})
+    {"struct NELUA_ALIGNED(16) R", "sizeof(R) == 16"})
   expect.generate_c("local R <packed> = @record{x: integer, y: byte}; local r: R",
-    {"struct nelua_packed R", "sizeof(R) == 9"})
+    {"struct NELUA_PACKED R", "sizeof(R) == 9"})
   expect.generate_c("local a: int64 <aligned(16)>",
-    "nelua_alignas(16) static int64_t a")
-  expect.generate_c("local function f() <inline> end", "inline void")
-  expect.generate_c("local function f() <noreturn> end", "nelua_noreturn void")
-  expect.generate_c("local function f() <noinline> end", "nelua_noinline void")
+    "NELUA_ALIGNAS(16) static int64_t a")
+  expect.generate_c("local function f() <inline> end", "NELUA_INLINE void")
+  expect.generate_c("local function f() <noreturn> end", "NELUA_NORETURN void")
+  expect.generate_c("local function f() <noinline> end", "NELUA_NOINLINE void")
   expect.generate_c("local function f() <volatile> end", "volatile void")
   expect.generate_c("local function f() <nodecl> end", "")
   expect.generate_c("local function f() <nosideeffect> end", "")
@@ -3006,8 +3006,8 @@ it("likely builtin", function()
     local a = likely(true)
     local b = unlikely(false)
   end]], {
-    "bool a = nelua_likely(true)",
-    "b = nelua_unlikely(false)"
+    "bool a = NELUA_LIKELY(true)",
+    "b = NELUA_UNLIKELY(false)"
   })
   expect.run_c([[
     assert(likely(true))
@@ -3054,7 +3054,7 @@ it("context pragmas", function()
     ## context.pragmas.unitname = 'mylib'
     local function foo() <cexport>
     end
-  ]], "nelua_cexport void mylib_foo(void);")
+  ]], "NELUA_CEXPORT void mylib_foo(void);")
 end)
 
 it("require builtin", function()

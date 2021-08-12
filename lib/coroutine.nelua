@@ -2155,7 +2155,7 @@ SOFTWARE.
 
 -- minify the code removing comments and spaces
 minicoro_code = minicoro_code:gsub('%/%*[^*]*%*%/', ''):gsub('%/%*\n.*\n%*%/', ''):gsub('\n%s*\n','\n')
-minicoro_code = "/* begin minicoro.h */\n"..minicoro_code.."/* end minicoro.h */\n"
+minicoro_code = "/* Begin minicoro.h */\n"..minicoro_code.."/* End minicoro.h */\n"
 
 if ccinfo.is_emscripten then -- asyncify is required on emscripten
   cflags '-s ASYNCIFY=1'

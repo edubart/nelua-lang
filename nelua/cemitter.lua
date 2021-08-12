@@ -51,7 +51,7 @@ function CEmitter:add_zeroed_type_literal(type, typed)
   elseif type.is_scalar then
     s = '0'
   elseif type.is_niltype or type.is_comptime then
-    s = self.context:ensure_builtin('NLNIL')
+    s = self.context:ensure_builtin('NELUA_NIL')
   elseif type.is_pointer or type.is_procedure then
     s = self.context:ensure_builtin('NULL')
   elseif type.is_boolean then
@@ -209,7 +209,7 @@ end
 
 -- Adds the `nil` literal.
 function CEmitter:add_nil_literal()
-  self:add_builtin('NLNIL')
+  self:add_builtin('NELUA_NIL')
 end
 
 --[[
@@ -318,13 +318,13 @@ function CEmitter:add_scalar_literal(num, numtype, base)
   -- add number literal
   if numtype.is_float then -- float
     if bn.isnan(num) then -- not a number
-      self:add_builtin('NLNAN_', numtype)
+      self:add_builtin('NELUA_NAN_', numtype)
       return
     elseif bn.isinfinite(num) then -- infinite
       if num < 0 then
         self:add_text('-')
       end
-      self:add_builtin('NLINF_', numtype)
+      self:add_builtin('NELUA_INF_', numtype)
       return
     else -- a number
       self:add_text(bn.todecsci(num, numtype.maxdigits, true))
@@ -415,10 +415,10 @@ end
 
 function CEmitter:add_type_qualifiers(type)
   if type.aligned then
-    self:add(' ', self.context:ensure_builtin('nelua_aligned'), '(', type.aligned, ')')
+    self:add(' ', self.context:ensure_builtin('NELUA_ALIGNED'), '(', type.aligned, ')')
   end
   if type.packed then
-    self:add(' ', self.context:ensure_builtin('nelua_packed'))
+    self:add(' ', self.context:ensure_builtin('NELUA_PACKED'))
   end
 end
 
@@ -430,29 +430,29 @@ function CEmitter:add_qualified_declaration(attr, type, name)
   end
   -- storage specifiers
   if attr.aligned then
-    self:add(context:ensure_builtin('nelua_alignas'), '(', attr.aligned, ') ')
+    self:add(context:ensure_builtin('NELUA_ALIGNAS'), '(', attr.aligned, ') ')
   end
   if attr.cimport and attr.codename ~= 'nelua_main' then
-    self:add(context:ensure_builtin('nelua_cimport'), ' ')
+    self:add(context:ensure_builtin('NELUA_CIMPORT'), ' ')
   elseif attr.cexport then
-    self:add(context:ensure_builtin('nelua_cexport'), ' ')
+    self:add(context:ensure_builtin('NELUA_CEXPORT'), ' ')
   elseif attr.static or
     (attr.staticstorage and not attr.entrypoint and not attr.nostatic and not pragmas.nostatic) then
     self:add('static ')
   elseif attr.register then
-    self:add(context:ensure_builtin('nelua_register'), ' ')
+    self:add(context:ensure_builtin('NELUA_REGISTER'), ' ')
   end
   -- function specifiers
   if attr.inline and not pragmas.nocinlines then
-    self:add(context:ensure_builtin('nelua_inline'), ' ')
+    self:add(context:ensure_builtin('NELUA_INLINE'), ' ')
   elseif attr.noinline and not pragmas.nocinlines then
-    self:add(context:ensure_builtin('nelua_noinline'), ' ')
+    self:add(context:ensure_builtin('NELUA_NOINLINE'), ' ')
   end
   if attr.noreturn then
-    self:add(context:ensure_builtin('nelua_noreturn'), ' ')
+    self:add(context:ensure_builtin('NELUA_NORETURN'), ' ')
   end
   if attr.threadlocal then
-    self:add(context:ensure_builtin('nelua_threadlocal'), ' ')
+    self:add(context:ensure_builtin('NELUA_THREAD_LOCAL'), ' ')
   end
   -- type qualifiers
   if attr.const and not attr.ignoreconst then
@@ -468,7 +468,7 @@ function CEmitter:add_qualified_declaration(attr, type, name)
     self:add(attr.cqualifier, ' ')
   end
   if attr.atomic then
-    self:add(context:ensure_builtin('nelua_atomic'), '(', type, ') ')
+    self:add(context:ensure_builtin('NELUA_ATOMIC'), '(', type, ') ')
   else
     self:add(type, ' ')
   end
