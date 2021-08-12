@@ -23,11 +23,11 @@ cflags '-pthread' -- all implementations we support is using pthread
 global C.tss_dtor_t: type <cimport,nodecl> = @function(pointer): void
 global C.thrd_start_t: type <cimport,nodecl> = @function(pointer): cint
 
-global C.tss_t: type <cimport,cincomplete,nodecl> = @record{}
-global C.thrd_t: type <cimport,cincomplete,nodecl> = @record{}
-global C.once_flag: type <cimport,cincomplete,nodecl> = @record{}
-global C.mtx_t: type <cimport,cincomplete,nodecl> = @record{}
-global C.cnd_t: type <cimport,cincomplete,nodecl> = @record{}
+global C.tss_t: type <cimport,nodecl,cincomplete> = @record{}
+global C.thrd_t: type <cimport,nodecl,cincomplete> = @record{}
+global C.once_flag: type <cimport,nodecl,cincomplete> = @record{}
+global C.mtx_t: type <cimport,nodecl,cincomplete> = @record{}
+global C.cnd_t: type <cimport,nodecl,cincomplete> = @record{}
 
 -- Threads
 

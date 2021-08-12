@@ -33,13 +33,13 @@ require 'allocators.gc'
 ## cemitdecl(function(emitter) emitter:add(minicoro_code) end)
 
 -- Import minicoro functions.
-local mco_state: type <cimport, nodecl, using> = @enum(cint){
+local mco_state: type <cimport,nodecl,using> = @enum(cint){
   MCO_DEAD = 0,
   MCO_NORMAL = 1,
   MCO_RUNNING = 2,
   MCO_SUSPENDED = 3
 }
-local mco_result: type <cimport, nodecl, using> = @enum(cint){
+local mco_result: type <cimport,nodecl,using> = @enum(cint){
   MCO_SUCCESS = 0,
   -- MCO_GENERIC_ERROR = 1,
   -- MCO_INVALID_POINTER = 2,
@@ -53,7 +53,7 @@ local mco_result: type <cimport, nodecl, using> = @enum(cint){
   -- MCO_INVALID_ARGUMENTS = 10,
   -- MCO_INVALID_OPERATION = 11
 }
-local mco_coro: type <cimport, nodecl> = @record{
+local mco_coro: type <cimport,nodecl> = @record{
   context: pointer,
   state: mco_state,
   func: function(*mco_coro): void,
@@ -70,7 +70,7 @@ local mco_coro: type <cimport, nodecl> = @record{
   tsan_prev_fiber: pointer,
   tsan_fiber: pointer
 }
-local mco_desc: type <cimport, nodecl> = @record{
+local mco_desc: type <cimport,nodecl> = @record{
   func: function(*mco_coro): void,
   user_data: pointer,
   malloc_cb: function(csize, pointer): pointer,
@@ -80,22 +80,22 @@ local mco_desc: type <cimport, nodecl> = @record{
   coro_size: csize,
   stack_size: csize
 }
-local function mco_desc_init(func: function(*mco_coro), stack_size: csize): mco_desc <cimport, nodecl> end
--- local function mco_init(co: *mco_coro, desc: *mco_desc): mco_result <cimport, nodecl> end
--- local function mco_uninit(co: *mco_coro): mco_result <cimport, nodecl> end
-local function mco_create(out_co: **mco_coro, desc: *mco_desc): mco_result <cimport, nodecl> end
-local function mco_destroy(co: *mco_coro): mco_result <cimport, nodecl> end
-local function mco_resume(co: *mco_coro): mco_result <cimport, nodecl> end
-local function mco_yield(co: *mco_coro): mco_result <cimport, nodecl> end
-local function mco_status(co: *mco_coro): mco_state <cimport, nodecl> end
-local function mco_get_user_data(co: *mco_coro): pointer <cimport, nodecl> end
-local function mco_push(co: *mco_coro, src: pointer, len: csize): mco_result <cimport, nodecl> end
-local function mco_pop(co: *mco_coro, dest: pointer, len: csize): mco_result <cimport, nodecl> end
--- local function mco_peek(co: *mco_coro, dest: pointer, len: csize): mco_result <cimport, nodecl> end
--- local function mco_get_bytes_stored(co: *mco_coro): csize <cimport, nodecl> end
--- local function mco_get_storage_size(co: *mco_coro): csize <cimport, nodecl> end
-local function mco_running(): *mco_coro <cimport, nodecl> end
-local function mco_result_description(res: mco_result): cstring <cimport, nodecl> end
+local function mco_desc_init(func: function(*mco_coro), stack_size: csize): mco_desc <cimport,nodecl> end
+-- local function mco_init(co: *mco_coro, desc: *mco_desc): mco_result <cimport,nodecl> end
+-- local function mco_uninit(co: *mco_coro): mco_result <cimport,nodecl> end
+local function mco_create(out_co: **mco_coro, desc: *mco_desc): mco_result <cimport,nodecl> end
+local function mco_destroy(co: *mco_coro): mco_result <cimport,nodecl> end
+local function mco_resume(co: *mco_coro): mco_result <cimport,nodecl> end
+local function mco_yield(co: *mco_coro): mco_result <cimport,nodecl> end
+local function mco_status(co: *mco_coro): mco_state <cimport,nodecl> end
+local function mco_get_user_data(co: *mco_coro): pointer <cimport,nodecl> end
+local function mco_push(co: *mco_coro, src: pointer, len: csize): mco_result <cimport,nodecl> end
+local function mco_pop(co: *mco_coro, dest: pointer, len: csize): mco_result <cimport,nodecl> end
+-- local function mco_peek(co: *mco_coro, dest: pointer, len: csize): mco_result <cimport,nodecl> end
+-- local function mco_get_bytes_stored(co: *mco_coro): csize <cimport,nodecl> end
+-- local function mco_get_storage_size(co: *mco_coro): csize <cimport,nodecl> end
+local function mco_running(): *mco_coro <cimport,nodecl> end
+local function mco_result_description(res: mco_result): cstring <cimport,nodecl> end
 
 -- Fake coroutine, used to indicate the main thread.
 local main_coro: mco_coro

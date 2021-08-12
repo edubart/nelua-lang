@@ -9,21 +9,21 @@ require 'string'
 
 -- Locale C imports.
 
-local LC_ALL: cint <cimport,cinclude'<locale.h>',nodecl>
-local LC_COLLATE: cint <cimport,cinclude'<locale.h>',nodecl>
-local LC_CTYPE: cint <cimport,cinclude'<locale.h>',nodecl>
-local LC_MONETARY: cint <cimport,cinclude'<locale.h>',nodecl>
-local LC_NUMERIC: cint <cimport,cinclude'<locale.h>',nodecl>
-local LC_TIME: cint <cimport,cinclude'<locale.h>',nodecl>
-local function setlocale(category: cint, locale: cstring): cstring <cimport,cinclude'<locale.h>',nodecl> end
+local LC_ALL: cint <cimport,cinclude'<locale.h>'>
+local LC_COLLATE: cint <cimport,cinclude'<locale.h>'>
+local LC_CTYPE: cint <cimport,cinclude'<locale.h>'>
+local LC_MONETARY: cint <cimport,cinclude'<locale.h>'>
+local LC_NUMERIC: cint <cimport,cinclude'<locale.h>'>
+local LC_TIME: cint <cimport,cinclude'<locale.h>'>
+local function setlocale(category: cint, locale: cstring): cstring <cimport,cinclude'<locale.h>'> end
 
-local EXIT_SUCCESS: cint <cimport,cinclude'<stdlib.h>',nodecl>
-local EXIT_FAILURE: cint <cimport,cinclude'<stdlib.h>',nodecl>
-local function getenv(name: cstring): cstring <cimport,cinclude'<stdlib.h>',nodecl> end
-local function exit(status: cint): void <cimport,cinclude'<stdlib.h>',nodecl> end
-local function remove(pathname: cstring): cint <cimport,cinclude'<stdio.h>',nodecl> end
+local EXIT_SUCCESS: cint <cimport,cinclude'<stdlib.h>'>
+local EXIT_FAILURE: cint <cimport,cinclude'<stdlib.h>'>
+local function getenv(name: cstring): cstring <cimport,cinclude'<stdlib.h>'> end
+local function exit(status: cint): void <cimport,cinclude'<stdlib.h>'> end
+local function remove(pathname: cstring): cint <cimport,cinclude'<stdio.h>'> end
 
-local tm: type <cimport'tm',cinclude'<time.h>',nodecl,ctypedef> = @record{
+local tm: type <cimport,cinclude'<time.h>',ctypedef> = @record{
   tm_year: cint,
   tm_mon: cint,
   tm_mday: cint,
@@ -32,15 +32,15 @@ local tm: type <cimport'tm',cinclude'<time.h>',nodecl,ctypedef> = @record{
   tm_sec: cint,
   tm_isdst: cint
 }
-local CLOCKS_PER_SEC: cclock_t <cimport,cinclude'<time.h>',nodecl>
-local function clock(): cclock_t <cimport,cinclude'<time.h>',nodecl> end
-local function time(tloc: *ctime_t): ctime_t <cimport,cinclude'<time.h>',nodecl> end
-local function mktime(tp: *tm): ctime_t <cimport,cinclude'<time.h>',nodecl> end
-local function localtime(timer: *ctime_t): *tm <cimport,cinclude'<time.h>',nodecl> end
-local function strftime(s: cstring, maxsize: csize, format: cstring, tp: *tm): csize <cimport,cinclude'<time.h>',nodecl> end
+local CLOCKS_PER_SEC: cclock_t <cimport,cinclude'<time.h>'>
+local function clock(): cclock_t <cimport,cinclude'<time.h>'> end
+local function time(tloc: *ctime_t): ctime_t <cimport,cinclude'<time.h>'> end
+local function mktime(tp: *tm): ctime_t <cimport,cinclude'<time.h>'> end
+local function localtime(timer: *ctime_t): *tm <cimport,cinclude'<time.h>'> end
+local function strftime(s: cstring, maxsize: csize, format: cstring, tp: *tm): csize <cimport,cinclude'<time.h>'> end
 
-local errno: cint <cimport,cinclude'<errno.h>',nodecl>
-local function strerror(errnum: cint): cstring <cimport,cinclude'<string.h>',nodecl> end
+local errno: cint <cimport,cinclude'<errno.h>'>
+local function strerror(errnum: cint): cstring <cimport,cinclude'<string.h>'> end
 
 -- Namespace for OS module.
 global os: type = @record{}
@@ -90,7 +90,7 @@ function os.execute(command: facultative(string)): (boolean, string, integer)
   ## if ccinfo.is_wasm then
     return false, 'unsupported', 1
   ## else
-    local function system(command: cstring): cint <cimport,cinclude'<stdlib.h>',nodecl> end
+    local function system(command: cstring): cint <cimport,cinclude'<stdlib.h>'> end
     ## if command.type.is_string then
       errno = 0
       local status: integer = system(command)
@@ -166,7 +166,7 @@ function os.rename(oldname: string, newname: string): (boolean, string, integer)
   ## if ccinfo.is_wasm then
     return false, 'unsupported', 1
   ## else
-    local function rename(old: cstring, new: cstring): cint <cimport,cinclude'<stdio.h>',nodecl> end
+    local function rename(old: cstring, new: cstring): cint <cimport,cinclude'<stdio.h>'> end
     if rename(oldname, newname) == -1 then
       return false, strerror(errno), errno
     end

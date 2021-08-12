@@ -8,30 +8,30 @@ require 'stringbuilder'
 require 'string'
 require 'allocators.default'
 
-local FILE <cimport,nodecl,forwarddecl,cinclude'<stdio.h>'> = @record{}
-local stdin: *FILE <cimport,cinclude'<stdio.h>',nodecl>
-local stdout: *FILE <cimport,cinclude'<stdio.h>',nodecl>
-local stderr: *FILE <cimport,cinclude'<stdio.h>',nodecl>
-local SEEK_SET: cint <const,cimport,cinclude'<stdio.h>',nodecl>
-local SEEK_END: cint <const,cimport,cinclude'<stdio.h>',nodecl>
-local SEEK_CUR: cint <const,cimport,cinclude'<stdio.h>',nodecl>
-local _IOFBF: cint <const,cimport,cinclude'<stdio.h>',nodecl>
-local _IOLBF: cint <const,cimport,cinclude'<stdio.h>',nodecl>
-local _IONBF: cint <const,cimport,cinclude'<stdio.h>',nodecl>
-local EOF: cint <const,cimport,cinclude'<stdio.h>',nodecl>
-local function fopen(pathname: cstring, mode: cstring): *FILE <cimport,cinclude'<stdio.h>',nodecl> end
-local function fclose(fp: *FILE): cint <cimport,cinclude'<stdio.h>',nodecl> end
-local function fflush(fp: *FILE): cint <cimport,cinclude'<stdio.h>',nodecl> end
-local function fread(ptr: pointer, size: csize, n: csize, fp: *FILE): csize <cimport,cinclude'<stdio.h>',nodecl> end
-local function fwrite(ptr: pointer, size: csize, n: csize, fp: *FILE): csize <cimport,cinclude'<stdio.h>',nodecl> end
-local function fseek(fp: *FILE, offset: clong, whence: cint): cint <cimport,cinclude'<stdio.h>',nodecl> end
-local function ftell(fp: *FILE): clong <cimport,cinclude'<stdio.h>',nodecl> end
-local function ferror(fp: *FILE): cint <cimport,cinclude'<stdio.h>',nodecl> end
-local function fgetc(fp: *FILE): cint <cimport,cinclude'<stdio.h>',nodecl> end
-local function setvbuf(fp: *FILE, buf: cstring, modes: cint, n: csize): cint <cimport,cinclude'<stdio.h>',nodecl> end
-local function clearerr(fp: *FILE): void <cimport,cinclude'<stdio.h>',nodecl> end
-local function strerror(errnum: cint): cstring <cimport,cinclude'<string.h>',nodecl> end
-local errno: cint <cimport,cinclude'<errno.h>',nodecl>
+local FILE <cimport,cinclude'<stdio.h>',forwarddecl> = @record{}
+local stdin: *FILE <cimport,cinclude'<stdio.h>'>
+local stdout: *FILE <cimport,cinclude'<stdio.h>'>
+local stderr: *FILE <cimport,cinclude'<stdio.h>'>
+local SEEK_SET: cint <const,cimport,cinclude'<stdio.h>'>
+local SEEK_END: cint <const,cimport,cinclude'<stdio.h>'>
+local SEEK_CUR: cint <const,cimport,cinclude'<stdio.h>'>
+local _IOFBF: cint <const,cimport,cinclude'<stdio.h>'>
+local _IOLBF: cint <const,cimport,cinclude'<stdio.h>'>
+local _IONBF: cint <const,cimport,cinclude'<stdio.h>'>
+local EOF: cint <const,cimport,cinclude'<stdio.h>'>
+local function fopen(pathname: cstring, mode: cstring): *FILE <cimport,cinclude'<stdio.h>'> end
+local function fclose(fp: *FILE): cint <cimport,cinclude'<stdio.h>'> end
+local function fflush(fp: *FILE): cint <cimport,cinclude'<stdio.h>'> end
+local function fread(ptr: pointer, size: csize, n: csize, fp: *FILE): csize <cimport,cinclude'<stdio.h>'> end
+local function fwrite(ptr: pointer, size: csize, n: csize, fp: *FILE): csize <cimport,cinclude'<stdio.h>'> end
+local function fseek(fp: *FILE, offset: clong, whence: cint): cint <cimport,cinclude'<stdio.h>'> end
+local function ftell(fp: *FILE): clong <cimport,cinclude'<stdio.h>'> end
+local function ferror(fp: *FILE): cint <cimport,cinclude'<stdio.h>'> end
+local function fgetc(fp: *FILE): cint <cimport,cinclude'<stdio.h>'> end
+local function setvbuf(fp: *FILE, buf: cstring, modes: cint, n: csize): cint <cimport,cinclude'<stdio.h>'> end
+local function clearerr(fp: *FILE): void <cimport,cinclude'<stdio.h>'> end
+local function strerror(errnum: cint): cstring <cimport,cinclude'<string.h>'> end
+local errno: cint <cimport,cinclude'<errno.h>'>
 
 -- File stream implementation record.
 local FStream: type = @record{

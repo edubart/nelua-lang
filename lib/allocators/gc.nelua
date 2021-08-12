@@ -186,8 +186,8 @@ end
 local function GC_markstack(self: *GC): void <noinline>
 ## if not ccinfo.is_wasm then
   -- dump CPU registers into the stack, to scan them
-  local jmp_buf: type <cimport,nodecl,cinclude'<setjmp.h>',cincomplete> = @record{}
-  local function setjmp(env: jmp_buf): void <cimport,cinclude'<setjmp.h>',nodecl> end
+  local jmp_buf: type <cimport,cinclude'<setjmp.h>',cincomplete> = @record{}
+  local function setjmp(env: jmp_buf): void <cimport,cinclude'<setjmp.h>'> end
   local regs: jmp_buf
   setjmp(regs)
   -- scan stack

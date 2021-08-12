@@ -326,7 +326,8 @@ typedefs.type_annots = {
   -- If no name is supplied then the same type name is used in C,
   -- the type is declared unless 'nodecl' annotations is also used.
   cimport = shaper.shape{shaper.string:is_optional()},
-  -- C file to include when using the type.
+  -- C file to include when using the type,
+  -- this annotation implicitly sets `nodecl` when combined with `cimport`.
   cinclude = shaper.shape{shaper.string},
   -- Change the nickname used in the compiler for the type.
   -- The nickname is used to generate pretty names for compile time type errors,

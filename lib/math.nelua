@@ -6,66 +6,66 @@ The math library provides basic mathematical functions.
 global math: type = @record{}
 
 -- Import C math functions
-local function floor_f64(x: float64): float64 <cimport'floor',cinclude'<math.h>',nodecl,nosideeffect> end
-local function floor_f32(x: float32): float32 <cimport'floorf',cinclude'<math.h>',nodecl,nosideeffect> end
-local function ceil_f64(x: float64): float64 <cimport'ceil',cinclude'<math.h>',nodecl,nosideeffect> end
-local function ceil_f32(x: float32): float32 <cimport'ceilf',cinclude'<math.h>',nodecl,nosideeffect> end
-local function trunc_f64(x: float64): float64 <cimport'trunc',cinclude'<math.h>',nodecl,nosideeffect> end
-local function trunc_f32(x: float32): float32 <cimport'truncf',cinclude'<math.h>',nodecl,nosideeffect> end
-local function round_f64(x: float64): float64 <cimport'round',cinclude'<math.h>',nodecl,nosideeffect> end
-local function round_f32(x: float32): float32 <cimport'roundf',cinclude'<math.h>',nodecl,nosideeffect> end
-local function sqrt_f64(x: float64): float64 <cimport'sqrt',cinclude'<math.h>',nodecl,nosideeffect> end
-local function sqrt_f32(x: float32): float32 <cimport'sqrtf',cinclude'<math.h>',nodecl,nosideeffect> end
-local function cbrt_f64(x: float64): float64 <cimport'cbrt',cinclude'<math.h>',nodecl,nosideeffect> end
-local function cbrt_f32(x: float32): float32 <cimport'cbrtf',cinclude'<math.h>',nodecl,nosideeffect> end
-local function exp_f64(x: float64): float64 <cimport'exp',cinclude'<math.h>',nodecl,nosideeffect> end
-local function exp_f32(x: float32): float32 <cimport'expf',cinclude'<math.h>',nodecl,nosideeffect> end
-local function exp2_f64(x: float64): float64 <cimport'exp2',cinclude'<math.h>',nodecl,nosideeffect> end
-local function exp2_f32(x: float32): float32 <cimport'exp2f',cinclude'<math.h>',nodecl,nosideeffect> end
-local function log_f64(x: float64): float64 <cimport'log',cinclude'<math.h>',nodecl,nosideeffect> end
-local function log_f32(x: float32): float32 <cimport'logf',cinclude'<math.h>',nodecl,nosideeffect> end
-local function log2_f64(x: float64): float64 <cimport'log2',cinclude'<math.h>',nodecl,nosideeffect> end
-local function log2_f32(x: float32): float32 <cimport'log2f',cinclude'<math.h>',nodecl,nosideeffect> end
-local function log10_f64(x: float64): float64 <cimport'log10',cinclude'<math.h>',nodecl,nosideeffect> end
-local function log10_f32(x: float32): float32 <cimport'log10f',cinclude'<math.h>',nodecl,nosideeffect> end
-local function cos_f64(x: float64): float64 <cimport'cos',cinclude'<math.h>',nodecl,nosideeffect> end
-local function cos_f32(x: float32): float32 <cimport'cosf',cinclude'<math.h>',nodecl,nosideeffect> end
-local function sin_f64(x: float64): float64 <cimport'sin',cinclude'<math.h>',nodecl,nosideeffect> end
-local function sin_f32(x: float32): float32 <cimport'sinf',cinclude'<math.h>',nodecl,nosideeffect> end
-local function tan_f64(x: float64): float64 <cimport'tan',cinclude'<math.h>',nodecl,nosideeffect> end
-local function tan_f32(x: float32): float32 <cimport'tanf',cinclude'<math.h>',nodecl,nosideeffect> end
-local function acos_f64(x: float64): float64 <cimport'acos',cinclude'<math.h>',nodecl,nosideeffect> end
-local function acos_f32(x: float32): float32 <cimport'acosf',cinclude'<math.h>',nodecl,nosideeffect> end
-local function asin_f64(x: float64): float64 <cimport'asin',cinclude'<math.h>',nodecl,nosideeffect> end
-local function asin_f32(x: float32): float32 <cimport'asinf',cinclude'<math.h>',nodecl,nosideeffect> end
-local function atan_f64(x: float64): float64 <cimport'atan',cinclude'<math.h>',nodecl,nosideeffect> end
-local function atan_f32(x: float32): float32 <cimport'atanf',cinclude'<math.h>',nodecl,nosideeffect> end
-local function cosh_f64(x: float64): float64 <cimport'cosh',cinclude'<math.h>',nodecl,nosideeffect> end
-local function cosh_f32(x: float32): float32 <cimport'coshf',cinclude'<math.h>',nodecl,nosideeffect> end
-local function sinh_f64(x: float64): float64 <cimport'sinh',cinclude'<math.h>',nodecl,nosideeffect> end
-local function sinh_f32(x: float32): float32 <cimport'sinhf',cinclude'<math.h>',nodecl,nosideeffect> end
-local function tanh_f64(x: float64): float64 <cimport'tanh',cinclude'<math.h>',nodecl,nosideeffect> end
-local function tanh_f32(x: float32): float32 <cimport'tanhf',cinclude'<math.h>',nodecl,nosideeffect> end
-local function acosh_f64(x: float64): float64 <cimport'acosh',cinclude'<math.h>',nodecl,nosideeffect> end
-local function acosh_f32(x: float32): float32 <cimport'acoshf',cinclude'<math.h>',nodecl,nosideeffect> end
-local function asinh_f64(x: float64): float64 <cimport'asinh',cinclude'<math.h>',nodecl,nosideeffect> end
-local function asinh_f32(x: float32): float32 <cimport'asinhf',cinclude'<math.h>',nodecl,nosideeffect> end
-local function atanh_f64(x: float64): float64 <cimport'atanh',cinclude'<math.h>',nodecl,nosideeffect> end
-local function atanh_f32(x: float32): float32 <cimport'atanhf',cinclude'<math.h>',nodecl,nosideeffect> end
+local function floor_f64(x: float64): float64 <cimport'floor',cinclude'<math.h>',nosideeffect> end
+local function floor_f32(x: float32): float32 <cimport'floorf',cinclude'<math.h>',nosideeffect> end
+local function ceil_f64(x: float64): float64 <cimport'ceil',cinclude'<math.h>',nosideeffect> end
+local function ceil_f32(x: float32): float32 <cimport'ceilf',cinclude'<math.h>',nosideeffect> end
+local function trunc_f64(x: float64): float64 <cimport'trunc',cinclude'<math.h>',nosideeffect> end
+local function trunc_f32(x: float32): float32 <cimport'truncf',cinclude'<math.h>',nosideeffect> end
+local function round_f64(x: float64): float64 <cimport'round',cinclude'<math.h>',nosideeffect> end
+local function round_f32(x: float32): float32 <cimport'roundf',cinclude'<math.h>',nosideeffect> end
+local function sqrt_f64(x: float64): float64 <cimport'sqrt',cinclude'<math.h>',nosideeffect> end
+local function sqrt_f32(x: float32): float32 <cimport'sqrtf',cinclude'<math.h>',nosideeffect> end
+local function cbrt_f64(x: float64): float64 <cimport'cbrt',cinclude'<math.h>',nosideeffect> end
+local function cbrt_f32(x: float32): float32 <cimport'cbrtf',cinclude'<math.h>',nosideeffect> end
+local function exp_f64(x: float64): float64 <cimport'exp',cinclude'<math.h>',nosideeffect> end
+local function exp_f32(x: float32): float32 <cimport'expf',cinclude'<math.h>',nosideeffect> end
+local function exp2_f64(x: float64): float64 <cimport'exp2',cinclude'<math.h>',nosideeffect> end
+local function exp2_f32(x: float32): float32 <cimport'exp2f',cinclude'<math.h>',nosideeffect> end
+local function log_f64(x: float64): float64 <cimport'log',cinclude'<math.h>',nosideeffect> end
+local function log_f32(x: float32): float32 <cimport'logf',cinclude'<math.h>',nosideeffect> end
+local function log2_f64(x: float64): float64 <cimport'log2',cinclude'<math.h>',nosideeffect> end
+local function log2_f32(x: float32): float32 <cimport'log2f',cinclude'<math.h>',nosideeffect> end
+local function log10_f64(x: float64): float64 <cimport'log10',cinclude'<math.h>',nosideeffect> end
+local function log10_f32(x: float32): float32 <cimport'log10f',cinclude'<math.h>',nosideeffect> end
+local function cos_f64(x: float64): float64 <cimport'cos',cinclude'<math.h>',nosideeffect> end
+local function cos_f32(x: float32): float32 <cimport'cosf',cinclude'<math.h>',nosideeffect> end
+local function sin_f64(x: float64): float64 <cimport'sin',cinclude'<math.h>',nosideeffect> end
+local function sin_f32(x: float32): float32 <cimport'sinf',cinclude'<math.h>',nosideeffect> end
+local function tan_f64(x: float64): float64 <cimport'tan',cinclude'<math.h>',nosideeffect> end
+local function tan_f32(x: float32): float32 <cimport'tanf',cinclude'<math.h>',nosideeffect> end
+local function acos_f64(x: float64): float64 <cimport'acos',cinclude'<math.h>',nosideeffect> end
+local function acos_f32(x: float32): float32 <cimport'acosf',cinclude'<math.h>',nosideeffect> end
+local function asin_f64(x: float64): float64 <cimport'asin',cinclude'<math.h>',nosideeffect> end
+local function asin_f32(x: float32): float32 <cimport'asinf',cinclude'<math.h>',nosideeffect> end
+local function atan_f64(x: float64): float64 <cimport'atan',cinclude'<math.h>',nosideeffect> end
+local function atan_f32(x: float32): float32 <cimport'atanf',cinclude'<math.h>',nosideeffect> end
+local function cosh_f64(x: float64): float64 <cimport'cosh',cinclude'<math.h>',nosideeffect> end
+local function cosh_f32(x: float32): float32 <cimport'coshf',cinclude'<math.h>',nosideeffect> end
+local function sinh_f64(x: float64): float64 <cimport'sinh',cinclude'<math.h>',nosideeffect> end
+local function sinh_f32(x: float32): float32 <cimport'sinhf',cinclude'<math.h>',nosideeffect> end
+local function tanh_f64(x: float64): float64 <cimport'tanh',cinclude'<math.h>',nosideeffect> end
+local function tanh_f32(x: float32): float32 <cimport'tanhf',cinclude'<math.h>',nosideeffect> end
+local function acosh_f64(x: float64): float64 <cimport'acosh',cinclude'<math.h>',nosideeffect> end
+local function acosh_f32(x: float32): float32 <cimport'acoshf',cinclude'<math.h>',nosideeffect> end
+local function asinh_f64(x: float64): float64 <cimport'asinh',cinclude'<math.h>',nosideeffect> end
+local function asinh_f32(x: float32): float32 <cimport'asinhf',cinclude'<math.h>',nosideeffect> end
+local function atanh_f64(x: float64): float64 <cimport'atanh',cinclude'<math.h>',nosideeffect> end
+local function atanh_f32(x: float32): float32 <cimport'atanhf',cinclude'<math.h>',nosideeffect> end
 
-local function fmod_f64(x: float64, y: float64): float64 <cimport'fmod',cinclude'<math.h>',nodecl,nosideeffect> end
-local function fmod_f32(x: float32, y: float32): float32 <cimport'fmodf',cinclude'<math.h>',nodecl,nosideeffect> end
-local function atan2_f64(x: float64, y: float64): float64 <cimport'atan2',cinclude'<math.h>',nodecl,nosideeffect> end
-local function atan2_f32(x: float32, y: float32): float32 <cimport'atan2f',cinclude'<math.h>',nodecl,nosideeffect> end
-local function pow_f64(x: float64, y: float64): float64 <cimport'pow',cinclude'<math.h>',nodecl,nosideeffect> end
-local function pow_f32(x: float32, y: float32): float32 <cimport'powf',cinclude'<math.h>',nodecl,nosideeffect> end
+local function fmod_f64(x: float64, y: float64): float64 <cimport'fmod',cinclude'<math.h>',nosideeffect> end
+local function fmod_f32(x: float32, y: float32): float32 <cimport'fmodf',cinclude'<math.h>',nosideeffect> end
+local function atan2_f64(x: float64, y: float64): float64 <cimport'atan2',cinclude'<math.h>',nosideeffect> end
+local function atan2_f32(x: float32, y: float32): float32 <cimport'atan2f',cinclude'<math.h>',nosideeffect> end
+local function pow_f64(x: float64, y: float64): float64 <cimport'pow',cinclude'<math.h>',nosideeffect> end
+local function pow_f32(x: float32, y: float32): float32 <cimport'powf',cinclude'<math.h>',nosideeffect> end
 
-local function modf_f64(x: float64, y: *float64): float64 <cimport'modf',cinclude'<math.h>',nodecl,nosideeffect> end
-local function modf_f32(x: float32, y: *float32): float32 <cimport'modff',cinclude'<math.h>',nodecl,nosideeffect> end
-local function frexp_f64(x: float64, exp: *cint): float64 <cimport'frexp',cinclude'<math.h>',nodecl,nosideeffect> end
-local function frexp_f32(x: float32, exp: *cint): float32 <cimport'frexpf',cinclude'<math.h>',nodecl,nosideeffect> end
-local function ldexp_f64(x: float64, exp: cint): float64 <cimport'ldexp',cinclude'<math.h>',nodecl,nosideeffect> end
-local function ldexp_f32(x: float32, exp: cint): float32 <cimport'ldexpf',cinclude'<math.h>',nodecl,nosideeffect> end
+local function modf_f64(x: float64, y: *float64): float64 <cimport'modf',cinclude'<math.h>',nosideeffect> end
+local function modf_f32(x: float32, y: *float32): float32 <cimport'modff',cinclude'<math.h>',nosideeffect> end
+local function frexp_f64(x: float64, exp: *cint): float64 <cimport'frexp',cinclude'<math.h>',nosideeffect> end
+local function frexp_f32(x: float32, exp: *cint): float32 <cimport'frexpf',cinclude'<math.h>',nosideeffect> end
+local function ldexp_f64(x: float64, exp: cint): float64 <cimport'ldexp',cinclude'<math.h>',nosideeffect> end
+local function ldexp_f32(x: float32, exp: cint): float32 <cimport'ldexpf',cinclude'<math.h>',nosideeffect> end
 
 -- Concepts used by math functions.
 local an_scalar: type = #[concept(function(x) return x.type.is_scalar end)]#
@@ -517,7 +517,7 @@ you should call `math.randomseed` with explicit arguments.
 ]]
 function math.randomseed(x: an_optional_integral, y: an_optional_integral): (integer, integer)
   ## if x.type.is_niltype and y.type.is_niltype then
-  local function time(tloc: *ctime_t): ctime_t <cimport,cinclude'<time.h>',nodecl> end
+  local function time(tloc: *ctime_t): ctime_t <cimport,cinclude'<time.h>'> end
   local x: uint64 = (@uint64)(time(nilptr))
   local y: uint64 = (@usize)(&x)
   ## elseif y.type.is_niltype then

@@ -4,10 +4,10 @@ usually this an efficient allocator for the general use case.
 It uses the allocation functions provided by the system.
 ]]
 
-local function malloc(size: csize): pointer <cimport,cinclude'<stdlib.h>',nodecl> end
-local function calloc(nmemb: csize, size: csize): pointer <cimport,cinclude'<stdlib.h>',nodecl> end
-local function realloc(ptr: pointer, size: csize): pointer <cimport,cinclude'<stdlib.h>',nodecl> end
-local function free(ptr: pointer): void <cimport,cinclude'<stdlib.h>',nodecl> end
+local function malloc(size: csize): pointer <cimport,cinclude'<stdlib.h>'> end
+local function calloc(nmemb: csize, size: csize): pointer <cimport,cinclude'<stdlib.h>'> end
+local function realloc(ptr: pointer, size: csize): pointer <cimport,cinclude'<stdlib.h>'> end
+local function free(ptr: pointer): void <cimport,cinclude'<stdlib.h>'> end
 
 -- General allocator record.
 global GeneralAllocator = @record{}

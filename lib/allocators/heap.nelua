@@ -100,7 +100,7 @@ local function clz(x: uint32): uint32 <inline,nosideeffect>
 ]==]
   return x
 end
-local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,cinclude'<string.h>',nodecl> end
+local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,cinclude'<string.h>'> end
 
 --[[
 Hashing function that converts allocation size into bin index.

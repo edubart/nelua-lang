@@ -7,7 +7,7 @@ see [C locale documentation](https://www.cplusplus.com/reference/clocale/).
 
 require 'C'
 
-global C.lconv: type <cimport,cinclude'<locale.h>',nodecl,ctypedef> = @record{
+global C.lconv: type <cimport,cinclude'<locale.h>',ctypedef> = @record{
   decimal_point: cstring,
   thousands_sep: cstring,
   grouping: cstring,
@@ -34,14 +34,14 @@ global C.lconv: type <cimport,cinclude'<locale.h>',nodecl,ctypedef> = @record{
   int_n_sign_posn: cchar
 }
 
-function C.setlocale(category: cint, locale: cstring): cstring <cimport,cinclude'<locale.h>',nodecl> end
-function C.localeconv(): *C.lconv <cimport,cinclude'<locale.h>',nodecl> end
+function C.setlocale(category: cint, locale: cstring): cstring <cimport,cinclude'<locale.h>'> end
+function C.localeconv(): *C.lconv <cimport,cinclude'<locale.h>'> end
 
 -- Constants
 
-global C.LC_ALL: cint <const,cimport,cinclude'<locale.h>',nodecl>
-global C.LC_COLLATE: cint <const,cimport,cinclude'<locale.h>',nodecl>
-global C.LC_CTYPE: cint <const,cimport,cinclude'<locale.h>',nodecl>
-global C.LC_MONETARY: cint <const,cimport,cinclude'<locale.h>',nodecl>
-global C.LC_NUMERIC: cint <const,cimport,cinclude'<locale.h>',nodecl>
-global C.LC_TIME: cint <const,cimport,cinclude'<locale.h>',nodecl>
+global C.LC_ALL: cint <const,cimport,cinclude'<locale.h>'>
+global C.LC_COLLATE: cint <const,cimport,cinclude'<locale.h>'>
+global C.LC_CTYPE: cint <const,cimport,cinclude'<locale.h>'>
+global C.LC_MONETARY: cint <const,cimport,cinclude'<locale.h>'>
+global C.LC_NUMERIC: cint <const,cimport,cinclude'<locale.h>'>
+global C.LC_TIME: cint <const,cimport,cinclude'<locale.h>'>

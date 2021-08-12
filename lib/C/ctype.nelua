@@ -9,20 +9,20 @@ require 'C'
 
 -- Character classification functions
 
-function C.isalnum(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
-function C.isalpha(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
-function C.islower(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
-function C.isupper(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
-function C.isdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
-function C.isxdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
-function C.iscntrl(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
-function C.isgraph(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
-function C.isspace(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
-function C.isblank(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
-function C.isprint(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
-function C.ispunct(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
+function C.isalnum(x: cint): cint <cimport,cinclude'<ctype.h>'> end
+function C.isalpha(x: cint): cint <cimport,cinclude'<ctype.h>'> end
+function C.islower(x: cint): cint <cimport,cinclude'<ctype.h>'> end
+function C.isupper(x: cint): cint <cimport,cinclude'<ctype.h>'> end
+function C.isdigit(x: cint): cint <cimport,cinclude'<ctype.h>'> end
+function C.isxdigit(x: cint): cint <cimport,cinclude'<ctype.h>'> end
+function C.iscntrl(x: cint): cint <cimport,cinclude'<ctype.h>'> end
+function C.isgraph(x: cint): cint <cimport,cinclude'<ctype.h>'> end
+function C.isspace(x: cint): cint <cimport,cinclude'<ctype.h>'> end
+function C.isblank(x: cint): cint <cimport,cinclude'<ctype.h>'> end
+function C.isprint(x: cint): cint <cimport,cinclude'<ctype.h>'> end
+function C.ispunct(x: cint): cint <cimport,cinclude'<ctype.h>'> end
 
 -- Character conversion functions
 
-function C.tolower(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
-function C.toupper(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
+function C.tolower(c: cint): cint <cimport,cinclude'<ctype.h>'> end
+function C.toupper(c: cint): cint <cimport,cinclude'<ctype.h>'> end

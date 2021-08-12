@@ -23,11 +23,11 @@ require 'stringbuilder'
 require 'allocators.default'
 require 'detail.patternmatcher'
 
-local function strtod(str: cstring, endptr: *cstring): float64 <cimport,cinclude'<stdlib.h>',nodecl> end
-local function snprintf(s: cstring, maxlen: csize, format: cstring, ...: cvarargs): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
-local function tolower(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
-local function toupper(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
-local errno: cint <cimport,cinclude'<errno.h>',nodecl>
+local function strtod(str: cstring, endptr: *cstring): float64 <cimport,cinclude'<stdlib.h>'> end
+local function snprintf(s: cstring, maxlen: csize, format: cstring, ...: cvarargs): cint <cimport,cinclude'<stdio.h>'> end
+local function tolower(c: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
+local function toupper(c: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
+local errno: cint <cimport,cinclude'<errno.h>'>
 
 --[[
 Allocate a new string to be filled with length `size`.

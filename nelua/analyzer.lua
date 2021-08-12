@@ -633,6 +633,8 @@ function visitors.Annotation(context, node, opts)
     if not objtype.is_atomicable then
       node:raisef("variable of type '%s' cannot be atomic", objtype)
     end
+  elseif name == 'cinclude' and objattr.cimport then
+    objattr.nodecl = true
   end
 
   node.done = true

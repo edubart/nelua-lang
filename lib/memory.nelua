@@ -7,11 +7,11 @@ To assist finding such mistakes some checks are performed where applicable, whic
 be disabled with the pragma `nochecks`.
 ]]
 
-local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,cinclude'<string.h>',nodecl> end
-local function memmove(dest: pointer, src: pointer, n: csize): pointer <cimport,cinclude'<string.h>',nodecl> end
-local function memset(s: pointer, c: cint, n: csize): pointer <cimport,cinclude'<string.h>',nodecl> end
-local function memcmp(a: pointer, b: pointer, n: csize): cint <cimport,cinclude'<string.h>',nodecl> end
-local function memchr(s: pointer, c: cint, n: csize): pointer <cimport,cinclude'<string.h>',nodecl> end
+local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,cinclude'<string.h>'> end
+local function memmove(dest: pointer, src: pointer, n: csize): pointer <cimport,cinclude'<string.h>'> end
+local function memset(s: pointer, c: cint, n: csize): pointer <cimport,cinclude'<string.h>'> end
+local function memcmp(a: pointer, b: pointer, n: csize): cint <cimport,cinclude'<string.h>'> end
+local function memchr(s: pointer, c: cint, n: csize): pointer <cimport,cinclude'<string.h>'> end
 
 -- Namespace for memory module.
 global memory: type = @record{}

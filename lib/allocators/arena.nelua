@@ -34,7 +34,7 @@ local function align_forward(addr: usize, align: usize): usize <inline>
   return (addr + (align-1)) & ~(align-1)
 end
 
-local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,cinclude'<string.h>',nodecl> end
+local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,cinclude'<string.h>'> end
 
 ## local make_ArenaT = generalize(function(SIZE, ALIGN)
   ## ALIGN = ALIGN or 8
