@@ -299,6 +299,7 @@ local function GC_registerroots(self: *GC): void
           symtype = sym.type
         end
         if sym:is_on_static_storage() and not sym.cimport and
+           sym ~= embedded_general_allocator and
            symtype:has_pointer() and symtype.nickname ~= 'GC' then
           symbols[#symbols+1] = sym
         end
