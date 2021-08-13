@@ -46,7 +46,7 @@ end
 
 -- Helper to add length modifiers to format strings.
 local function addlenmod(form: *[MAX_FORMAT]byte, lenmod: cstring, lenmodsize: csize): void
-  local l: csize = #(@cstring)(&form[0])
+  local l: csize = (@csize)(#(@cstring)(&form[0]))
   local spec: byte = form[l - 1]
   memory.copy(&form[l - 1], lenmod, lenmodsize)
   form[l + lenmodsize - 1] = spec

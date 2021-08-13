@@ -266,8 +266,8 @@ function GC:collect(): void
   GC_sweep(self)
   -- update last collection memory bytes
   self.lastmembytes = self.membytes
-  -- shrink items hash map when its load factor is too low
-  if self.items:loadfactor() < 0.25 then
+  -- shrink items hash map when its load factor is below 25%
+  if self.items.size * 4 < self.items:bucketcount() then
     self.items:rehash(0)
   end
   self.collecting = false -- collect cycle finished
@@ -316,7 +316,7 @@ end
 -- Trigger a collection cycle when the memory has grown above pause threshold.
 local function GC_maybecollect(self: *GC): void
   if self.running and not self.collecting and
-     self.membytes >= (self.lastmembytes * self.pause) // 100 then
+     self.membytes * 100 >= self.lastmembytes * self.pause then
     self:collect()
   end
 end
