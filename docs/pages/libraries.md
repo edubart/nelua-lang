@@ -3467,16 +3467,13 @@ in case absent then then `DefaultAllocator` is used.
 ---
 ## allocators.default
 
-The default allocator  library provides the default allocator used by the standard libraries.
+The default allocator library provides the default allocator used by the standard libraries.
 
 The default allocator is `GCAllocator` when GC is enabled,
 otherwise `GeneralAllocator` (when using the pragma `nogc`).
 
 When disabling the GC the user is responsible for manually deallocating
 unused memory from the default allocator.
-
-The default allocator can also be overridden by an allocator instance in case
-the global `embed_default_allocator` is declared before this library is required.
 
 ### new
 
@@ -3728,6 +3725,9 @@ before deletion.
 The general allocator uses the system's general purpose allocator to allocate dynamic memory,
 usually this an efficient allocator for the general use case.
 It uses the allocation functions provided by the system.
+
+The general allocator can also be overridden by an allocator instance in case
+the global `embedded_general_allocator` is declared before this library is required.
 
 ### GeneralAllocator
 
