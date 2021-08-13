@@ -329,7 +329,6 @@ in that case `-1` is returned.
 function os.now(): number
   local ok: boolean = false
   local ns: int64 = 0
-
 ##[==[
   cinclude '<time.h>' -- for timespec_get/TIME_UTC
   cinclude '<stdbool.h>' -- for bool

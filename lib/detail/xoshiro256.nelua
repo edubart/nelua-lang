@@ -14,7 +14,7 @@ local function rotl(x: uint64, n: int32): uint64 <inline,nosideeffect>
 end
 
 -- Generates a random unsigned integral number.
-function Xoshiro256:nextrand(): uint64
+function Xoshiro256:nextrand(): uint64 <inline>
   local state: [4]uint64 = {
     self.state[0],
     self.state[1],
@@ -31,9 +31,8 @@ end
 
 -- Generates a random float number.
 function Xoshiro256:random(): number
-  ## local MANT_DIGITS = primtypes.number.is_float32 and 24 or 53
-  local rv: uint64 = self:nextrand()
-  return (rv >> (64 - #[MANT_DIGITS]#)) / (1_u64 << #[MANT_DIGITS]#)
+  ## local FIGS = math.min(primtypes.number.mantdigits, 64)
+  return (self:nextrand() >> #[64 - FIGS]#) * (0.5 / (1_u64 << #[FIGS-1]#))
 end
 
 -- Reinitialize the generator seed.

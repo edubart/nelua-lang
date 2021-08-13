@@ -118,7 +118,7 @@ end
 Convert to a string in decimal base considering fractional values,
 possibly using scientific notation for float numbers.
 ]]
-function bn.todecsci(v, maxdigits, forcefract)
+function bn.todecsci(v, decimaldigits, forcefract)
   local s
   if bn.isbint(v) then
     -- in case of bints we can just convert to a string
@@ -132,18 +132,18 @@ function bn.todecsci(v, maxdigits, forcefract)
       s = tostring(v)
     elseif ty == 'float' then
       -- 64 bit floats can only be uniquely represented by 17 decimals digits
-      maxdigits = maxdigits or 17
+      decimaldigits = decimaldigits or 17
       -- try to use a small float representation if possible
-      if maxdigits >= 16 then
+      if decimaldigits >= 16 then
         s = string.format('%.15g', v)
         if tonumber(s) ~= v then
           s = string.format('%.16g', v)
           if tonumber(s) ~= v then
-            s = string.format('%.'..maxdigits..'g', v)
+            s = string.format('%.'..decimaldigits..'g', v)
           end
         end
       else
-        s = string.format('%.'..maxdigits..'g', v)
+        s = string.format('%.'..decimaldigits..'g', v)
       end
       forcefract = true
     end

@@ -375,6 +375,28 @@ sizeof_float128 = __SIZEOF_FLOAT128__;
 sizeof_int128 = __SIZEOF_INT128__;
 #endif
 
+/* Float */
+#if defined(__FLT_DECIMAL_DIG__)
+flt_decimal_dig = __FLT_DECIMAL_DIG__;
+flt_dig = __FLT_DIG__;
+flt_mant_dig = __FLT_MANT_DIG__;
+#endif
+#if defined(__DBL_DECIMAL_DIG__)
+dbl_decimal_dig = __DBL_DECIMAL_DIG__;
+dbl_dig = __DBL_DIG__;
+dbl_mant_dig = __DBL_MANT_DIG__;
+#endif
+#if defined(__DBL_DECIMAL_DIG__)
+ldbl_decimal_dig = __DBL_DECIMAL_DIG__;
+ldbl_dig = __LDBL_DIG__;
+ldbl_mant_dig = __LDBL_MANT_DIG__;
+#endif
+#if defined(__FLT128_DECIMAL_DIG__)
+flt128_decimal_dig = __FLT128_DECIMAL_DIG__;
+flt128_dig = __FLT128_DIG__;
+flt128_mant_dig = __FLT128_MANT_DIG__;
+#endif
+
 /* Features */
 #if defined(__LP64__) || defined(__ILP64__) || defined(__LLP64__)
 is_64 = true;

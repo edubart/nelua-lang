@@ -73,9 +73,12 @@ primtypes.uint32      = types.IntegralType('uint32', 4, true)
 primtypes.uint64      = types.IntegralType('uint64', 8, true, math.min(8, cmaxdoublealign))
 primtypes.uint128     = types.IntegralType('uint128', 16, true)
 primtypes.usize       = types.IntegralType('usize', cptrsize, true)
-primtypes.float32     = types.FloatType('float32', cfloatsize, 9)
-primtypes.float64     = types.FloatType('float64', cdoublesize, 17, math.min(cdoublesize, cmaxdoublealign))
-primtypes.float128    = types.FloatType('float128', 16, 36)
+primtypes.float32     = types.FloatType('float32', cfloatsize, nil,
+                                        ccinfo.flt_decimal_dig, ccinfo.flt_mant_dig)
+primtypes.float64     = types.FloatType('float64', cdoublesize, math.min(cdoublesize, cmaxdoublealign),
+                                        ccinfo.dbl_decimal_dig, ccinfo.dbl_mant_dig)
+primtypes.float128    = types.FloatType('float128', 16, nil,
+                                        ccinfo.flt128_decimal_dig, ccinfo.flt128_mant_dig)
 primtypes.byte        = primtypes.uint8
 
 -- Types for C compatibility.
@@ -92,7 +95,8 @@ primtypes.cuint       = types.IntegralType('cuint', cintsize, true)
 primtypes.culong      = types.IntegralType('culong', clongsize, true)
 primtypes.culonglong  = types.IntegralType('culonglong', clonglongsize, true, math.min(clonglongsize, cmaxdoublealign))
 primtypes.csize       = types.IntegralType('csize', cptrsize, true)
-primtypes.clongdouble = types.FloatType('clongdouble', clongdoublesize, 36, math.min(clongdoublesize, cmaxdoublealign))
+primtypes.clongdouble = types.FloatType('clongdouble', clongdoublesize, math.min(clongdoublesize, cmaxdoublealign),
+                                        ccinfo.ldbl_decimal_dig, ccinfo.ldbl_mant_dig)
 primtypes.cstring     = types.PointerType(primtypes.cchar)
 primtypes.cdouble     = primtypes.float64
 primtypes.cfloat      = primtypes.float32

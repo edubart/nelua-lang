@@ -327,7 +327,7 @@ function CEmitter:add_scalar_literal(num, numtype, base)
       self:add_builtin('NELUA_INF_', numtype)
       return
     else -- a number
-      self:add_text(bn.todecsci(num, numtype.maxdigits, true))
+      self:add_text(bn.todecsci(num, numtype.decimaldigits, true))
     end
   else -- integral
     if numtype.is_integral and numtype.is_signed and num == numtype.min then

@@ -1336,16 +1336,19 @@ FloatType.is_float = true
 FloatType.is_signed = true
 
 FloatType.shape = shaper.fork_shape(Type.shape, {
-  -- Max decimal digits that this float can represent.
-  maxdigits = shaper.integer,
+  -- Decimal digits, number of decimal to unique identify a float without loss in precision.
+  decimaldigits = shaper.integer,
+  -- Mantissa digits, precision of mantissa in bits.
+  mantdigits = shaper.integer,
 })
 
-function FloatType:_init(name, size, maxdigits, align)
+function FloatType:_init(name, size, align, decimaldigits, mantdigits)
   if align then
     self.align = align
   end
   ScalarType._init(self, name, size)
-  self.maxdigits = maxdigits
+  self.decimaldigits = decimaldigits
+  self.mantdigits = mantdigits
   self['is_'..self.name] = true
 end
 

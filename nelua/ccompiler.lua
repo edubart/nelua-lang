@@ -201,6 +201,18 @@ local function get_cc_info(cc, cflags)
   ccinfo.sizeof_long_double = ccinfo.sizeof_long_double or 16
   ccinfo.sizeof_float = ccinfo.sizeof_float or 4
   ccinfo.sizeof_double = ccinfo.sizeof_double or 8
+  ccinfo.flt_decimal_dig = ccinfo.flt_decimal_dig or 9
+  ccinfo.flt_dig = ccinfo.flt_dig or 6
+  ccinfo.flt_mant_dig = ccinfo.flt_mant_dig or 24
+  ccinfo.dbl_decimal_dig = ccinfo.dbl_decimal_dig or 17
+  ccinfo.dbl_dig = ccinfo.dbl_dig or 15
+  ccinfo.dbl_mant_dig = ccinfo.dbl_mant_dig or 53
+  ccinfo.ldbl_decimal_dig = ccinfo.ldbl_decimal_dig or 21
+  ccinfo.ldbl_dig = ccinfo.ldbl_dig or 18
+  ccinfo.ldbl_mant_dig = ccinfo.ldbl_mant_dig or 64
+  ccinfo.flt128_decimal_dig = ccinfo.flt128_decimal_dig or 36
+  ccinfo.flt128_dig = ccinfo.flt128_dig or 33
+  ccinfo.flt128_mant_dig = ccinfo.flt128_mant_dig or 113
   ccinfo.biggest_alignment = ccinfo.biggest_alignment or
     math.max(ccinfo.sizeof_long_double, ccinfo.sizeof_long_long)
   if ccinfo.sizeof_pointer then -- ensure some primitive sizes3 have the expected sizes
