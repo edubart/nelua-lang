@@ -1153,7 +1153,7 @@ function visitors.VarDecl(context, node, emitter)
            not valnode.attr.comptime and not lastcallindex then -- could be a call
       emitter:add_indent_ln(valnode, ';')
     end
-    if varattr.cinclude then
+    if varattr.cinclude and (context.pragmas.nodce or varattr:is_used(true)) then
       context:ensure_include(varattr.cinclude)
     end
   end
