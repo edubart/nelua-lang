@@ -1737,7 +1737,8 @@ function string.upper(s: string): string
 
 Receives a string and returns a copy of this string with all lowercase letters changed to uppercase.
 All other characters are left unchanged.
-The definition of what a lowercase letter is depends on the current locale.
+The definition of what a lowercase letter is depends on the current locale
+only if pragma `nobuiltincharclass` is set.
 
 ### string.lower
 
@@ -1747,7 +1748,8 @@ function string.lower(s: string): string
 
 Receives a string and returns a copy of this string with all uppercase letters changed to lowercase.
 All other characters are left unchanged.
-The definition of what an uppercase letter is depends on the current locale.
+The definition of what an uppercase letter is depends on the current locale
+only if pragma `nobuiltincharclass` is set.
 
 ### string.char
 

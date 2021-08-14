@@ -6,17 +6,6 @@ Used by string `find`, `match`, `gsub` and `gmatch` functions.
 
 require 'memory'
 
-local function isalnum(x: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
-local function isalpha(x: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
-local function islower(x: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
-local function isupper(x: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
-local function isdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
-local function isxdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
-local function iscntrl(x: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
-local function isgraph(x: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
-local function isspace(x: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
-local function ispunct(x: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
-
 local MAX_MATCH_CALLS <comptime> = 32
 local CAP_UNFINISHED <comptime> = -1
 local CAP_POSITION <comptime> = -2
@@ -68,6 +57,29 @@ end
 -- Match pattern recursive function.
 function PatternMatcher._match(ms: *PatternMatcher, s: isize, p: isize): isize
   local function match_class(c: byte, cl: byte): boolean
+    ## if pragmas.nobuiltincharclass then
+    local function isalpha(x: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
+    local function islower(x: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
+    local function isupper(x: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
+    local function isdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
+    local function isxdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
+    local function iscntrl(x: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
+    local function isgraph(x: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
+    local function isspace(x: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
+    local function isalnum(x: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
+    local function ispunct(x: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
+    ## else
+    local function isalpha(c: cint): cint <inline> return (((@cuint)(c)|32)-'a'_b < 26) and 1 or 0 end
+    local function islower(c: cint): cint <inline> return ((@cuint)(c)-'a'_b < 26) and 1 or 0 end
+    local function isupper(c: cint): cint <inline> return ((@cuint)(c)-'A'_b < 26) and 1 or 0 end
+    local function isdigit(c: cint): cint <inline> return ((@cuint)(c)-'0'_b < 10) and 1 or 0 end
+    local function isxdigit(c: cint): cint <inline> return (isdigit(c) ~= 0 or ((@cuint)(c)|32)-'a'_b < 6) and 1 or 0 end
+    local function iscntrl(c: cint): cint <inline> return ((@cuint)(c) < 0x20 or c == 0x7f) and 1 or 0 end
+    local function isgraph(c: cint): cint <inline> return ((@cuint)(c)-0x21 < 0x5e) and 1 or 0 end
+    local function isspace(c: cint): cint <inline> return (c == ' '_b or (@cuint)(c)-'\t'_b < 5) and 1 or 0 end
+    local function isalnum(c: cint): cint <inline> return (isalpha(c) ~= 0 or isdigit(c) ~= 0) and 1 or 0 end
+    local function ispunct(c: cint): cint <inline> return (isgraph(c) ~= 0 and isalnum(c) == 0) and 1 or 0 end
+    ## end
     local res: boolean
     switch cl
     case 'a'_b then res = isalpha(c) ~= 0

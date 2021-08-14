@@ -17,9 +17,9 @@ local function snprintf(s: cstring, maxlen: csize, format: cstring, ...: cvararg
 local MAX_FORMAT <comptime> = 32
 local MAX_ITEM <comptime> = 128
 
--- Helper to check if a byte is a digit.
-local function isdigit(x: byte): boolean <inline>
-  return x >= '0'_byte and x <= '9'_byte
+-- Helper to check if a character is a digit.
+local function isdigit(c: cint): boolean <inline>
+  return (@cuint)(c)-'0'_b < 10
 end
 
 -- Helper to scan format string.

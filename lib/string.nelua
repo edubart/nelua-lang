@@ -23,12 +23,6 @@ require 'stringbuilder'
 require 'allocators.default'
 require 'detail.patternmatcher'
 
-local function strtod(str: cstring, endptr: *cstring): float64 <cimport,cinclude'<stdlib.h>'> end
-local function snprintf(s: cstring, maxlen: csize, format: cstring, ...: cvarargs): cint <cimport,cinclude'<stdio.h>'> end
-local function tolower(c: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
-local function toupper(c: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
-local errno: cint <cimport,cinclude'<errno.h>'>
-
 --[[
 Allocate a new string to be filled with length `size`.
 
@@ -323,9 +317,15 @@ end
 --[[
 Receives a string and returns a copy of this string with all lowercase letters changed to uppercase.
 All other characters are left unchanged.
-The definition of what a lowercase letter is depends on the current locale.
+The definition of what a lowercase letter is depends on the current locale
+only if pragma `nobuiltincharclass` is set.
 ]]
 function string.upper(s: string): string
+  ## if pragmas.nobuiltincharclass then
+  local function toupper(c: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
+  ## else
+  local function toupper(c: cint): cint <inline> return (@cuint)(c)-'a'_b < 26 and c & 0x5f or c end
+  ## end
   if unlikely(s.size == 0) then return s end
   local ret: string = string.create(s.size)
   for i:usize=0,<s.size do
@@ -337,9 +337,15 @@ end
 --[[
 Receives a string and returns a copy of this string with all uppercase letters changed to lowercase.
 All other characters are left unchanged.
-The definition of what an uppercase letter is depends on the current locale.
+The definition of what an uppercase letter is depends on the current locale
+only if pragma `nobuiltincharclass` is set.
 ]]
 function string.lower(s: string): string
+  ## if pragmas.nobuiltincharclass then
+  local function tolower(c: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
+  ## else
+  local function tolower(c: cint): cint <inline> return (@cuint)(c)-'A'_b < 26 and c | 32 or c end
+  ## end
   if unlikely(s.size == 0) then return s end
   local ret: string = string.create(s.size)
   for i:usize=0,<s.size do
@@ -732,6 +738,7 @@ global function tostring(x: auto): string
     end]]
     local tmpbuf: [48]byte <noinit> -- the output should not have more than 48 characters
     tmpbuf[47] = 0
+    local function snprintf(s: cstring, maxlen: csize, format: cstring, ...: cvarargs): cint <cimport,cinclude'<stdio.h>'> end
     local fmt: cstring <cimport(#[tyformat]#), nodecl, cinclude '<inttypes.h>'>
     local size: cint = snprintf(&tmpbuf, #tmpbuf-1, fmt, x)
     ## if xtype.is_float then
@@ -775,6 +782,8 @@ global function tonumber(x: auto, base: facultative(integer)): auto
     return (@number)(x)
   ## elseif x.type.is_stringy then
     local endptr: cstring, tmpbuf: [65]cchar
+    local errno: cint <cimport,cinclude'<errno.h>'>
+    local function strtod(str: cstring, endptr: *cstring): float64 <cimport,cinclude'<stdlib.h>'> end
     assert(string.fillcstring(x, &tmpbuf, #tmpbuf)) -- ensure it's zero terminated
     errno = 0
     local n: float64 = strtod(&tmpbuf, &endptr)
