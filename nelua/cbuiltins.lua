@@ -909,7 +909,7 @@ function cbuiltins.calls.print(context, node)
       break;
     }
   }
-  if(!fractnum && len > 0 && len + 2 < sizeof(buff)) {
+  if(!fractnum && len > 0 && len + 2 < (int)sizeof(buff)) {
     buff[len] = '.';
     buff[len+1] = '0';
     len = len + 2;
