@@ -13,9 +13,6 @@ require 'span'
 -- Namespace for hash module.
 global hash: type = @record{}
 
-local function frexp_f32(x: float32, exp: *cint): float32 <cimport'frexpf',cinclude'<math.h>',nosideeffect> end
-local function frexp_f64(x: float64, exp: *cint): float64 <cimport'frexp',cinclude'<math.h>',nosideeffect> end
-
 -- This is the same simple hash function used in Lua.
 local function lhash(data: *[0]byte, len: usize, seed: usize, step: usize): usize <inline>
   seed = seed ~ len
@@ -61,6 +58,8 @@ function hash.hash(v: auto): usize
     return (@usize)(v)
   ## elseif v.type.is_float then
     local ne: cint
+    local function frexp_f32(x: float32, exp: *cint): float32 <cimport'frexpf',cinclude'<math.h>',nosideeffect> end
+    local function frexp_f64(x: float64, exp: *cint): float64 <cimport'frexp',cinclude'<math.h>',nosideeffect> end
     v = #|'frexp_f'..(v.type.is_float32 and '32' or '64')|#(v, &ne) * -(@float32)(#[primtypes.isize.min]#)
     if v ~= v or v == #[math.huge]# or v == -#[math.huge]# then -- non finite
       return 0

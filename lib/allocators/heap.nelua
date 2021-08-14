@@ -26,6 +26,8 @@ however it has heavy customized to have more performance, constant time allocati
 and alignment.
 ]]
 
+require 'memory'
+
 -- Do not change this alignment, the implementation have this in mind.
 local ALLOC_ALIGN: usize <comptime> = #[typedefs.maxalign]#
 -- The minimum allocation size for joining and splitting chunks.
@@ -100,7 +102,6 @@ local function clz(x: uint32): uint32 <inline,nosideeffect>
 ]==]
   return x
 end
-local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,cinclude'<string.h>'> end
 
 --[[
 Hashing function that converts allocation size into bin index.
@@ -387,7 +388,7 @@ function Heap:realloc(p: pointer, size: usize): pointer
         -- out of memory, cancel the realloc
         return nilptr
       end
-      memcpy(newp, p, head.size)
+      memory.copy(newp, p, head.size)
       self:dealloc(p)
       return newp
     end

@@ -34,8 +34,6 @@ local function align_forward(addr: usize, align: usize): usize <inline>
   return (addr + (align-1)) & ~(align-1)
 end
 
-local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,cinclude'<string.h>'> end
-
 ## local function make_ArenaT(SIZE, ALIGN)
   ## ALIGN = ALIGN or 8
   ## static_assert(SIZE % ALIGN == 0, 'size must be multiple of align')
@@ -130,7 +128,7 @@ local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,c
       local newp: pointer = self:alloc(newsize)
       if likely(newp ~= nilptr and p ~= nilptr and oldsize ~= 0) then
         -- copy the mem to the new location
-        memcpy(newp, p, oldsize)
+        memory.copy(newp, p, oldsize)
       end
       -- no dealloc is done on old pointer because it's not possible in this allocator
       return newp

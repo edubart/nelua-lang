@@ -1125,7 +1125,7 @@ Copies `n` bytes from memory pointed by `src` into memory pointed by `dest`.
 The memory region may overlap.
 If `n` is zero, then nothing is done.
 
-if the memory region is guaranteed to not overlap, then you could use `memory.copy`.
+If the memory region is guaranteed to not overlap, then you could use `memory.copy`.
 
 ### memory.set
 

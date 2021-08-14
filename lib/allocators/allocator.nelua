@@ -11,14 +11,11 @@ allocators.
 Allocation failures usually happen when running out of memory.
 ]]
 
+require 'memory'
 require 'span'
 
 -- Macro that when called it implements common allocation methods.
 ## function implement_allocator_interface(Allocator)
-  local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,cinclude'<string.h>'> end
-  local function memmove(dest: pointer, src: pointer, n: csize): pointer <cimport,cinclude'<string.h>'> end
-  local function memset(s: pointer, c: cint, n: csize): pointer <cimport,cinclude'<string.h>'> end
-
   ## Allocator.value.is_allocator = true
 
   -- The allocator type which the allocator interface will implements the methods.
@@ -59,8 +56,8 @@ require 'span'
   -- Like `alloc`, but the allocated memory is initialized with zeros.
   function Allocator:alloc0(size: usize): pointer
     local p: pointer = self:alloc(size)
-    if likely(p ~= nilptr and size ~= 0) then
-      memset(p, 0, size)
+    if likely(p ~= nilptr) then
+      memory.zero(p, size)
     end
     return p
   end
@@ -122,7 +119,7 @@ require 'span'
             minsize = newsize
           end
           -- use memmove because we don't really know if the memory can overlap
-          memmove(newp, p, minsize)
+          memory.move(newp, p, minsize)
         end
         self:dealloc(p)
       end
@@ -142,9 +139,8 @@ require 'span'
   -- Like `realloc`, but initializes added memory with zeros.
   function Allocator:realloc0(p: pointer, newsize: usize, oldsize: usize): pointer
     p = self:realloc(p, newsize, oldsize)
-    if likely(newsize > oldsize and p ~= nilptr) then
-      -- zero the grown part
-      memset(&(@*[0]byte)(p)[oldsize], 0, newsize - oldsize)
+    if likely(newsize > oldsize and p ~= nilptr) then -- zero the grown part
+      memory.zero(&(@*[0]byte)(p)[oldsize], newsize - oldsize)
     end
     return p
   end
@@ -290,7 +286,7 @@ require 'span'
       local ptr: *T = (@*T)(self:xalloc0(#T))
       ## else
       local ptr: *T = (@*T)(self:xalloc(#T))
-      memcpy(ptr, &what, #T)
+      memory.copy(ptr, &what, #T)
       ## end
       return ptr
     ## else
@@ -299,7 +295,7 @@ require 'span'
       ## else
       local spn: span(T) = self:xspanalloc(T, size)
       for i:usize=0,<size do
-        memcpy(&spn[i], &what, #T)
+        memory.copy(&spn[i], &what, #T)
       end
       ## end
       return spn
