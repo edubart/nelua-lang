@@ -242,7 +242,13 @@ end
          c == 'f'_byte or
          c == 'e'_byte or c == 'E'_byte or
          c == 'g'_byte or c == 'G'_byte then
-        local n: number = (@number)(arg1)
+        ## if arg1.type.is_clongdouble then
+        local lenmod: cstring = 'Lf'
+        addlenmod(form, lenmod, #lenmod - 1)
+        local n: clongdouble = arg1
+        ## else
+        local n: float64 = (@float64)(arg1)
+        ## end
         nb = snprintf(buff, maxitem, &form[0], n)
         goto next
       end

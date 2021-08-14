@@ -740,22 +740,24 @@ global function tostring(x: auto): string
     tmpbuf[47] = 0
     local function snprintf(s: cstring, maxlen: csize, format: cstring, ...: cvarargs): cint <cimport,cinclude'<stdio.h>'> end
     local fmt: cstring <cimport(#[tyformat]#), nodecl, cinclude '<inttypes.h>'>
-    local size: cint = snprintf(&tmpbuf, #tmpbuf-1, fmt, x)
+    local len: cint = snprintf(&tmpbuf, #tmpbuf-1, fmt, x)
     ## if xtype.is_float then
       -- add a least one decimal if needed
-      local fractional: boolean
-      for i:usize=0,<size do
+      local fractnum: boolean
+      for i:usize=0,<len do
         if not ((tmpbuf[i] >= '0'_b and tmpbuf[i] <= '9'_b) or tmpbuf[i] == '-'_b) then
-          fractional = true
+          fractnum = true
           break
         end
       end
-      if not fractional then
-        size = snprintf(&tmpbuf, #tmpbuf-1, "%.1f", x)
+      if not fractnum and len > 0 and len + 2 < #tmpbuf then
+        tmpbuf[len] = '.'_b
+        tmpbuf[len+1] = '0'_b
+        len = len + 2
       end
     ## end
-    assert(size >= 0 and size < #tmpbuf-1, "tostring format failed or truncated")
-    return string.copy((@string){&tmpbuf[0], size})
+    assert(len >= 0 and len < #tmpbuf-1, "tostring format failed or truncated")
+    return string.copy((@string){&tmpbuf[0], len})
   ## elseif xtype.is_boolean then
     if x == true then
       return string.copy('true')

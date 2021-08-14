@@ -909,13 +909,13 @@ function cbuiltins.calls.print(context, node)
       break;
     }
   }
+  if(!fractnum && len > 0 && len + 2 < sizeof(buff)) {
+    buff[len] = '.';
+    buff[len+1] = '0';
+    len = len + 2;
+  }
+  fwrite(buff, 1, len, stdout);
 ]])
-      defemitter:add_indent_ln('if(!fractnum) {')
-        defemitter:inc_indent()
-        defemitter:add_indent_ln('len = snprintf(buff, sizeof(buff)-1, "%.1f", a',i,');')
-        defemitter:dec_indent()
-      defemitter:add_indent_ln('}')
-      defemitter:add_indent_ln('fwrite(buff, 1, len, stdout);')
     elseif argtype.is_scalar then
       context:ensure_builtins('fprintf', 'stdout')
       if argtype.is_enum then
