@@ -846,9 +846,10 @@ function cbuiltins.calls.print(context, node)
   defemitter:add_ln(' {')
   defemitter:inc_indent()
   if hasfloat then
+    defemitter:add_indent_ln("int len;")
+    defemitter:add_indent_ln("bool fractnum;")
     defemitter:add_indent_ln("char buff[48];")
     defemitter:add_indent_ln("buff[sizeof(buff)-1] = 0;")
-    defemitter:add_indent_ln("int len;")
   end
   for i,argtype in ipairs(argtypes) do
     defemitter:add_indent()
@@ -894,13 +895,22 @@ function cbuiltins.calls.print(context, node)
         defemitter:dec_indent()
       defemitter:add_indent_ln('}')
     elseif argtype.is_float then
-      context:ensure_builtins('snprintf', 'strspn', 'fwrite', 'stdout')
+      context:ensure_builtins('snprintf', 'fwrite', 'stdout', 'false', 'true')
       local tyformat = cdefs.types_printf_format[argtype.codename]
       if not tyformat then
         node:raisef('in print: cannot handle type "%s"', argtype)
       end
       defemitter:add_ln('len = snprintf(buff, sizeof(buff)-1, ',tyformat,', a',i,');')
-      defemitter:add_indent_ln('if(buff[strspn(buff, "-0123456789")] == 0) {')
+      defemitter:add([[
+  fractnum = false;
+  for(int i=0;i<len && buff[i] != 0;++i) {
+    if(!((buff[i] >= '0' && buff[i] <= '9') || buff[i] == '-')) {
+      fractnum = true;
+      break;
+    }
+  }
+]])
+      defemitter:add_indent_ln('if(!fractnum) {')
         defemitter:inc_indent()
         defemitter:add_indent_ln('len = snprintf(buff, sizeof(buff)-1, "%.1f", a',i,');')
         defemitter:dec_indent()

@@ -94,7 +94,6 @@ cdefs.builtins_headers = {
   exit = '<stdlib.h>',
   -- string.h
   strlen = '<string.h>',
-  strspn = '<string.h>',
   memcmp = '<string.h>',
   -- math.h
   fmodf = '<math.h>', fmod = '<math.h>',
@@ -301,7 +300,7 @@ biggest_alignment = __BIGGEST_ALIGNMENT__;
 #if defined(__STDC__)
 stdc = true;
 #endif
-#if defined(__STDC_HOSTED__)
+#if __STDC_HOSTED__ > 0
 stdc_hosted = true;
 #endif
 #if defined(__STDC_VERSION__)
