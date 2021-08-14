@@ -783,13 +783,21 @@ global function tonumber(x: auto, base: facultative(integer)): auto
   ## elseif x.type.is_stringy then
     local endptr: cstring, tmpbuf: [65]cchar
     local errno: cint <cimport,cinclude'<errno.h>'>
-    local function strtod(str: cstring, endptr: *cstring): float64 <cimport,cinclude'<stdlib.h>'> end
     assert(string.fillcstring(x, &tmpbuf, #tmpbuf)) -- ensure it's zero terminated
     errno = 0
-    local n: float64 = strtod(&tmpbuf, &endptr)
+    ## if primtypes.number.is_float32 then
+    local function strtof(str: cstring, endptr: *cstring): float32 <cimport,cinclude'<stdlib.h>'> end
+    local n: number = (@number)(strtof(&tmpbuf, &endptr))
+    ## elseif primtypes.number.is_float64 then
+    local function strtod(str: cstring, endptr: *cstring): float64 <cimport,cinclude'<stdlib.h>'> end
+    local n: number = (@number)(strtod(&tmpbuf, &endptr))
+    ## else
+    local function strtold(str: cstring, endptr: *cstring): clongdouble <cimport,cinclude'<stdlib.h>'> end
+    local n: number = (@number)(strtold(&tmpbuf, &endptr))
+    ## end
     local len: usize = (@usize)(endptr) - (@usize)(&tmpbuf)
     assert(len > 0 and len <= (@usize)(#x) and errno == 0, 'failed to convert string to number')
-    return (@number)(n)
+    return n
   ## else static_error("unable to convert value of type '%s' to a number", x.type) end
 end
 
