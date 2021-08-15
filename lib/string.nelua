@@ -635,8 +635,8 @@ function string.__bnot(a: scalar_coercion_concept): integer
 end
 
 -- Helper to check if a byte is a space.
-local function isspace(x: byte): boolean <inline>
-  return x == ' '_b or x == '\t'_b or x == '\n'_b or x == '\v'_b or x == '\f'_b or x == '\r'_b
+local function isspace(c: byte): boolean <inline>
+  return c == ' '_b or c-'\t'_b < 5
 end
 
 -- Convert a string to an integer in the desired base.
@@ -785,6 +785,7 @@ global function tonumber(x: auto, base: facultative(integer)): auto
   ## elseif x.type.is_stringy then
     local endptr: cstring, tmpbuf: [65]cchar
     local errno: cint <cimport,cinclude'<errno.h>'>
+    local ERANGE: cint <const,cimport,cinclude'<errno.h>'>
     assert(string.fillcstring(x, &tmpbuf, #tmpbuf)) -- ensure it's zero terminated
     errno = 0
     ## if primtypes.number.is_float32 then
@@ -798,7 +799,7 @@ global function tonumber(x: auto, base: facultative(integer)): auto
     local n: number = (@number)(strtold(&tmpbuf, &endptr))
     ## end
     local len: usize = (@usize)(endptr) - (@usize)(&tmpbuf)
-    assert(len > 0 and len <= (@usize)(#x) and errno == 0, 'failed to convert string to number')
+    assert(len > 0 and len <= (@usize)(#x) and (errno == 0 or errno == ERANGE), 'failed to convert string to number')
     return n
   ## else static_error("unable to convert value of type '%s' to a number", x.type) end
 end

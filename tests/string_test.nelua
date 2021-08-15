@@ -510,6 +510,9 @@ do -- tonumber
   local c: cstring = '1337'
   assert(tonumber(c) == 1337)
   assert(tonumber(('12345'):subview(1,3)) == 123)
+  assert(tonumber('1e1000') == #[math.huge]#)
+  assert(tonumber('-1e1000') == #[-math.huge]#)
+  assert(tonumber('1e-1000') == 0.0)
 
   -- tonumber with base
   assert(tonumber('0', 10) == 0)
