@@ -18,31 +18,27 @@ To install Nelua you need a system with the following:
 * Build tools (such as make)
 * GDB debugger (in case you want to debug runtime errors)
 
-## Installing on Linux
+## Linux
 
 Use your system's package manager to install all of the required tools first,
-then clone, compile the dependencies, and install using make.
 
-For example, in Ubuntu:
-
-```bash
+### Ubuntu
+```sh
 sudo apt-get install build-essential git gcc gdb
-git clone https://github.com/edubart/nelua-lang.git && cd nelua-lang
-sudo make install
 ```
 
-This will install to `/usr/local` by default.
-You can install somewhere else using the `PREFIX` argument.
-For example, suppose you want to install in your home directory.
-Then you would use `sudo make install PREFIX=~/nelua`,
-and the Nelua compiler would be available at `~/nelua/bin/nelua`.
+### Arch
+```sh
+sudo pacman -S based-devel git gcc gdb
+```
 
-Alternatively you can run the `nelua.sh` file to run Nelua directly if you do not wish
-to install it anywhere on your system.
+## MacOS
+first make sure you have installed **brew**, then run:
+```
+brew install gcc gdb git make
+```
 
-Proceed to the [testing section](#testing).
-
-## Installing on Windows
+## Windows
 
 MSYS2 is the recommended and supported environment to use Nelua on Windows.
 Although you could use other tools, MSYS2 makes using Nelua very easy on Windows,
@@ -53,7 +49,7 @@ Download and install [MSYS2](https://www.msys2.org/).
 After installing open the **64 bit terminal**, that is,
 **msys64**, and update:
 
-```bash
+```sh
 pacman -Syu
 ```
 
@@ -62,11 +58,26 @@ You may need close and reopen the terminal and update a second time using the sa
 Now install all the required tools first,
 then clone, compile the dependencies, and install using make.
 
-```bash
+```sh
 pacman -S base-devel git mingw-w64-x86_64-gcc gdb
-git clone https://github.com/edubart/nelua-lang.git && cd nelua-lang
-make install
 ```
+
+## Clone and Install
+
+now you can clone and install with:
+```sh
+git clone https://github.com/edubart/nelua-lang.git && cd nelua-lang
+sudo make install
+```
+
+in linux this will install to `/usr/local` by default.
+You can install somewhere else using the `PREFIX` argument.
+For example, suppose you want to install in your home directory.
+Then you would use `sudo make install PREFIX=~/nelua`,
+and the Nelua compiler would be available at `~/nelua/bin/nelua`.
+
+Alternatively you can run the `nelua.sh` file to run Nelua directly if you do not wish
+to install it anywhere on your system.
 
 Proceed to the [testing section](#testing).
 
@@ -78,7 +89,7 @@ Add it or find and execute the full path to the installed Nelua compiler to use 
 
 Run the hello world example:
 
-```bash
+```sh
 nelua examples/helloworld.nelua
 ```
 
@@ -91,7 +102,7 @@ such as `snakesdl.nelua` and `condots.nelua`.
 To run the Snake SDL game demo, for example, you will need to have the SDL2 library installed.
 Install it using your system's package manager and run the example:
 
-```bash
+```sh
 # install SDL2 on MSYS2
 pacman -S mingw-w64-x86_64-SDL2
 # install SDL2 on Ubuntu
