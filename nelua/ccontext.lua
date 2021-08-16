@@ -211,6 +211,17 @@ function CContext:ensure_include(name)
   end
 end
 
+-- Ensures function `name` from C math library included.
+function CContext:ensure_cmath_func(name, type)
+  if type.is_cfloat then
+    name = name..'f'
+  elseif type.is_clongdouble then
+    name = name..'l'
+  end
+  self:ensure_builtin(name)
+  return name
+end
+
 --[[
 Ensures C source file `filename` is compiled and linked when compiling the application binary.
 If the file name is not an absolute path, then looks for files in the current source file directory.

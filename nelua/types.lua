@@ -161,6 +161,9 @@ Type.shape = shaper.shape {
   is_culong = shaper.optional_boolean,
   is_culonglong = shaper.optional_boolean,
   is_csize = shaper.optional_boolean,
+  is_cfloat = shaper.optional_boolean,
+  is_cdouble = shaper.optional_boolean,
+  is_clongdouble = shaper.optional_boolean,
 
   -- Booleans for checking the underlying type (primitive types).
   is_any = shaper.optional_boolean,

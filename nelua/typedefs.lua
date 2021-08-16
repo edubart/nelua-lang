@@ -98,8 +98,8 @@ primtypes.csize       = types.IntegralType('csize', cptrsize, true)
 primtypes.clongdouble = types.FloatType('clongdouble', clongdoublesize, math.min(clongdoublesize, cmaxdoublealign),
                                         ccinfo.ldbl_decimal_dig, ccinfo.ldbl_mant_dig)
 primtypes.cstring     = types.PointerType(primtypes.cchar)
-primtypes.cdouble     = primtypes.float64
-primtypes.cfloat      = primtypes.float32
+primtypes.cdouble     = primtypes.float64; primtypes.cdouble.is_cdouble = true
+primtypes.cfloat      = primtypes.float32; primtypes.cfloat.is_cfloat = true
 primtypes.cvarargs    = types.CVarargsType('cvarargs')
 primtypes.cvalist     = types.CVaList('cvalist')
 primtypes.cclock_t    = types.IntegralType('cclock_t', clongsize, false)
@@ -132,40 +132,42 @@ primtypes.decltype    = types.GenericType(types.decltype)
 
 -- Map of literal suffixes.
 typedefs.number_literal_types = {
-  _i          = 'integer',  _integer    = 'integer',
-  _u          = 'uinteger', _uinteger   = 'uinteger',
-  _n          = 'number',   _number     = 'number',
-  _b          = 'byte',     _byte       = 'byte',
-  _is         = 'isize',    _isize      = 'isize',
-  _i8         = 'int8',     _int8       = 'int8',
-  _i16        = 'int16',    _int16      = 'int16',
-  _i32        = 'int32',    _int32      = 'int32',
-  _i64        = 'int64',    _int64      = 'int64',
-  _i128       = 'int128',   _int128     = 'int128',
-  _us         = 'usize',    _usize      = 'usize',
-  _u8         = 'uint8',    _uint8      = 'uint8',
-  _u16        = 'uint16',   _uint16     = 'uint16',
-  _u32        = 'uint32',   _uint32     = 'uint32',
-  _u64        = 'uint64',   _uint64     = 'uint64',
-  _u128       = 'uint128',  _uint128    = 'uint128',
-  _f32        = 'float32',  _float32    = 'float32',
-  _f64        = 'float64',  _float64    = 'float64',
-  _f128       = 'float128', _float128   = 'float128',
+  _integer      = 'integer',      _i    = 'integer',
+  _uinteger     = 'uinteger',     _u    = 'uinteger',
+  _number       = 'number',       _n    = 'number',
+  _byte         = 'byte',         _b    = 'byte',
+  _isize        = 'isize',        _is   = 'isize',
+  _int8         = 'int8',         _i8   = 'int8',
+  _int16        = 'int16',        _i16  = 'int16',
+  _int32        = 'int32',        _i32  = 'int32',
+  _int64        = 'int64',        _i64  = 'int64',
+  _int128       = 'int128',       _i128 = 'int128',
+  _usize        = 'usize',        _us   = 'usize',
+  _uint8        = 'uint8',        _u8   = 'uint8',
+  _uint16       = 'uint16',       _u16  = 'uint16',
+  _uint32       = 'uint32',       _u32  = 'uint32',
+  _uint64       = 'uint64',       _u64  = 'uint64',
+  _uint128      = 'uint128',      _u128 = 'uint128',
+  _float32      = 'float32',      _f32  = 'float32',
+  _float64      = 'float64',      _f64  = 'float64',
+  _float128     = 'float128',     _f128 = 'float128',
 
-  _cchar       = 'cchar',
-  _cschar      = 'cschar',
-  _cshort      = 'cshort',
-  _cint        = 'cint',
-  _clong       = 'clong',
-  _clonglong   = 'clonglong',
-  _cptrdiff    = 'cptrdiff',
-  _cuchar      = 'cuchar',
-  _cushort     = 'cushort',
-  _cuint       = 'cuint',
-  _culong      = 'culong',
-  _culonglong  = 'culonglong',
-  _csize       = 'csize',
-  _clongdouble = 'clongdouble',
+  _cchar        = 'cchar',        _cc   = 'cchar',
+  _cschar       = 'cschar',       _csc  = 'cschar',
+  _cshort       = 'cshort',       _cs   = 'cshort',
+  _cint         = 'cint',         _ci   = 'cint',
+  _clong        = 'clong',        _cl   = 'clong',
+  _clonglong    = 'clonglong',    _cll  = 'clonglong',
+  _cptrdiff     = 'cptrdiff',     _cpd  = 'cptrdiff',
+  _cuchar       = 'cuchar',       _cuc  = 'cuchar',
+  _cushort      = 'cushort',      _cus  = 'cushort',
+  _cuint        = 'cuint',        _cui  = 'cuint',
+  _culong       = 'culong',       _cul  = 'culong',
+  _culonglong   = 'culonglong',   _cull = 'culonglong',
+  _csize        = 'csize',        _cz   = 'csize',
+  _cfloat       = 'cfloat',       _cf   = 'cfloat',
+  _cdouble      = 'cdouble',      _cd   = 'cdouble',
+  _clongdouble  = 'clongdouble',  _cld  = 'clongdouble',
 }
 
 -- Map for converting signed and unsigned types.

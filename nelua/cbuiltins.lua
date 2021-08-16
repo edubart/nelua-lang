@@ -294,7 +294,7 @@ function cbuiltins.NELUA_INF_(context, type)
   local S = ''
   if type.is_float128 then S = 'Q'
   elseif type.is_clongdouble then S = 'L'
-  elseif type.is_float32 then S = 'F' end
+  elseif type.is_cfloat then S = 'F' end
   local name = 'NELUA_INF'..S
   if context.usedbuiltins[name] then return name end
   context:define_builtin_macro(name, pegger.substitute([[
@@ -616,10 +616,10 @@ end
 
 -- Used by float modulo operator (`%`).
 function cbuiltins.nelua_fmod_(context, type)
-  local cfmod = type.is_float32 and 'fmodf' or 'fmod'
+  local cfmod = context:ensure_cmath_func('fmod', type)
   local name = 'nelua_'..cfmod
   if context.usedbuiltins[name] then return name end
-  context:ensure_builtins(cfmod, 'NELUA_UNLIKELY')
+  context:ensure_builtins('NELUA_UNLIKELY')
   context:define_function_builtin(name,
     'NELUA_INLINE', type, {{type, 'a'}, {type, 'b'}}, {[[{
   ]],type,[[ r = ]],cfmod,[[(a, b);
@@ -1023,8 +1023,7 @@ function cbuiltins.operators.idiv(context, node, emitter, lattr, rattr, lname, r
   local type, ltype, rtype = node.attr.type, lattr.type, rattr.type
   assert(ltype.is_arithmetic and rtype.is_arithmetic)
   if ltype.is_float or rtype.is_float then
-    emitter:add_builtin(type.is_float32 and 'floorf' or 'floor')
-    emitter:add('(', lname, ' / ', rname, ')')
+    emitter:add(context:ensure_cmath_func('floor', type), '(', lname, ' / ', rname, ')')
   elseif type.is_integral and (lattr:is_maybe_negative() or rattr:is_maybe_negative()) then
     emitter:add_builtin('nelua_idiv_', type, not context.pragmas.nochecks)
     emitter:add('(', lname, ', ', rname, ')')
@@ -1038,8 +1037,7 @@ function cbuiltins.operators.tdiv(context, node, emitter, lattr, rattr, lname, r
   local type, ltype, rtype = node.attr.type, lattr.type, rattr.type
   assert(ltype.is_arithmetic and rtype.is_arithmetic)
   if ltype.is_float or rtype.is_float then
-    emitter:add_builtin(type.is_float32 and 'truncf' or 'trunc')
-    emitter:add('(', lname, ' / ', rname, ')')
+    emitter:add(context:ensure_cmath_func('trunc', type), '(', lname, ' / ', rname, ')')
   else
     operator_binary_op('/', context, node, emitter, lattr, rattr, lname, rname)
   end
@@ -1065,8 +1063,7 @@ function cbuiltins.operators.tmod(context, node, emitter, lattr, rattr, lname, r
   local type, ltype, rtype = node.attr.type, lattr.type, rattr.type
   assert(ltype.is_arithmetic and rtype.is_arithmetic)
   if ltype.is_float or rtype.is_float then
-    emitter:add_builtin(type.is_float32 and 'fmodf' or 'fmod')
-    emitter:add('(', lname, ', ', rname, ')')
+    emitter:add(context:ensure_cmath_func('fmod', type), '(', lname, ', ', rname, ')')
   else
     operator_binary_op('%', context, node, emitter, lattr, rattr, lname, rname)
   end
@@ -1119,11 +1116,10 @@ function cbuiltins.operators.asr(_, node, emitter, lattr, rattr, lname, rname)
 end
 
 -- Implementation of pow operator (`^`).
-function cbuiltins.operators.pow(_, node, emitter, lattr, rattr, lname, rname)
+function cbuiltins.operators.pow(context, node, emitter, lattr, rattr, lname, rname)
   local type, ltype, rtype = node.attr.type, lattr.type, rattr.type
   assert(ltype.is_arithmetic and rtype.is_arithmetic)
-  emitter:add_builtin(type.is_float32 and 'powf' or 'pow')
-  emitter:add('(', lname, ', ', rname, ')')
+  emitter:add(context:ensure_cmath_func('pow', type), '(', lname, ', ', rname, ')')
 end
 
 -- Implementation of less than operator (`<`).

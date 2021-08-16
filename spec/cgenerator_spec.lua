@@ -1269,6 +1269,8 @@ it("binary operator `pow`", function()
   expect.generate_c("local x = 2 ^ 2", "x = 4.0;")
   expect.generate_c("local x = 2_f32 ^ 2_f32", "x = 4.0f;")
   expect.generate_c("local a,b = 2_f32,2_f32; local x = a ^ b", "x = powf(a, b);")
+  expect.generate_c("local a,b = 2_f64,2_f64; local x = a ^ b", "x = pow(a, b);")
+  expect.generate_c("local a,b = 2_cld,2_cld; local x = a ^ b", "x = powl(a, b);")
 end)
 
 it("binary operator `band`", function()

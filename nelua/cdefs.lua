@@ -96,10 +96,10 @@ cdefs.builtins_headers = {
   strlen = '<string.h>',
   memcmp = '<string.h>',
   -- math.h
-  fmodf = '<math.h>', fmod = '<math.h>',
-  floorf = '<math.h>', floor = '<math.h>',
-  truncf = '<math.h>', trunc = '<math.h>',
-  powf = '<math.h>', pow = '<math.h>',
+  fmod = '<math.h>', fmodf = '<math.h>', fmodl = '<math.h>',
+  floor = '<math.h>', floorf = '<math.h>', floorl = '<math.h>',
+  trunc = '<math.h>', truncf = '<math.h>', truncl = '<math.h>',
+  pow = '<math.h>', powf = '<math.h>', powl = '<math.h>',
   -- inttypes.h
   PRIiPTR = '<inttypes.h>', PRIuPTR = '<inttypes.h>', PRIxPTR = '<inttypes.h>',
   PRIi8 = '<inttypes.h>', PRIu8 = '<inttypes.h>',

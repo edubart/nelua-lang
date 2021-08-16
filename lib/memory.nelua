@@ -170,7 +170,7 @@ end
 function memory.spanset(dest: an_span, x: auto): void <inline>
   ## check_span_subtype_match(dest, x)
   local T: type = #[x.type]#
-  ## if x.type.is_integral and x.bitsize == 8 then
+  ## if x.type.is_integral and x.size == 1 then
     if likely(dest.size > 0) then
       memset(dest.data, (@byte)(x), dest.size)
     end

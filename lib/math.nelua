@@ -5,68 +5,6 @@ The math library provides basic mathematical functions.
 -- Namespace for math module.
 global math: type = @record{}
 
--- Import C math functions
-local function floor_f64(x: float64): float64 <cimport'floor',cinclude'<math.h>',nosideeffect> end
-local function floor_f32(x: float32): float32 <cimport'floorf',cinclude'<math.h>',nosideeffect> end
-local function ceil_f64(x: float64): float64 <cimport'ceil',cinclude'<math.h>',nosideeffect> end
-local function ceil_f32(x: float32): float32 <cimport'ceilf',cinclude'<math.h>',nosideeffect> end
-local function trunc_f64(x: float64): float64 <cimport'trunc',cinclude'<math.h>',nosideeffect> end
-local function trunc_f32(x: float32): float32 <cimport'truncf',cinclude'<math.h>',nosideeffect> end
-local function round_f64(x: float64): float64 <cimport'round',cinclude'<math.h>',nosideeffect> end
-local function round_f32(x: float32): float32 <cimport'roundf',cinclude'<math.h>',nosideeffect> end
-local function sqrt_f64(x: float64): float64 <cimport'sqrt',cinclude'<math.h>',nosideeffect> end
-local function sqrt_f32(x: float32): float32 <cimport'sqrtf',cinclude'<math.h>',nosideeffect> end
-local function cbrt_f64(x: float64): float64 <cimport'cbrt',cinclude'<math.h>',nosideeffect> end
-local function cbrt_f32(x: float32): float32 <cimport'cbrtf',cinclude'<math.h>',nosideeffect> end
-local function exp_f64(x: float64): float64 <cimport'exp',cinclude'<math.h>',nosideeffect> end
-local function exp_f32(x: float32): float32 <cimport'expf',cinclude'<math.h>',nosideeffect> end
-local function exp2_f64(x: float64): float64 <cimport'exp2',cinclude'<math.h>',nosideeffect> end
-local function exp2_f32(x: float32): float32 <cimport'exp2f',cinclude'<math.h>',nosideeffect> end
-local function log_f64(x: float64): float64 <cimport'log',cinclude'<math.h>',nosideeffect> end
-local function log_f32(x: float32): float32 <cimport'logf',cinclude'<math.h>',nosideeffect> end
-local function log2_f64(x: float64): float64 <cimport'log2',cinclude'<math.h>',nosideeffect> end
-local function log2_f32(x: float32): float32 <cimport'log2f',cinclude'<math.h>',nosideeffect> end
-local function log10_f64(x: float64): float64 <cimport'log10',cinclude'<math.h>',nosideeffect> end
-local function log10_f32(x: float32): float32 <cimport'log10f',cinclude'<math.h>',nosideeffect> end
-local function cos_f64(x: float64): float64 <cimport'cos',cinclude'<math.h>',nosideeffect> end
-local function cos_f32(x: float32): float32 <cimport'cosf',cinclude'<math.h>',nosideeffect> end
-local function sin_f64(x: float64): float64 <cimport'sin',cinclude'<math.h>',nosideeffect> end
-local function sin_f32(x: float32): float32 <cimport'sinf',cinclude'<math.h>',nosideeffect> end
-local function tan_f64(x: float64): float64 <cimport'tan',cinclude'<math.h>',nosideeffect> end
-local function tan_f32(x: float32): float32 <cimport'tanf',cinclude'<math.h>',nosideeffect> end
-local function acos_f64(x: float64): float64 <cimport'acos',cinclude'<math.h>',nosideeffect> end
-local function acos_f32(x: float32): float32 <cimport'acosf',cinclude'<math.h>',nosideeffect> end
-local function asin_f64(x: float64): float64 <cimport'asin',cinclude'<math.h>',nosideeffect> end
-local function asin_f32(x: float32): float32 <cimport'asinf',cinclude'<math.h>',nosideeffect> end
-local function atan_f64(x: float64): float64 <cimport'atan',cinclude'<math.h>',nosideeffect> end
-local function atan_f32(x: float32): float32 <cimport'atanf',cinclude'<math.h>',nosideeffect> end
-local function cosh_f64(x: float64): float64 <cimport'cosh',cinclude'<math.h>',nosideeffect> end
-local function cosh_f32(x: float32): float32 <cimport'coshf',cinclude'<math.h>',nosideeffect> end
-local function sinh_f64(x: float64): float64 <cimport'sinh',cinclude'<math.h>',nosideeffect> end
-local function sinh_f32(x: float32): float32 <cimport'sinhf',cinclude'<math.h>',nosideeffect> end
-local function tanh_f64(x: float64): float64 <cimport'tanh',cinclude'<math.h>',nosideeffect> end
-local function tanh_f32(x: float32): float32 <cimport'tanhf',cinclude'<math.h>',nosideeffect> end
-local function acosh_f64(x: float64): float64 <cimport'acosh',cinclude'<math.h>',nosideeffect> end
-local function acosh_f32(x: float32): float32 <cimport'acoshf',cinclude'<math.h>',nosideeffect> end
-local function asinh_f64(x: float64): float64 <cimport'asinh',cinclude'<math.h>',nosideeffect> end
-local function asinh_f32(x: float32): float32 <cimport'asinhf',cinclude'<math.h>',nosideeffect> end
-local function atanh_f64(x: float64): float64 <cimport'atanh',cinclude'<math.h>',nosideeffect> end
-local function atanh_f32(x: float32): float32 <cimport'atanhf',cinclude'<math.h>',nosideeffect> end
-
-local function fmod_f64(x: float64, y: float64): float64 <cimport'fmod',cinclude'<math.h>',nosideeffect> end
-local function fmod_f32(x: float32, y: float32): float32 <cimport'fmodf',cinclude'<math.h>',nosideeffect> end
-local function atan2_f64(x: float64, y: float64): float64 <cimport'atan2',cinclude'<math.h>',nosideeffect> end
-local function atan2_f32(x: float32, y: float32): float32 <cimport'atan2f',cinclude'<math.h>',nosideeffect> end
-local function pow_f64(x: float64, y: float64): float64 <cimport'pow',cinclude'<math.h>',nosideeffect> end
-local function pow_f32(x: float32, y: float32): float32 <cimport'powf',cinclude'<math.h>',nosideeffect> end
-
-local function modf_f64(x: float64, y: *float64): float64 <cimport'modf',cinclude'<math.h>',nosideeffect> end
-local function modf_f32(x: float32, y: *float32): float32 <cimport'modff',cinclude'<math.h>',nosideeffect> end
-local function frexp_f64(x: float64, exp: *cint): float64 <cimport'frexp',cinclude'<math.h>',nosideeffect> end
-local function frexp_f32(x: float32, exp: *cint): float32 <cimport'frexpf',cinclude'<math.h>',nosideeffect> end
-local function ldexp_f64(x: float64, exp: cint): float64 <cimport'ldexp',cinclude'<math.h>',nosideeffect> end
-local function ldexp_f32(x: float32, exp: cint): float32 <cimport'ldexpf',cinclude'<math.h>',nosideeffect> end
-
 -- Concepts used by math functions.
 local an_scalar: type = #[concept(function(x) return x.type.is_scalar end)]#
 local an_optional_scalar: type = #[concept(function(x) return x.type.is_scalar or x.type.is_niltype end)]#
@@ -76,14 +14,14 @@ local an_optional_integral: type = #[concept(function(x) return x.type.is_integr
 ##[[
 local function choose_float_type(x)
   local type
-  if x.type.is_float32 or x.type.is_float64 then
+  if x.type.is_cfloat or x.type.is_cdouble or x.type.is_clongdouble then
     type = x.type
-  elseif primtypes.number.is_float32 or primtypes.number.is_float64 then
+  elseif primtypes.number.is_cfloat or primtypes.number.is_cdouble or primtypes.number.is_clongdouble then
     type = primtypes.number
   else
-    type = primtypes.float64
+    type = primtypes.cdouble
   end
-  if type.is_float64 and type.bitsize == 32 then -- demote (happens on AVR)
+  if type.is_cdouble and type.size == 4 then -- demote (happens on AVR)
     type = primtypes.float32
   end
   return type
@@ -99,11 +37,31 @@ local function choose_float_types(x, y)
   end
 end
 
-local function choose_cmath_float_function(name, x, y)
+local function choose_cmath_func(name, x, y)
   local ftype = choose_float_types(x, y)
-  return name .. '_f' .. ftype.bitsize
+  local fname
+  if ftype.is_cfloat then
+    fname = name..'f'
+  elseif ftype.is_clongdouble then
+    fname = name..'l'
+  else
+    fname = name
+  end
+  return ftype, fname
 end
 ]]
+
+## local function import_cmath_func1(name, x)
+  ## local ftype, fname = choose_cmath_func(name, x)
+  local T: type = #[ftype]#
+  local function #|name|#(x: T): T <cimport(#[fname]#),cinclude'<math.h>',nosideeffect> end
+## end
+
+## local function import_cmath_func2(name, x, y)
+  ## local ftype, fname = choose_cmath_func(name, x, y)
+  local T: type = #[ftype]#
+  local function #|name|#(x: T, y: T): T <cimport(#[fname]#),cinclude'<math.h>',nosideeffect> end
+## end
 
 --[[
 Returns the absolute value of `x`, that is, the maximum value between `x` and `-x`.
@@ -118,7 +76,8 @@ end
 -- Returns the largest integral value less than or equal to `x`.
 function math.floor(x: an_scalar): auto <inline,nosideeffect>
   ## if x.type.is_float then
-    return #|choose_cmath_float_function('floor', x)|#(x)
+    ## import_cmath_func1('floor', x)
+    return floor(x)
   ## else
     return x
   ## end
@@ -132,7 +91,8 @@ end
 -- Returns the smallest integral value greater than or equal to `x`.
 function math.ceil(x: an_scalar): auto <inline,nosideeffect>
   ## if x.type.is_float then
-    return #|choose_cmath_float_function('ceil', x)|#(x)
+    ## import_cmath_func1('ceil', x)
+    return ceil(x)
   ## else
     return x
   ## end
@@ -149,7 +109,8 @@ Halfway cases are rounded away from zero.
 ]]
 function math.round(x: an_scalar): auto <inline,nosideeffect>
   ## if x.type.is_float then
-    return #|choose_cmath_float_function('round', x)|#(x)
+    ## import_cmath_func1('round', x)
+    return round(x)
   ## else
     return x
   ## end
@@ -158,7 +119,8 @@ end
 -- Returns the rounded value of `x` towards zero.
 function math.trunc(x: an_scalar): auto <inline,nosideeffect>
   ## if x.type.is_float then
-    return #|choose_cmath_float_function('trunc', x)|#(x)
+    ## import_cmath_func1('trunc', x)
+    return trunc(x)
   ## else
     return x
   ## end
@@ -169,7 +131,8 @@ Returns the square root of `x`.
 You can also use the expression `x^0.5` to compute this value.
 ]]
 function math.sqrt(x: an_scalar): auto <inline,nosideeffect>
-  return #|choose_cmath_float_function('sqrt', x)|#(x)
+  ## import_cmath_func1('sqrt', x)
+  return sqrt(x)
 end
 
 --[[
@@ -177,12 +140,14 @@ Returns the cubic root of `x`.
 You can also use the expression `x^(1/3)` to compute this value.
 ]]
 function math.cbrt(x: an_scalar): auto <inline,nosideeffect>
-  return #|choose_cmath_float_function('cbrt', x)|#(x)
+  ## import_cmath_func1('cbrt', x)
+  return cbrt(x)
 end
 
 -- Returns the value of `e^x` (where `e` is the base of natural logarithms).
 function math.exp(x: an_scalar): auto <inline,nosideeffect>
-  return #|choose_cmath_float_function('exp', x)|#(x)
+  ## import_cmath_func1('exp', x)
+  return exp(x)
 end
 
 --[[
@@ -190,7 +155,8 @@ Returns the value of `2^x`.
 You can also use the expression `2^x` to compute this value.
 ]]
 function math.exp2(x: an_scalar): auto <inline,nosideeffect>
-  return #|choose_cmath_float_function('exp2', x)|#(x)
+  ## import_cmath_func1('exp2', x)
+  return exp2(x)
 end
 
 --[[
@@ -198,7 +164,8 @@ Returns `x^y`.
 You can also use the expression `x^y` to compute this value.
 ]]
 function math.pow(x: an_scalar, y: an_scalar): auto <inline,nosideeffect>
-  return #|choose_cmath_float_function('pow', x, y)|#(x, y)
+  ## import_cmath_func2('pow', x, y)
+  return pow(x, y)
 end
 
 --[[
@@ -206,49 +173,56 @@ Returns the logarithm of `x` in the given `base`.
 The default for `base` is *e*, so that the function returns the natural logarithm of `x`.
 ]]
 function math.log(x: an_scalar, base: an_optional_scalar): auto <inline,nosideeffect>
-  ## local log = choose_cmath_float_function('log', x)
+  ## import_cmath_func1('log', x)
   ## if not base.type.is_niltype then
     local r: #[choose_float_type(x)]#
     ## if not ccinfo.is_avr then -- AVR has no log2
       if base == 2 then
-        r = #|choose_cmath_float_function('log2', x)|#(x)
+        ## import_cmath_func1('log2', x)
+        r = log2(x)
         return r
       end
     ## end
     if base == 10 then
-      r = #|choose_cmath_float_function('log10', x)|#(x)
+      ## import_cmath_func1('log10', x)
+      r = log10(x)
     else
-      r = #|log|#(x) / #|log|#(base)
+      r = log(x) / log(base)
     end
     return r
   ## else
-    return #|log|#(x)
+    return log(x)
   ## end
 end
 
 -- Returns the cosine of `x` (assumed to be in radians).
 function math.cos(x: an_scalar): auto <inline,nosideeffect>
-  return #|choose_cmath_float_function('cos', x)|#(x)
+  ## import_cmath_func1('cos', x)
+  return cos(x)
 end
 
 -- Returns the sine of `x` (assumed to be in radians).
 function math.sin(x: an_scalar): auto <inline,nosideeffect>
-  return #|choose_cmath_float_function('sin', x)|#(x)
+  ## import_cmath_func1('sin', x)
+  return sin(x)
 end
 
 -- Returns the tangent of `x` (assumed to be in radians).
 function math.tan(x: an_scalar): auto <inline,nosideeffect>
-  return #|choose_cmath_float_function('tan', x)|#(x)
+  ## import_cmath_func1('tan', x)
+  return tan(x)
 end
 
 -- Returns the arc cosine of `x` (in radians).
 function math.acos(x: an_scalar): auto <inline,nosideeffect>
-  return #|choose_cmath_float_function('acos', x)|#(x)
+  ## import_cmath_func1('acos', x)
+  return acos(x)
 end
 
 -- Returns the arc sine of `x` (in radians).
 function math.asin(x: an_scalar): auto <inline,nosideeffect>
-  return #|choose_cmath_float_function('asin', x)|#(x)
+  ## import_cmath_func1('asin', x)
+  return asin(x)
 end
 
 --[[
@@ -260,9 +234,11 @@ The default value for `x` is `1`, so that the call `math.atan(y)` returns the ar
 ]]
 function math.atan(y: an_scalar, x: an_optional_scalar): auto <inline,nosideeffect>
   ## if not x.type.is_niltype then
-    return #|choose_cmath_float_function('atan2', y, x)|#(y, x)
+    ## import_cmath_func2('atan2', y, x)
+    return atan2(y, x)
   ## else
-    return #|choose_cmath_float_function('atan', y)|#(y)
+    ## import_cmath_func1('atan', x)
+    return atan(y)
   ## end
 end
 
@@ -272,47 +248,56 @@ but uses the signs of both arguments to find the quadrant of the result.
 It also handles correctly the case of `x` being zero.
 ]]
 function math.atan2(y: an_scalar, x: an_optional_scalar): auto <inline,nosideeffect>
-  return #|choose_cmath_float_function('atan2', y, x)|#(y, x)
+  ## import_cmath_func2('atan2', y, x)
+  return atan2(y, x)
 end
 
 -- Returns the hyperbolic cosine of `x`.
 function math.cosh(x: an_scalar): auto <inline,nosideeffect>
-  return #|choose_cmath_float_function('cosh', x)|#(x)
+  ## import_cmath_func1('cosh', x)
+  return cosh(x)
 end
 
 -- Returns the hyperbolic sine of `x`.
 function math.sinh(x: an_scalar): auto <inline,nosideeffect>
-  return #|choose_cmath_float_function('sinh', x)|#(x)
+  ## import_cmath_func1('sinh', x)
+  return sinh(x)
 end
 
 -- Returns the hyperbolic tangent of `x`.
 function math.tanh(x: an_scalar): auto <inline,nosideeffect>
-  return #|choose_cmath_float_function('tanh', x)|#(x)
+  ## import_cmath_func1('tanh', x)
+  return tanh(x)
 end
 
 -- Returns the base-10 logarithm of `x`.
 function math.log10(x: an_scalar): auto <inline,nosideeffect>
-  return #|choose_cmath_float_function('log10', x)|#(x)
+  ## import_cmath_func1('log10', x)
+  return log10(x)
 end
 
 -- Returns the base-2 logarithm of `x`.
 function math.log2(x: an_scalar): auto <inline,nosideeffect>
-  return #|choose_cmath_float_function('log2', x)|#(x)
+  ## import_cmath_func1('log2', x)
+  return log2(x)
 end
 
 -- Returns the inverse hyperbolic cosine of `x`.
 function math.acosh(x: an_scalar): auto <inline,nosideeffect>
-  return #|choose_cmath_float_function('acosh', x)|#(x)
+  ## import_cmath_func1('acosh', x)
+  return acosh(x)
 end
 
 -- Returns the inverse hyperbolic sine of `x`.
 function math.asinh(x: an_scalar): auto <inline,nosideeffect>
-  return #|choose_cmath_float_function('asinh', x)|#(x)
+  ## import_cmath_func1('asinh', x)
+  return asinh(x)
 end
 
 -- Returns the inverse hyperbolic tangent of `x`.
 function math.atanh(x: an_scalar): auto <inline,nosideeffect>
-  return #|choose_cmath_float_function('atanh', x)|#(x)
+  ## import_cmath_func1('atanh', x)
+  return atanh(x)
 end
 
 -- Converts the angle `x` from radians to degrees.
@@ -365,8 +350,11 @@ Returns the integral part of `x` and the fractional part of `x`.
 Its second result is always a float.
 ]]
 function math.modf(x: an_scalar): (auto, auto) <inline,nosideeffect>
-  local i: #[choose_float_type(x)]#
-  local f: auto = #|choose_cmath_float_function('modf', x)|#(x, &i)
+  ## local ftype, fname = choose_cmath_func('modf', x)
+  local T: type = #[ftype]#
+  local function modf(x: T, y: *T): T <cimport(#[fname]#),cinclude'<math.h>',nosideeffect> end
+  local i: T
+  local f: auto = modf(x, &i)
   return i, f
 end
 
@@ -380,7 +368,8 @@ function math.fmod(x: an_scalar, y: an_scalar): auto <inline,nosideeffect>
     ## cemit '  z = x % y;'
     return z
   ## else
-    return #|choose_cmath_float_function('fmod', x, y)|#(x, y)
+    ## import_cmath_func2('fmod', x, y)
+    return fmod(x, y)
   ## end
 end
 
@@ -389,14 +378,20 @@ Returns `m` and `e` such that `x = m*(2^e)`,
 `e` is an integer and the absolute value of `m` is in the range [0.5, 1) or zero (when `x` is zero).
 ]]
 function math.frexp(x: an_scalar): (auto, int32) <inline,nosideeffect>
+  ## local ftype, fname = choose_cmath_func('frexp', x)
+  local T: type = #[ftype]#
+  local function frexp(x: T, exp: *cint): T <cimport(#[fname]#),cinclude'<math.h>',nosideeffect> end
   local exp: cint
-  local n: auto = #|choose_cmath_float_function('frexp', x)|#(x, &exp)
+  local n: T = frexp(x, &exp)
   return n, (@int32)(exp)
 end
 
 -- Returns `m*(2^e)`, that is, `m` multiplied by an integral power of 2.
 function math.ldexp(m: an_scalar, e: int32): auto <inline,nosideeffect>
-  return #|choose_cmath_float_function('ldexp', m)|#(m, (@int32)(e))
+  ## local ftype, fname = choose_cmath_func('ldexp', m)
+  local T: type = #[ftype]#
+  local function ldexp(x: T, exp: cint): T <cimport(#[fname]#),cinclude'<math.h>',nosideeffect> end
+  return ldexp(m, (@int32)(e))
 end
 
 -- Returns the argument with the minimum value, according to the operator `<`.

@@ -35,12 +35,12 @@ do -- va_list
 
   local numbers: [4]float64
   fill_numbers(&numbers, 0)
-  fill_numbers(&numbers, 1, 0.5)
-  assert(numbers[0] == 0.5)
-  fill_numbers(&numbers, 2, 1.0, 0.5)
-  assert(numbers[0] == 1.0 and numbers[1] == 0.5)
-  fill_numbers(&numbers, 3, 2.0, 1.0, 0.5)
-  assert(numbers[0] == 2.0 and numbers[1] == 1.0 and numbers[2] == 0.5)
+  fill_numbers(&numbers, 1, 0.5_f64)
+  assert(numbers[0] == 0.5_f64)
+  fill_numbers(&numbers, 2, 1.0_f32, 0.5_f32)
+  assert(numbers[0] == 1.0_f64 and numbers[1] == 0.5_f64)
+  fill_numbers(&numbers, 3, 2.0_f64, 1.0_f64, 0.5_f64)
+  assert(numbers[0] == 2.0_f64 and numbers[1] == 1.0_f64 and numbers[2] == 0.5_f64)
 end
 
 do -- vsnprintf
