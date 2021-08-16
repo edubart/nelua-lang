@@ -756,31 +756,21 @@ local function str2num(s: string): (boolean, number)
   if pos ~= len then return false, 0 end
   -- exponent scale
   if exp ~= 0 then
+    local negexp: boolean = exp < 0
     local s: longfloat = 1
-    if exp < 0 then
-      exp = -exp
-      if exp >= 8192 then exp = 8192 end
-      while exp >= 256 do s = s * (@longfloat)(1e-256); exp = exp - 256 end
-      if exp >= 128 then s = s * (@longfloat)(1e-128); exp = exp - 128 end
-      if exp >= 64 then s = s * (@longfloat)(1e-64); exp = exp - 64 end
-      if exp >= 32 then s = s * (@longfloat)(1e-32); exp = exp - 32 end
-      if exp >= 16 then s = s * (@longfloat)(1e-16); exp = exp - 16 end
-      if exp >= 8 then s = s * (@longfloat)(1e-8); exp = exp - 8 end
-      if exp >= 4 then s = s * (@longfloat)(1e-4); exp = exp - 4 end
-      if exp >= 2 then s = s * (@longfloat)(1e-2); exp = exp - 2 end
-      if exp >= 1 then s = s * (@longfloat)(1e-1); exp = exp - 1 end
-    else
-      if exp >= 8192 then exp = 8192 end
-      while exp >= 256 do s = s * (@longfloat)(1e+256); exp = exp - 256 end
-      if exp >= 128 then s = s * (@longfloat)(1e+128); exp = exp - 128 end
-      if exp >= 64 then s = s * (@longfloat)(1e+64); exp = exp - 64 end
-      if exp >= 32 then s = s * (@longfloat)(1e+32); exp = exp - 32 end
-      if exp >= 16 then s = s * (@longfloat)(1e+16); exp = exp - 16 end
-      if exp >= 8 then s = s * (@longfloat)(1e+8); exp = exp - 8 end
-      if exp >= 4 then s = s * (@longfloat)(1e+4); exp = exp - 4 end
-      if exp >= 2 then s = s * (@longfloat)(1e+2); exp = exp - 2 end
-      if exp >= 1 then s = s * (@longfloat)(1e+1); exp = exp - 1 end
+    if negexp then exp = -exp end
+    if exp >= 8192 then exp = 8192 end
+    while exp >= 256 do
+      s = s * (@longfloat)(1e+256)
+      exp = exp - 256
     end
+    ## for _,i in ipairs{128,64,32,16,8,4,2,1} do
+      if exp >= #[i]# then
+        s = s * (@longfloat)(#[tonumber('1e'..i)]#)
+        exp = exp - #[i]#
+      end
+    ## end
+    if negexp then s = 1/s end
     num = num * s
   end
   if neg then num = -num end
