@@ -514,6 +514,40 @@ do -- tonumber
   assert(tonumber('-1e5000') == #[-math.huge]#)
   assert(tonumber('1e-5000') == 0.0)
 
+  -- hexadecimal
+  assert(tonumber"0x0" == 0x0)
+  assert(tonumber"0x09abcdef" == 0x09abcdef)
+  assert(tonumber"0X01ABCDEF" == 0X01ABCDEF)
+  assert(tonumber"0xabcd.ef91" == 0xabcd.ef91)
+  assert(tonumber"0x.FfffFFFF" == 0x.FfffFFFF)
+  assert(tonumber"0x.00000001" == 0x.00000001)
+  assert(tonumber"0Xabcdef.0" == 0Xabcdef.0)
+  assert(tonumber"0x3.3p3" == 0x3.3p3)
+  assert(tonumber"0x5.5P-5" == 0x5.5P-5)
+  assert(tonumber"0x.0p-3" == 0x.0p-3)
+  assert(tonumber"0x.ABCDEFp+24" == 0x.ABCDEFp+24)
+  assert(tonumber"0x1.0" == 0x1.0)
+  assert(tonumber"-0x1.1" == -0x1.1)
+
+  -- decimal
+  assert(tonumber"0123456789" == 123456789)
+  assert(tonumber".0" == .0)
+  assert(tonumber"0." == 0.)
+  assert(tonumber"0123.456789" == 123.456789)
+  assert(tonumber"1.2e-3" == 1.2e-3)
+  assert(tonumber".1e2" == .1e2)
+  assert(tonumber".0e+2" == .0e+2)
+  assert(tonumber"1e-2" == 1e-2)
+  assert(tonumber"1e+2" == 1e+2)
+  assert(tonumber"1.e3" == 1.e3)
+  assert(tonumber"1e1" == 1e1)
+  assert(tonumber"1.2e+6" == 1.2e+6)
+
+  -- binary
+  assert(tonumber"0b010101011" == 0b010101011)
+  assert(tonumber"0b1.1p2" == 0b1.1p2)
+  assert(tonumber"0B1111.1111p-2" == 0B1111.1111p-2)
+
   -- tonumber with base
   assert(tonumber('0', 10) == 0)
   assert(tonumber('+0', 10) == 0)

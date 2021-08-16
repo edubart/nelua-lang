@@ -17,7 +17,7 @@ local rex = require 'nelua.thirdparty.lpegrex'
 -- Pattern to extract `neg`, `int`, `frac`, and `exp` parts from a binary number.
 local binpatt = rex.compile[[
 bin <- ('-' $true / '+'? $false)
-  '0b'
+  '0' [bB]
   (b ('.' (b / $'0'))~? / '.' $'0' b)
   ([pP] {[+-]? [0-9]+})?  !.
 b <- {[01]+}
@@ -26,7 +26,7 @@ b <- {[01]+}
 -- Pattern to extract `neg`, `int`, `frac`, and `exp` parts from a hexadecimal number.
 local hexpatt = rex.compile[[
 hex <- ('-' $true / '+'? $false)
-  '0x'
+  '0' [xX]
   (h ('.' (h / $'0'))~? / '.' $'0' h)
   ([pP] {[+-]? [0-9]+})?  !.
 h <- {[0-9a-fA-F]+}
@@ -51,7 +51,10 @@ local function from(base, expbase, int, frac, exp)
   end
   -- parse the exponential part
   if exp then
-    n = n * bn.ipow(expbase, tonumber(exp))
+    local e = tonumber(exp)
+    local s = bn.ipow(expbase, math.abs(e))
+    if e < 0 then s = 1/s end
+    n = n * s
   end
   return n
 end

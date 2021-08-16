@@ -640,8 +640,19 @@ local function isspace(c: byte): boolean <inline>
 end
 
 -- Helper to check if a byte is a digit.
-local function isdigit(c: byte): boolean <inline>
-  return c - '0'_b < 10
+local function getdigit(c: byte): byte <inline>
+  return c - '0'_b
+end
+
+-- Helper to convert a character to a digit number.
+local function getbasedigit(c: byte): byte <inline>
+  local d: byte = c - '0'_b
+  if d < 10 then return d end
+  d = c - 'a'_b
+  if d < 26 then return d + 10 end
+  d = c - 'A'_b
+  if d < 26 then return d + 10 end
+  return 255
 end
 
 -- Convert a string to an integer in the desired base.
@@ -673,18 +684,8 @@ local function str2int(s: string, base: uinteger): (boolean, integer)
   assert(base >= 2 and base <= 36, "base out of range")
   local n: uinteger = 0
   while pos < s.size do
-    local c: byte = s.data[pos]
-    local x: byte
-    if c - '0'_b < 10 then -- is digit [0-9]
-      x = c - '0'_b
-    elseif c - 'a'_b < 26 then -- is lower alphanumeric [a-z]
-      x = c - 'a'_b + 10_b
-    elseif c - 'A'_b < 26 then -- is upper alphanumeric [A-Z]
-      x = c - 'A'_b + 10_b
-    else -- else spaces or invalid character
-      break
-    end
-    if x >= base then return false, 0 end
+    local x: uinteger = getbasedigit(s.data[pos])
+    if x >= base then break end
     n = n * base + (@uinteger)(x)
     pos = pos + 1
   end
@@ -694,12 +695,12 @@ local function str2int(s: string, base: uinteger): (boolean, integer)
   return true, (@integer)(n)
 end
 
--- Convert a string to a float number.
+-- Convert a decimal string to a float number.
 local function str2num(s: string): (boolean, number)
-  --TODO: handle hexadecimal numbers
   local longfloat: type = #[primtypes.number.is_float32 and primtypes.float64 or primtypes.clongdouble]#
+  local num: longfloat, basenum: longfloat = 0, 10
+  local base: int32, exp: int32 = 10, 0
   local pos: usize, len: usize = 0, s.size
-  local num: longfloat = 0
   -- skip white spaces
   while pos < len and isspace(s.data[pos]) do pos = pos + 1 end
   if pos >= len then return false, 0 end
@@ -708,6 +709,17 @@ local function str2num(s: string): (boolean, number)
   local neg: boolean = c == '-'_b
   local gotdigit: boolean, gotfrac: boolean
   if neg or c == '+'_b then pos = pos + 1 end
+  -- detect base
+  if pos+1 < len and s.data[pos] == '0'_b then
+    c = s.data[pos+1]
+    if c == 'x'_b or c == 'X'_b then -- hexadecimal
+      pos = pos + 2
+      base = 16; basenum = 16
+    elseif c == 'b'_b or c == 'B'_b then -- binary
+      pos = pos + 2
+      base = 2; basenum = 2
+    end
+  end
   -- skip leading zeros
   while pos < len do
     c = s.data[pos]
@@ -716,14 +728,14 @@ local function str2num(s: string): (boolean, number)
     gotdigit = true
   end
   -- mantissa part
-  local exp: int32 = 0
   while pos < len do
     c = s.data[pos]
-    if isdigit(c) then
-      num = num * 10 + (@longfloat)(c - '0'_b)
+    local d: int32 = getbasedigit(c)
+    if d < base then
+      num = num * basenum + (@longfloat)(d)
       gotdigit = true
       pos = pos + 1
-      if gotfrac then exp = exp - 1 end
+      if gotfrac then exp = exp - (base == 16 and 4_i32 or 1_i32) end
     elseif c == '.'_b then
       if gotfrac then return false, 0 end
       gotfrac = true
@@ -734,18 +746,19 @@ local function str2num(s: string): (boolean, number)
   end
   if not gotdigit then return false, 0 end
   -- exponent part
-  if pos < len and (c == 'E'_b or c == 'e'_b) then
+  if pos < len and (base == 10 and (c == 'e'_b or c == 'E'_b)) or
+                   (base ~= 10 and (c == 'p'_b or c == 'P'_b)) then
     pos = pos + 1
     if pos >= len then return false, 0 end
     c = s.data[pos]
     local negexp: boolean = c == '-'_b
     if negexp or c == '+'_b then pos = pos + 1 end
-    if pos >= len or not isdigit(s.data[pos]) then return false, 0 end
+    if pos >= len or getdigit(s.data[pos]) >= 10 then return false, 0 end
     local e: int32 = 0
     while pos < len do
-      c = s.data[pos]
-      if not isdigit(c) then break end
-      e = e * 10 + (@int32)(c - '0'_b)
+      local d: int32 = getdigit(s.data[pos])
+      if d >= 10 then break end
+      e = e * 10 + (@int32)(d)
       pos = pos + 1
     end
     if negexp then e = -e end
@@ -756,22 +769,32 @@ local function str2num(s: string): (boolean, number)
   if pos ~= len then return false, 0 end
   -- exponent scale
   if exp ~= 0 then
-    local negexp: boolean = exp < 0
-    local s: longfloat = 1
-    if negexp then exp = -exp end
-    if exp >= 8192 then exp = 8192 end
-    while exp >= 256 do
-      s = s * (@longfloat)(1e+256)
-      exp = exp - 256
-    end
-    ## for _,i in ipairs{128,64,32,16,8,4,2,1} do
-      if exp >= #[i]# then
-        s = s * (@longfloat)(#[tonumber('1e'..i)]#)
-        exp = exp - #[i]#
+    local invscale: boolean = exp < 0
+    local scale: longfloat = 1
+    if invscale then exp = -exp end
+    if base == 10 then
+      if exp >= 8192 then exp = 8192 end
+      while exp >= 256 do
+        scale = scale * (@longfloat)(1e256)
+        exp = exp - 256
       end
-    ## end
-    if negexp then s = 1/s end
-    num = num * s
+      ## for _,i in ipairs{128,64,32,16,8,4,2,1} do
+        if exp >= #[i]# then
+          scale = scale * (@longfloat)(#[tonumber('1e'..i)]#)
+          exp = exp - #[i]#
+        end
+      ## end
+    else -- base 2
+      local te: longfloat = 2
+      while true do
+        if exp & 1 == 1 then scale = scale * te end
+        exp = exp >>> 1
+        if exp == 0 then break end
+        te = te * te
+      end
+    end
+    if invscale then scale = 1/scale end
+    num = num * scale
   end
   if neg then num = -num end
   return true, (@number)(num)
@@ -831,7 +854,7 @@ global function tostring(x: auto): string
       -- add a least one decimal if needed
       local fractnum: boolean
       for i:usize=0,<len do
-        if not (isdigit(tmpbuf[i]) or tmpbuf[i] == '-'_b) then
+        if not (getdigit(tmpbuf[i]) < 10 or tmpbuf[i] == '-'_b) then
           fractnum = true
           break
         end
@@ -1011,9 +1034,9 @@ local function packgetnum(fmt: string, pos: *usize, def: usize): usize
   local init: usize = $pos
   local n: usize = 0
   while $pos < fmt.size do
-    local c: byte = fmt.data[$pos]
-    if not isdigit(c) then break end
-    n = n*10 + (c - '0'_b)
+    local d: usize = getdigit(fmt.data[$pos])
+    if d >= 10 then break end
+    n = n*10 + d
     $pos = $pos + 1
   end
   return $pos ~= init and n or def
