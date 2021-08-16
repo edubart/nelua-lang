@@ -16,26 +16,10 @@ local ccinfo = ccompiler.get_cc_info()
 
 -- CPU word size in bytes (size of a pointer).
 local cptrsize = ccinfo.sizeof_pointer
--- C int is at least 2 bytes and max 4 bytes.
-local cintsize = ccinfo.sizeof_int
--- C short size is typically 2 bytes.
-local cshortsize = ccinfo.sizeof_short
--- C long is at least 4 bytes.
-local clongsize = ccinfo.sizeof_long
--- C long long is at least 8 bytes.
-local clonglongsize = ccinfo.sizeof_long_long
--- C long double size is typically 16 bytes.
-local clongdoublesize = ccinfo.sizeof_long_double
--- C float size is typically 4 bytes.
-local cfloatsize = ccinfo.sizeof_float
--- C double size is typically 8 bytes (but can be 4 bytes on AVR).
-local cdoublesize = ccinfo.sizeof_double
 -- Max primitive alignment.
 local cmaxalign = ccinfo.biggest_alignment
--- Max alignment for double.
-local cmaxdoublealign = math.min(ccinfo.is_align_double and clongdoublesize or cptrsize, cmaxalign)
 -- Not all C compilers supports empty structs/arrays.
-local emptysize = ccinfo.is_empty_supported and 0 or 1
+local cemptysize = ccinfo.is_empty_supported and 0 or 1
 
 -- Map containing all primitive types.
 local primtypes = {}
@@ -45,12 +29,12 @@ local typedefs = {
   primtypes = primtypes,
   ptrsize = cptrsize,
   maxalign = cmaxalign,
-  emptysize = emptysize
+  emptysize = cemptysize
 }
 types.set_typedefs(typedefs)
 
 -- Basic types.
-primtypes.niltype     = types.NiltypeType('niltype', emptysize) -- must be defined first
+primtypes.niltype     = types.NiltypeType('niltype', cemptysize) -- must be defined first
 primtypes.nilptr      = types.NilptrType('nilptr', cptrsize)
 primtypes.type        = types.TypeType('type', 0)
 primtypes.typetype    = primtypes.type
@@ -64,18 +48,18 @@ primtypes.pointer     = types.PointerType(primtypes.void)
 primtypes.int8        = types.IntegralType('int8', 1)
 primtypes.int16       = types.IntegralType('int16', 2)
 primtypes.int32       = types.IntegralType('int32', 4)
-primtypes.int64       = types.IntegralType('int64', 8, false, math.min(8, cmaxdoublealign))
+primtypes.int64       = types.IntegralType('int64', 8, false, ccinfo.alignof_long_long)
 primtypes.int128      = types.IntegralType('int128', 16)
 primtypes.isize       = types.IntegralType('isize', cptrsize)
 primtypes.uint8       = types.IntegralType('uint8', 1, true)
 primtypes.uint16      = types.IntegralType('uint16', 2, true)
 primtypes.uint32      = types.IntegralType('uint32', 4, true)
-primtypes.uint64      = types.IntegralType('uint64', 8, true, math.min(8, cmaxdoublealign))
+primtypes.uint64      = types.IntegralType('uint64', 8, true, ccinfo.alignof_long_long)
 primtypes.uint128     = types.IntegralType('uint128', 16, true)
 primtypes.usize       = types.IntegralType('usize', cptrsize, true)
-primtypes.float32     = types.FloatType('float32', cfloatsize, nil,
+primtypes.float32     = types.FloatType('float32', ccinfo.sizeof_float, nil,
                                         ccinfo.flt_decimal_dig, ccinfo.flt_mant_dig)
-primtypes.float64     = types.FloatType('float64', cdoublesize, math.min(cdoublesize, cmaxdoublealign),
+primtypes.float64     = types.FloatType('float64', ccinfo.sizeof_double, ccinfo.alignof_double,
                                         ccinfo.dbl_decimal_dig, ccinfo.dbl_mant_dig)
 primtypes.float128    = types.FloatType('float128', 16, nil,
                                         ccinfo.flt128_decimal_dig, ccinfo.flt128_mant_dig)
@@ -84,25 +68,25 @@ primtypes.byte        = primtypes.uint8
 -- Types for C compatibility.
 primtypes.cchar       = types.IntegralType('cchar', 1)
 primtypes.cschar      = types.IntegralType('cschar', 1)
-primtypes.cshort      = types.IntegralType('cshort', cshortsize)
-primtypes.cint        = types.IntegralType('cint', cintsize)
-primtypes.clong       = types.IntegralType('clong', clongsize, false)
-primtypes.clonglong   = types.IntegralType('clonglong', clonglongsize, false, math.min(clonglongsize, cmaxdoublealign))
+primtypes.cshort      = types.IntegralType('cshort', ccinfo.sizeof_short)
+primtypes.cint        = types.IntegralType('cint', ccinfo.sizeof_int)
+primtypes.clong       = types.IntegralType('clong', ccinfo.sizeof_long, false)
+primtypes.clonglong   = types.IntegralType('clonglong', ccinfo.sizeof_long_long, false, ccinfo.alignof_long_long)
 primtypes.cptrdiff    = types.IntegralType('cptrdiff', cptrsize)
 primtypes.cuchar      = types.IntegralType('cuchar', 1, true)
-primtypes.cushort     = types.IntegralType('cushort', cshortsize, true)
-primtypes.cuint       = types.IntegralType('cuint', cintsize, true)
-primtypes.culong      = types.IntegralType('culong', clongsize, true)
-primtypes.culonglong  = types.IntegralType('culonglong', clonglongsize, true, math.min(clonglongsize, cmaxdoublealign))
+primtypes.cushort     = types.IntegralType('cushort', ccinfo.sizeof_short, true)
+primtypes.cuint       = types.IntegralType('cuint', ccinfo.sizeof_int, true)
+primtypes.culong      = types.IntegralType('culong', ccinfo.sizeof_long, true)
+primtypes.culonglong  = types.IntegralType('culonglong', ccinfo.sizeof_long_long, true, ccinfo.alignof_long_long)
 primtypes.csize       = types.IntegralType('csize', cptrsize, true)
-primtypes.clongdouble = types.FloatType('clongdouble', clongdoublesize, math.min(clongdoublesize, cmaxdoublealign),
+primtypes.clongdouble = types.FloatType('clongdouble', ccinfo.sizeof_long_double, ccinfo.alignof_long_double,
                                         ccinfo.ldbl_decimal_dig, ccinfo.ldbl_mant_dig)
 primtypes.cstring     = types.PointerType(primtypes.cchar)
 primtypes.cdouble     = primtypes.float64; primtypes.cdouble.is_cdouble = true
 primtypes.cfloat      = primtypes.float32; primtypes.cfloat.is_cfloat = true
 primtypes.cvarargs    = types.CVarargsType('cvarargs')
 primtypes.cvalist     = types.CVaList('cvalist')
-primtypes.cclock_t    = types.IntegralType('cclock_t', clongsize, false)
+primtypes.cclock_t    = types.IntegralType('cclock_t', ccinfo.sizeof_long, false)
 primtypes.ctime_t     = types.IntegralType('ctime_t', cptrsize, false)
 
 -- The following types are predefined aliases, but can be customized by the user.

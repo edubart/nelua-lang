@@ -193,234 +193,265 @@ compilers_flags['zig cc'] = compilers_flags.clang
 cdefs.target_info_code = [[
 /* OS */
 #if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
-is_unix = true;
+  is_unix = true;
 #endif
 #if defined(__linux__) || defined(__linux)
-is_linux = true;
+  is_linux = true;
 #endif
 #if defined(__gnu_linux__)
-is_gnu_linux = true;
+  is_gnu_linux = true;
 #endif
 #if defined(__WIN32__) || defined(__WIN32) || defined(_WIN32)
-is_win32 = true;
-is_windows = true;
+  is_win32 = true;
+  is_windows = true;
 #endif
 #if defined(__WIN64__) || defined(__WIN64) || defined(_WIN64)
-is_win64 = true;
+  is_win64 = true;
 #endif
 #if defined(__WINNT__) || defined(__WINNT)
-is_winnt = true;
+  is_winnt = true;
 #endif
 #if defined(__APPLE__)
-is_apple = true;
+  is_apple = true;
 #endif
 #if defined(__ANDROID__)
-is_android = true;
+  is_android = true;
 #endif
 #if defined(__MACH__)
-is_mach = true;
+  is_mach = true;
 #endif
 
 /* Compilers */
 #if defined(__VERSION__)
-version = __VERSION__;
+  version = __VERSION__;
 #endif
 #if defined(__clang__)
-is_clang = true;
-clang_major = __clang_major__;
-clang_minor = __clang_minor__;
-clang_patchlevel = __clang_patchlevel__;
+  is_clang = true;
+  clang_major = __clang_major__;
+  clang_minor = __clang_minor__;
+  clang_patchlevel = __clang_patchlevel__;
 #endif
 #if defined(__GNUC__)
-is_gcc = true;
-gnuc = __GNUC__;
-gnuc_minor = __GNUC_MINOR__;
-gnuc_patchlevel = __GNUC_PATCHLEVEL__;
+  is_gcc = true;
+  gnuc = __GNUC__;
+  gnuc_minor = __GNUC_MINOR__;
+  gnuc_patchlevel = __GNUC_PATCHLEVEL__;
 #endif
 #if defined(__MINGW64__) || defined(__MINGW32__)
-is_mingw = true;
+  is_mingw = true;
 #endif
 #if defined(__CYGWIN__) || defined(__CYGWIN32__)
-is_cygwin = true;
+  is_cygwin = true;
 #endif
 #if defined(_MSC_VER)
-is_msc = true;
-msc_ver = _MSC_VER;
-msc_full_ver = _MSC_FULL_VER;
+  is_msc = true;
+  msc_ver = _MSC_VER;
+  msc_full_ver = _MSC_FULL_VER;
 #endif
 #if defined(__TINYC__)
-is_tcc = true;
-tinyc = __TINYC__;
+  is_tcc = true;
+  tinyc = __TINYC__;
 #endif
 #if defined(__EMSCRIPTEN__)
-is_emscripten = true;
-emscripten_major = __EMSCRIPTEN_major__;
-emscripten_minor = __EMSCRIPTEN_minor__;
-emscripten_tiny = __EMSCRIPTEN_tiny__;
+  is_emscripten = true;
+  emscripten_major = __EMSCRIPTEN_major__;
+  emscripten_minor = __EMSCRIPTEN_minor__;
+  emscripten_tiny = __EMSCRIPTEN_tiny__;
 #endif
 #if defined(__MIRC__)
-is_mirc = true;
+  is_mirc = true;
 #endif
 #if defined(__COMPCERT__)
-is_ccomp = true;
+  is_ccomp = true;
 #endif
 
 /* Architectures */
 #if defined(__wasm__) || defined(__wasm)
-is_wasm = true;
+  is_wasm = true;
 #endif
 #if defined(__asmjs__)
-is_asmjs = true;
+  is_asmjs = true;
 #endif
 #if defined(__x86_64__) || defined(__x86_64) || \
     defined(__amd64__) || defined(__amd64) || \
     defined(_M_X64) || defined(_M_AMD64)
-is_x86_64 = true;
+  is_x86_64 = true;
 #endif
 #if defined(__i386__) || defined(_M_X86)
-is_x86_32 = true;
+  is_x86_32 = true;
 #endif
 #if defined(__arm__) || defined(_M_ARM)
-is_arm = true;
+  is_arm = true;
 #endif
 #if defined(__aarch64__) || defined(_M_ARM64)
-is_arm64 = true;
+  is_arm64 = true;
 #endif
 #if defined(__riscv)
-is_riscv = true;
+  is_riscv = true;
 #endif
 #if defined(__AVR__) || defined(__AVR)
-is_avr = true;
+  is_avr = true;
 #endif
 #if defined(__BIGGEST_ALIGNMENT__)
-biggest_alignment = __BIGGEST_ALIGNMENT__;
+  biggest_alignment = __BIGGEST_ALIGNMENT__;
 #endif
 
 /* C standard */
 #if defined(__STDC__)
-stdc = true;
+  stdc = true;
 #endif
 #if __STDC_HOSTED__ > 0
-stdc_hosted = true;
+  stdc_hosted = true;
 #endif
 #if defined(__STDC_VERSION__)
-is_c = true;
-stdc_version = __STDC_VERSION__;
+  is_c = true;
+  stdc_version = __STDC_VERSION__;
 #endif
 #if __STDC_VERSION__ >= 201112L
-is_c11 = true;
+  is_c11 = true;
 #endif
 #if defined(__STDC_NO_THREADS__)
-stdc_no_threads = true;
+  stdc_no_threads = true;
 #endif
 #if defined(__STDC_NO_ATOMICS__)
-stdc_no_atomics = true;
+  stdc_no_atomics = true;
 #endif
 #if defined(__STDC_NO_COMPLEX__)
-stdc_no_complex = true;
+  stdc_no_complex = true;
 #endif
 #if defined(__STDC_NO_VLA__)
-stdc_no_vla = true;
+  stdc_no_vla = true;
 #endif
 #if defined(__cplusplus)
-is_cpp = true;
-cplusplus = __cplusplus;
+  is_cpp = true;
+  cplusplus = __cplusplus;
 #endif
 #if __cplusplus >= 201103L
-is_cpp11 = true;
+  is_cpp11 = true;
 #endif
 #if __cplusplus >= 202002L
-is_cpp20 = true;
+  is_cpp20 = true;
 #endif
 
 /* Primitive sizes */
 #if defined(__CHAR_BIT__)
-char_bit = __CHAR_BIT__;
+  char_bit = __CHAR_BIT__;
 #endif
 #if defined(__SIZEOF_DOUBLE__)
-sizeof_double = __SIZEOF_DOUBLE__;
+  sizeof_double = __SIZEOF_DOUBLE__;
 #endif
 #if defined(__SIZEOF_FLOAT__)
-sizeof_float = __SIZEOF_FLOAT__;
+  sizeof_float = __SIZEOF_FLOAT__;
 #endif
 #if defined(__SIZEOF_INT__)
-sizeof_int = __SIZEOF_INT__;
+  sizeof_int = __SIZEOF_INT__;
 #endif
 #if defined(__SIZEOF_LONG_DOUBLE__)
-sizeof_long_double = __SIZEOF_LONG_DOUBLE__;
+  sizeof_long_double = __SIZEOF_LONG_DOUBLE__;
 #endif
 #if defined(__SIZEOF_LONG_LONG__)
-sizeof_long_long = __SIZEOF_LONG_LONG__;
+  sizeof_long_long = __SIZEOF_LONG_LONG__;
 #endif
 #if defined(__SIZEOF_LONG__)
-sizeof_long = __SIZEOF_LONG__;
+  sizeof_long = __SIZEOF_LONG__;
 #endif
 #if defined(__SIZEOF_POINTER__)
-sizeof_pointer = __SIZEOF_POINTER__;
+  sizeof_pointer = __SIZEOF_POINTER__;
 #endif
 #if defined(__SIZEOF_PTRDIFF_T__)
-sizeof_ptrdiff_t = __SIZEOF_PTRDIFF_T__;
+  sizeof_ptrdiff_t = __SIZEOF_PTRDIFF_T__;
 #endif
 #if defined(__SIZEOF_SHORT__)
-sizeof_short = __SIZEOF_SHORT__;
+  sizeof_short = __SIZEOF_SHORT__;
 #endif
 #if defined(__SIZEOF_SIZE_T__)
-sizeof_size_t = __SIZEOF_SIZE_T__;
+  sizeof_size_t = __SIZEOF_SIZE_T__;
 #endif
 #if defined(__SIZEOF_FLOAT128__)
-sizeof_float128 = __SIZEOF_FLOAT128__;
+  sizeof_float128 = __SIZEOF_FLOAT128__;
 #endif
 #if defined(__SIZEOF_INT128__)
-sizeof_int128 = __SIZEOF_INT128__;
+  sizeof_int128 = __SIZEOF_INT128__;
 #endif
 
 /* Float */
 #if defined(__FLT_DECIMAL_DIG__)
-flt_decimal_dig = __FLT_DECIMAL_DIG__;
-flt_dig = __FLT_DIG__;
-flt_mant_dig = __FLT_MANT_DIG__;
+  flt_decimal_dig = __FLT_DECIMAL_DIG__;
+  flt_dig = __FLT_DIG__;
+  flt_mant_dig = __FLT_MANT_DIG__;
 #endif
 #if defined(__DBL_DECIMAL_DIG__)
-dbl_decimal_dig = __DBL_DECIMAL_DIG__;
-dbl_dig = __DBL_DIG__;
-dbl_mant_dig = __DBL_MANT_DIG__;
+  dbl_decimal_dig = __DBL_DECIMAL_DIG__;
+  dbl_dig = __DBL_DIG__;
+  dbl_mant_dig = __DBL_MANT_DIG__;
 #endif
 #if defined(__DBL_DECIMAL_DIG__)
-ldbl_decimal_dig = __DBL_DECIMAL_DIG__;
-ldbl_dig = __LDBL_DIG__;
-ldbl_mant_dig = __LDBL_MANT_DIG__;
+  ldbl_decimal_dig = __DBL_DECIMAL_DIG__;
+  ldbl_dig = __LDBL_DIG__;
+  ldbl_mant_dig = __LDBL_MANT_DIG__;
 #endif
 #if defined(__FLT128_DECIMAL_DIG__)
-flt128_decimal_dig = __FLT128_DECIMAL_DIG__;
-flt128_dig = __FLT128_DIG__;
-flt128_mant_dig = __FLT128_MANT_DIG__;
+  flt128_decimal_dig = __FLT128_DECIMAL_DIG__;
+  flt128_dig = __FLT128_DIG__;
+  flt128_mant_dig = __FLT128_MANT_DIG__;
 #endif
 
 /* Features */
 #if defined(__LP64__) || defined(__ILP64__) || defined(__LLP64__)
-is_64 = true;
+  is_64 = true;
 #endif
 #if defined(__LP32__) || defined(__ILP32__) || defined(__LLP32__)
-is_32 = true;
+  is_32 = true;
 #endif
 #if defined(__ELF__)
-is_elf = true;
+  is_elf = true;
 #endif
 #if defined(__OPTIMIZE__)
-is_optimize = true;
+  is_optimize = true;
 #endif
 #if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__)
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-is_little_endian = true;
-#else
-is_big_endian = true;
-#endif
-#endif
-#if defined(__EMSCRIPTEN__) || defined(_WIN32) || defined(__CYGWIN__)
-is_align_double = true;
+  #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+    is_little_endian = true;
+  #else
+    is_big_endian = true;
+  #endif
 #endif
 #if defined(__STDC_VERSION__) && (defined(__GNUC__) || defined(__TINYC__) || defined(__MIRC__))
-is_empty_supported = true;
+  is_empty_supported = true;
+#endif
+
+/* Alignment */
+#if defined(__EMSCRIPTEN__)
+  alignof_long_long = 8;
+  alignof_double = 8;
+  alignof_long_double = 8;
+  #define ALIGN_DETECTED
+#elif defined(__LP32__) || defined(__ILP32__) || defined(__LLP32__)
+  #if defined(_WIN32) || defined(__CYGWIN__)
+    alignof_long_long = 8;
+    alignof_double = 8;
+    alignof_long_double = 4;
+  #else
+    alignof_long_long = 4;
+    alignof_double = 4;
+    alignof_long_double = 4;
+  #endif
+  #define ALIGN_DETECTED
+#endif
+#ifndef ALIGN_DETECTED
+  #if defined(__SIZEOF_LONG_LONG__)
+    alignof_long_long = __SIZEOF_LONG_LONG__;
+  #endif
+  #if defined(__SIZEOF_DOUBLE__)
+    alignof_double = __SIZEOF_DOUBLE__;
+  #endif
+  #if __SIZEOF_LONG_DOUBLE__ >= 16
+    alignof_long_double = 16;
+  #elif __SIZEOF_LONG_DOUBLE__ >= 8
+    alignof_long_double = 8;
+  #elif __SIZEOF_LONG_DOUBLE__ >= 4
+    alignof_long_double = 4;
+  #endif
 #endif
 ]]
 

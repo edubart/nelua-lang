@@ -181,7 +181,7 @@ local function get_cc_info(cc, cflags)
     except.raisef("failed to retrieve compiler information: %s", stderr)
   end
   local ccinfo = {}
-  for name,value in stdout:gmatch('([a-zA-Z0-9_]+)%s*=%s*([^;\n]+);') do
+  for name,value in stdout:gmatch('%s*([a-zA-Z0-9_]+)%s*=%s*([^;\n]+);') do
     if value:match('^[0-9]+L$') then
       value = tonumber(value:sub(1,-2))
     elseif value:match('^[0-9]+$') then
@@ -215,7 +215,11 @@ local function get_cc_info(cc, cflags)
   ccinfo.flt128_mant_dig = ccinfo.flt128_mant_dig or 113
   ccinfo.biggest_alignment = ccinfo.biggest_alignment or
     math.max(ccinfo.sizeof_long_double, ccinfo.sizeof_long_long)
-  if ccinfo.sizeof_pointer then -- ensure some primitive sizes3 have the expected sizes
+  ccinfo.alignof_long_long = math.min(ccinfo.alignof_long_long or 8, ccinfo.biggest_alignment)
+  ccinfo.alignof_double = math.min(ccinfo.alignof_double or 8, ccinfo.biggest_alignment)
+  ccinfo.alignof_long_double = math.min(ccinfo.alignof_long_double or 16, ccinfo.biggest_alignment)
+
+  if ccinfo.sizeof_pointer then -- ensure some primitive sizes have the expected sizes
     except.assertraisef(not ccinfo.char_bit or ccinfo.char_bit == 8,
       "target C 'char' is not 8 bits")
     except.assertraisef(not ccinfo.sizeof_ptrdiff_t or ccinfo.sizeof_ptrdiff_t == ccinfo.sizeof_pointer,
