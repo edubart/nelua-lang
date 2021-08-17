@@ -585,6 +585,8 @@ do -- tointeger
   assert(tointeger(0) == 0)
   assert(tointeger('0') == 0)
   assert(tointeger(('12345'):subview(1,3)) == 123)
+  assert(tointeger('0xff') == 0xff)
+  assert(tointeger('0b10111') == 0b10111)
 
   assert(tonumber('1234567890', 10) == 1234567890)
   assert(tonumber('-1234567890', 10) == -1234567890)

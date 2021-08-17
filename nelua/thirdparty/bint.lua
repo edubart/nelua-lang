@@ -1,5 +1,5 @@
 --[[--
-lua-bint - v0.4.1 - 28/Jan/2022
+lua-bint - v0.4.1 - 17/Aug/2021
 Eduardo Bart - edub4rt@gmail.com
 https://github.com/edubart/lua-bint
 
@@ -108,6 +108,7 @@ local math_floor = math.floor
 local math_abs = math.abs
 local math_ceil = math.ceil
 local math_modf = math.modf
+local math_mininteger = math.mininteger
 local math_maxinteger = math.maxinteger
 local math_max = math.max
 local math_min = math.min
@@ -854,7 +855,12 @@ function bint.brol(x, y)
   if y > 0 then
     return (x << y) | (x >> (BINT_BITS - y))
   elseif y < 0 then
-    return x:bror(-y)
+    if y ~= math_mininteger then
+      return x:bror(-y)
+    else
+      x:bror(-(y+1))
+      x:bror(1)
+    end
   end
   return x
 end
@@ -867,7 +873,12 @@ function bint.bror(x, y)
   if y > 0 then
     return (x >> y) | (x << (BINT_BITS - y))
   elseif y < 0 then
-    return x:brol(-y)
+    if y ~= math_mininteger then
+      return x:brol(-y)
+    else
+      x:brol(-(y+1))
+      x:brol(1)
+    end
   end
   return x
 end
@@ -1403,6 +1414,9 @@ end
 -- @raise Asserts in case inputs are not convertible to integers.
 function bint.__shl(x, y)
   x, y = bint_new(x), bint_assert_tointeger(y)
+  if y == math_mininteger or math_abs(y) >= BINT_BITS then
+    return bint_zero()
+  end
   if y < 0 then
     return x >> -y
   end
@@ -1428,6 +1442,9 @@ end
 -- @raise Asserts in case inputs are not convertible to integers.
 function bint.__shr(x, y)
   x, y = bint_new(x), bint_assert_tointeger(y)
+  if y == math_mininteger or math_abs(y) >= BINT_BITS then
+    return bint_zero()
+  end
   if y < 0 then
     return x << -y
   end

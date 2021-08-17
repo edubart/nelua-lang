@@ -496,4 +496,18 @@ do -- Inf
   assert(Inf ~= -Inf) assert(-Inf ~= Inf)
 end
 
+do -- edge cases
+  local one, min, max = 1, math.mininteger, math.maxinteger
+
+  assert(one >> min == 0)
+  assert(one >> max == 0)
+  assert(one << min == 0)
+  assert(one << max == 0)
+
+  assert(1 >> math.mininteger == 0)
+  assert(1 >> math.maxinteger == 0)
+  assert(1 << math.mininteger == 0)
+  assert(1 << math.maxinteger == 0)
+end
+
 print 'math OK!'
