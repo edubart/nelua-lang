@@ -759,6 +759,7 @@ local function str2num(s: string): (boolean, number)
       local d: int32 = getdigit(s.data[pos])
       if d >= 10 then break end
       e = e * 10 + (@int32)(d)
+      if e > 32768 then e = 32768 end -- exponent is too large
       pos = pos + 1
     end
     if negexp then e = -e end
@@ -773,7 +774,6 @@ local function str2num(s: string): (boolean, number)
     local scale: longfloat = 1
     if invscale then exp = -exp end
     if base == 10 then
-      if exp >= 8192 then exp = 8192 end
       while exp >= 256 do
         scale = scale * (@longfloat)(1e256)
         exp = exp - 256

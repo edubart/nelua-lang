@@ -577,6 +577,13 @@ do -- tonumber
     assert(tonumber(#[tostring(primtypes.isize.min)..'00']#, 10) == mini * 100)
     assert(tonumber('thequickbrownfoxjumpsoverthelazydog', 36) == 447430708471575744)
   ## end
+
+  -- edge cases
+  assert(tonumber('1e+2147483647') == #[math.huge]#)
+  assert(tonumber('1e+2147483648') == #[math.huge]#)
+  assert(tonumber('1e-2147483647') == 0.0)
+  assert(tonumber('1e-2147483648') == 0.0)
+  assert(tonumber('1e-2147483649') == 0.0)
 end
 
 do -- tointeger
