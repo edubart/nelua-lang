@@ -493,8 +493,10 @@ do -- tostring
   assert_string_eq(tostring(string.lower):subview(1,10), 'function: ')
   assert_string_eq(tostring(tostring), 'polyfunction')
   assert_string_eq(tostring(nilptr), '(null)')
+  assert_string_eq(tostring((@pointer)(0x1)), '0x1')
   assert_string_eq(tostring((@pointer)(nilptr)), '(null)')
   assert_string_eq(tostring((@function())(nilptr)), 'function: (null)')
+  assert_string_eq(tostring((@function())((@pointer)(0x1))), 'function: 0x1')
   assert_string_eq(tostring((@enum{A=0})()), '0')
 end
 
