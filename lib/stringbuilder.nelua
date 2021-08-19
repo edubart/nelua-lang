@@ -245,11 +245,17 @@ end
         ## if arg1.type.is_clongdouble then
         local lenmod: cstring = 'Lf'
         addlenmod(form, lenmod, #lenmod - 1)
-        local n: clongdouble = arg1
+        nb = snprintf(buff, maxitem, &form[0], arg1)
+        ## elseif arg1.type.is_float128 then
+        ## linklib 'quadmath'
+        local function quadmath_snprintf(s: cstring, maxlen: csize, format: cstring, ...: cvarargs): cint <cimport,cinclude'<quadmath.h>'> end
+        local lenmod: cstring = 'Qf'
+        addlenmod(form, lenmod, #lenmod - 1)
+        nb = quadmath_snprintf(buff, maxitem, &form[0], arg1)
         ## else
         local n: float64 = (@float64)(arg1)
-        ## end
         nb = snprintf(buff, maxitem, &form[0], n)
+        ## end
         goto next
       end
     ## end if primtypes.pointer:is_convertible_from(arg1.type) then

@@ -42,7 +42,7 @@ function CEmitter:add_zeroed_type_literal(type, typed)
     s = '0.0q'
   elseif type.is_clongdouble and not self.context.pragmas.nofloatsuffix then
     s = '0.0l'
-  elseif type.is_float32 and not self.context.pragmas.nofloatsuffix then
+  elseif type.is_cfloat and not self.context.pragmas.nofloatsuffix then
     s = '0.0f'
   elseif type.is_float then
     s = '0.0'
@@ -348,7 +348,7 @@ function CEmitter:add_scalar_literal(num, numtype, base)
     self:add_text('q')
   elseif numtype.is_clongdouble and not self.context.pragmas.nofloatsuffix then
     self:add_text('l')
-  elseif numtype.is_float32 and not self.context.pragmas.nofloatsuffix then
+  elseif numtype.is_cfloat and not self.context.pragmas.nofloatsuffix then
     self:add_text('f')
   elseif numtype.is_unsigned then
     self:add_text('U')

@@ -297,7 +297,13 @@ function cbuiltins.NELUA_INF_(context, type)
   elseif type.is_cfloat then S = 'F' end
   local name = 'NELUA_INF'..S
   if context.usedbuiltins[name] then return name end
-  context:define_builtin_macro(name, pegger.substitute([[
+  if type.is_float128 then
+    context:define_builtin_macro(name, [[
+/* Infinite number constant. */
+#define NELUA_INFQ (1.0q/0.0q)
+]])
+  else
+    context:define_builtin_macro(name, pegger.substitute([[
 /* Infinite number constant. */
 #ifdef HUGE_VAL$(S)
   #define NELUA_INF$(S) HUGE_VAL$(S)
@@ -305,6 +311,7 @@ function cbuiltins.NELUA_INF_(context, type)
   #define NELUA_INF$(S) (1.0$(s)/0.0$(s))
 #endif
 ]], {s=S:lower(), S=S}))
+  end
   return name
 end
 
@@ -314,7 +321,7 @@ function cbuiltins.NELUA_NAN_(context, type)
   local S = ''
   if type.is_float128 then S = 'Q'
   elseif type.is_clongdouble then S = 'L'
-  elseif type.is_float32 then S = 'F' end
+  elseif type.is_cfloat then S = 'F' end
   local name = 'NELUA_NAN'..S
   if context.usedbuiltins[name] then return name end
   context:define_builtin_macro(name, pegger.substitute([[
@@ -322,7 +329,7 @@ function cbuiltins.NELUA_NAN_(context, type)
 #ifdef NAN
   #define NELUA_NAN$(S) (($(T))NAN)
 #else
-  #define NELUA_NAN$(S) (0.0$(s)/0.0$(s))
+  #define NELUA_NAN$(S) (-(0.0$(s)/0.0$(s)))
 #endif
 ]], {s=S:lower(), S=S, T=context:ensure_type(type)}))
   return name
@@ -895,12 +902,17 @@ function cbuiltins.calls.print(context, node)
         defemitter:dec_indent()
       defemitter:add_indent_ln('}')
     elseif argtype.is_float then
-      context:ensure_builtins('snprintf', 'fwrite', 'stdout', 'false', 'true')
+      local fname = 'snprintf'
       local tyformat = cdefs.types_printf_format[argtype.codename]
+      if argtype.is_float128 then
+        fname = 'quadmath_snprintf'
+        context:ensure_linklib('quadmath')
+      end
       if not tyformat then
         node:raisef('in print: cannot handle type "%s"', argtype)
       end
-      defemitter:add_ln('len = snprintf(buff, sizeof(buff)-1, ',tyformat,', a',i,');')
+      context:ensure_builtins(fname, 'fwrite', 'stdout', 'false', 'true')
+      defemitter:add_ln('len = ',fname,'(buff, sizeof(buff)-1, ',tyformat,', a',i,');')
       defemitter:add([[
   fractnum = false;
   for(int i=0;i<len && buff[i] != 0;++i) {

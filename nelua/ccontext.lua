@@ -217,6 +217,9 @@ function CContext:ensure_cmath_func(name, type)
     name = name..'f'
   elseif type.is_clongdouble then
     name = name..'l'
+  elseif type.is_float128 then
+    name = name..'q'
+    self:ensure_linklib('quadmath')
   end
   self:ensure_builtin(name)
   return name

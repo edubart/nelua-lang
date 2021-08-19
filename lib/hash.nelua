@@ -58,9 +58,12 @@ function hash.hash(v: auto): usize
     return (@usize)(v)
   ## elseif v.type.is_float then
     local ne: cint
-    local function frexp_f32(x: float32, exp: *cint): float32 <cimport'frexpf',cinclude'<math.h>',nosideeffect> end
-    local function frexp_f64(x: float64, exp: *cint): float64 <cimport'frexp',cinclude'<math.h>',nosideeffect> end
-    v = #|'frexp_f'..(v.type.is_float32 and '32' or '64')|#(v, &ne) * -(@float32)(#[primtypes.isize.min]#)
+    ## if v.type.is_cfloat then
+    local function frexp(x: cfloat, exp: *cint): cfloat <cimport'frexpf',cinclude'<math.h>',nosideeffect> end
+    ## else
+    local function frexp(x: cdouble, exp: *cint): cdouble <cimport'frexp',cinclude'<math.h>',nosideeffect> end
+    ## end
+    v = frexp(v, &ne) * -(#[primtypes.isize.min]#)
     if v ~= v or v == #[math.huge]# or v == -#[math.huge]# then -- non finite
       return 0
     end

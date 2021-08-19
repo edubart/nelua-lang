@@ -562,7 +562,7 @@ The following table shows Nelua primitive numeric types and their related types 
 | `uint128`*        | `unsigned __int128` | `_u128` `_uint128`  |
 | `float32`         | `float`             | `_f32` `_float32`   |
 | `float64`         | `double`            | `_f64` `_float64`   |
-| `float128`*       | `_Float128`         | `_f128` `_float128` |
+| `float128`*       | `__float128`        | `_f128` `_float128` |
 {: .table.table-bordered.table-striped.table-sm}
 
 *\* Only supported by some C compilers and architectures.*

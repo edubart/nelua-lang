@@ -695,9 +695,25 @@ local function str2int(s: string, base: uinteger): (boolean, integer)
   return true, (@integer)(n)
 end
 
+##[[
+local function choose_long(xtype)
+  if xtype.is_float32 then
+    return primtypes.float64, primtypes.uint32, 7
+  elseif xtype.is_float64 then
+    return primtypes.clongdouble, primtypes.uint64, 14
+  elseif xtype.is_clongdouble and (ccinfo.has_float128 and ccinfo.has_int128) then
+    return primtypes.float128, primtypes.uint128, 19
+  elseif xtype.is_float128 and (ccinfo.has_float128 and ccinfo.has_int128) then
+    return primtypes.float128, primtypes.uint128, 32
+  end
+  return primtypes.clongdouble, primtypes.uint64, 19
+end
+]]
+
 -- Convert a decimal string to a float number.
 local function str2num(s: string): (boolean, number)
-  local longfloat: type = #[primtypes.number.is_float32 and primtypes.float64 or primtypes.clongdouble]#
+  ## local longfloatT, longuintT = choose_long(primtypes.number)
+  local longfloat: type = #[longfloatT]#
   local num: longfloat, basenum: longfloat = 0, 10
   local base: int32, exp: int32 = 10, 0
   local pos: usize, len: usize = 0, s.size
@@ -758,9 +774,11 @@ local function str2num(s: string): (boolean, number)
     while pos < len do
       local d: int32 = getdigit(s.data[pos])
       if d >= 10 then break end
-      e = e * 10 + (@int32)(d)
-      if e > 32768 then e = 32768 end -- exponent is too large
       pos = pos + 1
+      e = e * 10 + (@int32)(d)
+      -- exponent too large? 2^-16500/10^-5000 is enough for float128
+      if e > 16500 and base == 2 then e = 16500
+      elseif e > 5000 and base == 10 then e = 5000 end
     end
     if negexp then e = -e end
     exp = exp + e
@@ -836,17 +854,9 @@ end
 
 -- Convert a float number to a decimal string.
 local function num2str(x: auto): string
-  ##[[
-  local D, longfloatT
-  if x.type.is_float32 then
-    D, longfloatT = 7, primtypes.float64
-  elseif x.type.is_float64 then
-    D, longfloatT = 14, primtypes.clongdouble
-  else
-    D, longfloatT = 19, x.type
-  end
-  ]]
+  ## local longfloatT, longuintT, DIGITS = choose_long(x.type)
   local longfloat: type = #[longfloatT]#
+  local longuint: type = #[longuintT]#
   -- volatile is used so the code can also work with '-ffast-math' on Clang
   local n: longfloat <volatile> = x
   do -- arbitrary way to check nan/inf/negative zero without relying much on float format
@@ -872,44 +882,46 @@ local function num2str(x: auto): string
   local gotdigit: boolean, gotexpo: boolean
   local neg: boolean = n < 0
   if neg then n = -n end
-  local expo: int32 = #[D - 1]#
-  -- scale n to range [10^(D-1),10^D] while computing base-10 exponent
-  while n <= (@longfloat)(#[tonumber('1e'..-(256-D))]#) do
+  local expo: int32 = #[DIGITS - 1]#
+  -- scale n to range [10^(DIGITS-1),10^DIGITS] while computing base-10 exponent
+  while n <= (@longfloat)(#[tonumber('1e'..-(256-DIGITS))]#) do
     n = n * (@longfloat)(1e256)
     expo = expo - 256
   end
   ## for _,i in ipairs{128,64,32,16,8,4,2,1} do
-    if n <= (@longfloat)(#[tonumber('1e'..-(i-D))]#) then
+    if n <= (@longfloat)(#[tonumber('1e'..-(i-DIGITS))]#) then
       n = n * (@longfloat)(#[tonumber('1e'..i)]#)
       expo = expo - #[i]#
     end
   ## end
-  while n >= (@longfloat)(#[tonumber('1e'..(256+D))]#) do
+  while n >= (@longfloat)(#[tonumber('1e'..(256+DIGITS))]#) do
     n = n * (@longfloat)(1e-256)
     expo = expo + 256
   end
   ## for _,i in ipairs{128,64,32,16,8,4,2,1,0} do
-    if n >= (@longfloat)(#[tonumber('1e'..(i+D))]#) then
+    if n >= (@longfloat)(#[tonumber('1e'..(i+DIGITS))]#) then
       n = n * (@longfloat)(#[tonumber('1e-'..math.max(i,1))]#)
       expo = expo + #[math.max(i,1)]#
     end
   ## end
   -- round n after scaling
-  ## if D < longfloatT.decimaldigits then
+  ## if DIGITS < longfloatT.decimaldigits then
     n = n + (@longfloat)(0.5)
   ## else
-    if expo ~= #[D - 1]# then -- round only when n was actually scaled
+    if expo ~= #[DIGITS - 1]# then -- round only when n was actually scaled
       n = n + (@longfloat)(0.5)
     end
   ## end
   -- extract fractional digits
-  local frac: uint64 = (@uint64)(n)
-  while frac >= (@uint64)(#[require'nelua.utils.bn'.ipow(10, D)]#) do
+  local frac: longuint = (@longuint)(n)
+  local fracmax: longuint = 1
+  for i=0,<#[DIGITS]# do fracmax = fracmax * 10 end
+  while frac >= fracmax do
     frac = frac // 10
     expo = expo + 1
   end
   -- fill exponent
-  if expo < -4 or expo >= #[D]# then
+  if expo < -4 or expo >= #[DIGITS]# then
     local negexpo: boolean = expo < 0
     if negexpo then expo = -expo end
     local expozero: boolean = expo < 10
@@ -928,7 +940,7 @@ local function num2str(x: auto): string
     gotexpo = true
   end
   -- fill digits
-  for i:int32=#[D-1]#,expo <= 0 and expo or 0,-1 do
+  for i:int32=#[DIGITS-1]#,expo <= 0 and expo or 0,-1 do
     if i == expo and not (gotexpo and not gotdigit) then -- add decimal separator
       if not gotdigit then -- add trailing zero
         buf[pos] = '0'_b
@@ -938,7 +950,7 @@ local function num2str(x: auto): string
       buf[pos] = '.'_b
       pos = pos - 1
     end
-    local rema: uint64 = frac % 10
+    local rema: longuint = frac % 10
     frac = frac // 10
     if gotdigit or rema ~= 0 then -- add digit
       buf[pos] = (@byte)(rema) + '0'_b

@@ -6,6 +6,7 @@ local cdefs = {}
 cdefs.types_printf_format = {
   nlfloat32     = '"%.7g"',
   nlfloat64     = '"%.14g"',
+  nlfloat128    = '"%.32Qg"',
   nlpointer     = '"%p"',
   nlisize       = '"%" PRIiPTR',
   nlint8        = '"%" PRIi8',
@@ -50,7 +51,7 @@ cdefs.primitive_typenames = {
   nluint128     = 'unsigned __int128',
   nlfloat32     = 'float',
   nlfloat64     = 'double',
-  nlfloat128    = '_Float128',
+  nlfloat128    = '__float128',
   nlboolean     = {'bool', '<stdbool.h>'},
   nlcstring     = 'char*',
   nlpointer     = 'void*',
@@ -96,10 +97,11 @@ cdefs.builtins_headers = {
   strlen = '<string.h>',
   memcmp = '<string.h>',
   -- math.h
-  fmod = '<math.h>', fmodf = '<math.h>', fmodl = '<math.h>',
-  floor = '<math.h>', floorf = '<math.h>', floorl = '<math.h>',
-  trunc = '<math.h>', truncf = '<math.h>', truncl = '<math.h>',
-  pow = '<math.h>', powf = '<math.h>', powl = '<math.h>',
+  fmod = '<math.h>', fmodf = '<math.h>', fmodl = '<math.h>', fmodq = '<quadmath.h>',
+  floor = '<math.h>', floorf = '<math.h>', floorl = '<math.h>', floorq = '<quadmath.h>',
+  trunc = '<math.h>', truncf = '<math.h>', truncl = '<math.h>', truncq = '<quadmath.h>',
+  pow = '<math.h>', powf = '<math.h>', powl = '<math.h>', powq = '<quadmath.h>',
+  quadmath_snprintf = '<quadmath.h>',
   -- inttypes.h
   PRIiPTR = '<inttypes.h>', PRIuPTR = '<inttypes.h>', PRIxPTR = '<inttypes.h>',
   PRIi8 = '<inttypes.h>', PRIu8 = '<inttypes.h>',
@@ -369,9 +371,11 @@ cdefs.target_info_code = [[
 #endif
 #if defined(__SIZEOF_FLOAT128__)
   sizeof_float128 = __SIZEOF_FLOAT128__;
+  has_float128 = true;
 #endif
 #if defined(__SIZEOF_INT128__)
   sizeof_int128 = __SIZEOF_INT128__;
+  has_int128 = true;
 #endif
 
 /* Float */

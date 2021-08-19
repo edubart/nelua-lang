@@ -14,12 +14,10 @@ local an_optional_integral: type = #[concept(function(x) return x.type.is_integr
 ##[[
 local function choose_float_type(x)
   local type
-  if x.type.is_cfloat or x.type.is_cdouble or x.type.is_clongdouble then
+  if x.type.is_float then
     type = x.type
-  elseif primtypes.number.is_cfloat or primtypes.number.is_cdouble or primtypes.number.is_clongdouble then
-    type = primtypes.number
   else
-    type = primtypes.cdouble
+    type = primtypes.number
   end
   if type.is_cdouble and type.size == 4 then -- demote (happens on AVR)
     type = primtypes.float32
@@ -39,28 +37,33 @@ end
 
 local function choose_cmath_func(name, x, y)
   local ftype = choose_float_types(x, y)
+  local incname = '<math.h>'
   local fname
   if ftype.is_cfloat then
     fname = name..'f'
   elseif ftype.is_clongdouble then
     fname = name..'l'
+  elseif ftype.is_float128 then
+    fname = name..'q'
+    incname = '<quadmath.h>'
+    linklib 'quadmath'
   else
     fname = name
   end
-  return ftype, fname
+  return ftype, fname, incname
 end
 ]]
 
 ## local function import_cmath_func1(name, x)
-  ## local ftype, fname = choose_cmath_func(name, x)
+  ## local ftype, fname, incname = choose_cmath_func(name, x)
   local T: type = #[ftype]#
-  local function #|name|#(x: T): T <cimport(#[fname]#),cinclude'<math.h>',nosideeffect> end
+  local function #|name|#(x: T): T <cimport(#[fname]#),cinclude(#[incname]#),nosideeffect> end
 ## end
 
 ## local function import_cmath_func2(name, x, y)
-  ## local ftype, fname = choose_cmath_func(name, x, y)
+  ## local ftype, fname, incname = choose_cmath_func(name, x, y)
   local T: type = #[ftype]#
-  local function #|name|#(x: T, y: T): T <cimport(#[fname]#),cinclude'<math.h>',nosideeffect> end
+  local function #|name|#(x: T, y: T): T <cimport(#[fname]#),cinclude(#[incname]#),nosideeffect> end
 ## end
 
 --[[
@@ -350,9 +353,9 @@ Returns the integral part of `x` and the fractional part of `x`.
 Its second result is always a float.
 ]]
 function math.modf(x: an_scalar): (auto, auto) <inline,nosideeffect>
-  ## local ftype, fname = choose_cmath_func('modf', x)
+  ## local ftype, fname, incname = choose_cmath_func('modf', x)
   local T: type = #[ftype]#
-  local function modf(x: T, y: *T): T <cimport(#[fname]#),cinclude'<math.h>',nosideeffect> end
+  local function modf(x: T, y: *T): T <cimport(#[fname]#),cinclude(#[incname]#),nosideeffect> end
   local i: T
   local f: auto = modf(x, &i)
   return i, f
@@ -378,9 +381,9 @@ Returns `m` and `e` such that `x = m*(2^e)`,
 `e` is an integer and the absolute value of `m` is in the range [0.5, 1) or zero (when `x` is zero).
 ]]
 function math.frexp(x: an_scalar): (auto, int32) <inline,nosideeffect>
-  ## local ftype, fname = choose_cmath_func('frexp', x)
+  ## local ftype, fname, incname = choose_cmath_func('frexp', x)
   local T: type = #[ftype]#
-  local function frexp(x: T, exp: *cint): T <cimport(#[fname]#),cinclude'<math.h>',nosideeffect> end
+  local function frexp(x: T, exp: *cint): T <cimport(#[fname]#),cinclude(#[incname]#),nosideeffect> end
   local exp: cint
   local n: T = frexp(x, &exp)
   return n, (@int32)(exp)
@@ -388,9 +391,9 @@ end
 
 -- Returns `m*(2^e)`, that is, `m` multiplied by an integral power of 2.
 function math.ldexp(m: an_scalar, e: int32): auto <inline,nosideeffect>
-  ## local ftype, fname = choose_cmath_func('ldexp', m)
+  ## local ftype, fname, incname = choose_cmath_func('ldexp', m)
   local T: type = #[ftype]#
-  local function ldexp(x: T, exp: cint): T <cimport(#[fname]#),cinclude'<math.h>',nosideeffect> end
+  local function ldexp(x: T, exp: cint): T <cimport(#[fname]#),cinclude(#[incname]#),nosideeffect> end
   return ldexp(m, (@int32)(e))
 end
 
