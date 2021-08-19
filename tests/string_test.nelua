@@ -536,7 +536,7 @@ do -- tonumber
   assert(tonumber".0" == .0)
   assert(tonumber"0." == 0.)
   assert(tonumber"0123.456789" == 123.456789)
-  assert(tonumber"1.2e-3" == 1.2e-3)
+  assert(tonumber"0.5e-3" == 0.5e-3)
   assert(tonumber".1e2" == .1e2)
   assert(tonumber".0e+2" == .0e+2)
   assert(tonumber"1e-2" == 1e-2)
