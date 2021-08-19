@@ -379,7 +379,10 @@ end
   This method is only available for the default string builder.
   ]]
   function stringbuilderT:promote(): string
-    if unlikely(self.size == 0) then return (@string){} end
+    if unlikely(self.size == 0) then
+      self:destroy()
+      return (@string){}
+    end
     local size: usize = self.size
     local data: span(byte) = self.allocator:xspanrealloc(self.data, size + 1) -- shrink
     data[size] = 0 -- zero termination
