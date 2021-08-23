@@ -226,14 +226,25 @@ end
         nb = snprintf(buff, maxitem, &form[0], n)
         goto next
       end
-    ## end if primtypes.integer:is_convertible_from(arg1.type) then
-      if c == 'd'_byte or c == 'i'_byte or
-         c == 'o'_byte or
+    ## end if primtypes.clonglong:is_convertible_from(arg1.type) then
+      if c == 'd'_byte or c == 'i'_byte then
+        local lenmod: cstring = 'lli'
+        addlenmod(form, lenmod, #lenmod - 1)
+        local n: clonglong = (@clonglong)(arg1)
+        nb = snprintf(buff, maxitem, &form[0], n)
+        goto next
+      end
+    ## end if primtypes.culonglong:is_convertible_from(arg1.type) then
+      if c == 'o'_byte or
          c == 'u'_byte or
          c == 'x'_byte or c == 'X'_byte then
-        local lenmod: cstring <cimport(#['PRIi' .. primtypes.integer.bitsize]#),cinclude'<inttypes.h>'>
+        local lenmod: cstring = 'llu'
         addlenmod(form, lenmod, #lenmod - 1)
-        local n: integer = (@integer)(arg1)
+        ## if arg1.type.is_integral then
+        local n: culonglong = (@culonglong)((#[arg1.type:unsigned_type()]#)(arg1))
+        ## else
+        local n: culonglong = (@culonglong)(arg1)
+        ## end
         nb = snprintf(buff, maxitem, &form[0], n)
         goto next
       end
@@ -258,14 +269,16 @@ end
         ## end
         goto next
       end
-    ## end if primtypes.pointer:is_convertible_from(arg1.type) then
+    ## end if primtypes.pointer:is_convertible_from(arg1.type) or arg1.type.is_function then
       if c == 'p'_byte then
+        --TODO: handle lenmod?
         local p: pointer = (@pointer)(arg1)
         if p == nilptr then
           memory.copy(buff, "(null)"_cstring, 7)
           nb = 6
         else
-          nb = snprintf(buff, maxitem, &form[0], p)
+          local n: culonglong = (@culonglong)((@usize)(p))
+          nb = snprintf(buff, maxitem, '0x%llx', n)
         end
         goto next
       end

@@ -888,13 +888,13 @@ function cbuiltins.calls.print(context, node)
       context:ensure_builtins('fputs', 'stdout')
       defemitter:add_ln('fputs("(null)", stdout);')
     elseif argtype.is_pointer or argtype.is_function then
-      context:ensure_builtins('fputs', 'fprintf', 'stdout', 'PRIxPTR', 'NULL')
+      context:ensure_builtins('fputs', 'fprintf', 'stdout', 'NULL')
       if argtype.is_function then
         defemitter:add_ln('fputs("function: ", stdout);')
       end
       defemitter:add_ln('if(a',i,' != NULL) {')
         defemitter:inc_indent()
-        defemitter:add_indent_ln('fprintf(stdout, "0x%" PRIxPTR, (',primtypes.isize,')a',i,');')
+        defemitter:add_indent_ln('fprintf(stdout, "0x%llx", (unsigned long long)(',primtypes.usize,')a',i,');')
         defemitter:dec_indent()
       defemitter:add_indent_ln('} else {')
         defemitter:inc_indent()
@@ -903,16 +903,20 @@ function cbuiltins.calls.print(context, node)
       defemitter:add_indent_ln('}')
     elseif argtype.is_float then
       local fname = 'snprintf'
-      local tyformat = cdefs.types_printf_format[argtype.codename]
-      if argtype.is_float128 then
+      local tyformat
+      if argtype.is_cfloat then tyformat = '%.7g'
+      elseif argtype.is_cdouble then tyformat = '%.14g'
+      elseif argtype.is_clongdouble then tyformat = '%.19Lg'
+      elseif argtype.is_float128 then
         fname = 'quadmath_snprintf'
+        tyformat = '%.32Qg'
         context:ensure_linklib('quadmath')
       end
       if not tyformat then
         node:raisef('in print: cannot handle type "%s"', argtype)
       end
       context:ensure_builtins(fname, 'fwrite', 'stdout', 'false', 'true')
-      defemitter:add_ln('len = ',fname,'(buff, sizeof(buff)-1, ',tyformat,', a',i,');')
+      defemitter:add_ln('len = ',fname,'(buff, sizeof(buff)-1, "',tyformat,'", a',i,');')
       defemitter:add([[
   fractnum = false;
   for(int i=0;i<len && buff[i] != 0;++i) {
@@ -928,20 +932,20 @@ function cbuiltins.calls.print(context, node)
   }
   fwrite(buff, 1, len, stdout);
 ]])
-    elseif argtype.is_scalar then
+    elseif argtype.is_integral then
       context:ensure_builtins('fprintf', 'stdout')
       if argtype.is_enum then
         argtype = argtype.subtype
       end
-      local tyformat = cdefs.types_printf_format[argtype.codename]
-      if not tyformat then
-        node:raisef('in print: cannot handle type "%s"', argtype)
+      local tyformat, castname
+      if argtype.is_unsigned then
+        tyformat = '%llu'
+        castname = 'unsigned long long'
+      else
+        tyformat = '%lli'
+        castname = 'long long'
       end
-      local priformat = tyformat:match('PRI[%w]+')
-      if priformat then
-        context:ensure_builtin(priformat)
-      end
-      defemitter:add_ln('fprintf(stdout, ', tyformat,', a',i,');')
+      defemitter:add_ln('fprintf(stdout, "', tyformat,'", (',castname,')a',i,');')
     elseif argtype.is_record then
       node:raisef('in print: cannot handle type "%s", you could implement `__tostring` metamethod for it', argtype)
     else --luacov:disable

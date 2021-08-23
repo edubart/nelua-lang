@@ -2848,7 +2848,7 @@ end)
 
 it("print builtin", function()
   expect.run_c([[
-    print(0, 1, 0.0, 1.0)
+    print(0, 1, 0.0, 1.0, 1_uinteger)
     print(1,0.2,1e2,0xf,0b01,nilptr)
     local i: integer, s: string, n: niltype, p: pointer
     print(i, s, n, p)
@@ -2866,14 +2866,13 @@ it("print builtin", function()
     local p: Person = {name='John'}
     print(p)
   ]],
-    '0\t1\t0.0\t1.0\n'..
+    '0\t1\t0.0\t1.0\t1\n'..
     '1\t0.2\t100.0\t15\t1\t(null)\n' ..
     '0\t\tnil\t(null)\n'..
     'a\t1\n'..
     'function: (null)\n'..
     'John\n')
 
-  expect.run_error_c([[local i: int128 print(i)]], "cannot handle type")
   expect.run_error_c([[local r: record{x: integer} print(r)]], "you could implement `__tostring`")
 end)
 

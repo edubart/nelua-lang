@@ -3,39 +3,6 @@ local platform = require 'nelua.utils.platform'
 
 local cdefs = {}
 
-cdefs.types_printf_format = {
-  nlfloat32     = '"%.7g"',
-  nlfloat64     = '"%.14g"',
-  nlfloat128    = '"%.32Qg"',
-  nlpointer     = '"%p"',
-  nlisize       = '"%" PRIiPTR',
-  nlint8        = '"%" PRIi8',
-  nlint16       = '"%" PRIi16',
-  nlint32       = '"%" PRIi32',
-  nlint64       = '"%" PRIi64',
-  nlusize       = '"%" PRIuPTR',
-  nluint8       = '"%" PRIu8',
-  nluint16      = '"%" PRIu16',
-  nluint32      = '"%" PRIu32',
-  nluint64      = '"%" PRIu64',
-  -- C types
-  nlcstring     = '"%s"',
-  nlcchar       = '"%c"',
-  nlcschar      = '"%c"',
-  nlcshort      = '"%i"',
-  nlcint        = '"%i"',
-  nlclong       = '"%li"',
-  nlclonglong   = '"%lli"',
-  nlcptrdiff    = '"%" PRIiPTR',
-  nlcuchar      = '"%u"',
-  nlcushort     = '"%u"',
-  nlcuint       = '"%u"',
-  nlculong      = '"%lu"',
-  nlculonglong  = '"%llu"',
-  nlcsize       = '"%lu"',
-  nlclongdouble = '"%.19Lg"',
-}
-
 cdefs.primitive_typenames = {
   nlisize       = {'intptr_t', '<stdint.h>'},
   nlint8        = {'int8_t', '<stdint.h>'},
@@ -102,12 +69,6 @@ cdefs.builtins_headers = {
   trunc = '<math.h>', truncf = '<math.h>', truncl = '<math.h>', truncq = '<quadmath.h>',
   pow = '<math.h>', powf = '<math.h>', powl = '<math.h>', powq = '<quadmath.h>',
   quadmath_snprintf = '<quadmath.h>',
-  -- inttypes.h
-  PRIiPTR = '<inttypes.h>', PRIuPTR = '<inttypes.h>', PRIxPTR = '<inttypes.h>',
-  PRIi8 = '<inttypes.h>', PRIu8 = '<inttypes.h>',
-  PRIi16 = '<inttypes.h>', PRIu16 = '<inttypes.h>',
-  PRIi32 = '<inttypes.h>', PRIu32 = '<inttypes.h>',
-  PRIi64 = '<inttypes.h>', PRIu64 = '<inttypes.h>',
 }
 
 cdefs.for_compare_ops = {
