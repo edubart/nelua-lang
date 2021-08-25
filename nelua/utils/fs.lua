@@ -301,7 +301,7 @@ end
 
 -- Choose file path inside a cache directory for an input file path.
 function fs.normcachepath(infile, cachedir)
-  local path = infile:gsub('%.[^.]+$','')
+  local path = infile:gsub('%.[^./\\]+$','')
   path = fs.relpath(path)
   path = path:gsub('%.%.[/\\]+', '')
   path = fs.join(cachedir, path)
