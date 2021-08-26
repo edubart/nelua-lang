@@ -359,10 +359,11 @@ Recursively iterates child nodes (excluding itself)
 where each node tag is present in `tagfilter` table, parents are also traced.
 Use with `for in` to iterate children while filtering nodes and tracing parents.
 
+If `filterall` is true, then parents are also filtered, otherwise only the iterated node.
 Each iteration return two values, the node followed by a list of its parents.
 Each parent can be either another node or a list of nodes.
 ]]
-function ASTNode:walk_trace_nodes(tagfilter)
+function ASTNode:walk_trace_nodes(tagfilter, filterall)
   local trace = {}
   local function walk_trace_nodes(node, n)
     local parentpos = #trace+1
@@ -373,12 +374,15 @@ function ASTNode:walk_trace_nodes(tagfilter)
         if subnode._astnode then
           if tagfilter[subnode.tag] then -- is an accepted astnode
             coroutine_yield(subnode, trace)
+          elseif filterall then
+            goto next
           end
         end
         local subn = #subnode
         if subn > 0 then
           walk_trace_nodes(subnode, subn)
         end
+        ::next::
       end
     end
     trace[parentpos] = nil

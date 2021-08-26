@@ -2482,6 +2482,16 @@ local function block_endswith_return(blocknode)
     if elseblock then
       return block_endswith_return(elseblock)
     end
+  elseif laststat.is_While then
+    local whilecondattr = laststat[1].attr
+    if whilecondattr.comptime and whilecondattr.value == true then -- infinite loop
+      for childnode in laststat:walk_trace_nodes({Do=true,If=true,Switch=true,Block=true,Break=true}, true) do
+        if childnode.is_Break then
+          return false
+        end
+      end
+      return true
+    end
   end
   return false
 end

@@ -804,6 +804,15 @@ it("function return", function()
     local a: auto = f()
   ]])
   expect.analyze_ast([[
+    local function test(value: isize): isize
+      while true do
+        if true then
+          return value
+        end
+      end
+    end
+  ]])
+  expect.analyze_ast([[
     local function f(): integer return 1 end
     local function f(): integer if true then return 1 else return 2 end end
     local function f(): integer do return 1 end end
@@ -840,6 +849,24 @@ it("function return", function()
       if x then assert(true) else return 1 end
     end
   ]], "return statement is missing")
+  expect.analyze_error([[
+    local function test(value: isize): isize
+      while true do
+        if true then
+          break
+        end
+      end
+    end
+  ]], "return statement is missing")
+  expect.analyze_ast([[
+    local function test(value: isize): isize
+      while true do
+        if true then
+          return value
+        end
+      end
+    end
+  ]])
   expect.analyze_error([[
     local function f(): integer return 1, 2 end
   ]], "invalid return expression at index")
