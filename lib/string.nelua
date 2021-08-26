@@ -986,7 +986,12 @@ function string.fillcstring(s: string, buf: *[0]cchar, buflen: usize): boolean
   return false
 end
 
--- Convert a value to a string.
+--[[
+Convert a value to a string.
+A new string will be always allocated.
+When calling on records the `__tostring` metamethod may be called,
+in this case, it must always return a new allocated string.
+]]
 global function tostring(x: auto): string
   ##[[
   local xobjtype = x.type:implicit_deref_type()
@@ -997,10 +1002,10 @@ global function tostring(x: auto): string
   ]]
   ## if xtype.is_stringy then
     return string.copy(x)
+  ## elseif xobjtype.metafields and xobjtype.metafields.__tostring then
+    return x:__tostring()
   ## elseif x.type.is_span and x.type.subtype == primtypes.byte then
     return string.copy((@string){data=x.data, size=x.size})
-  ## elseif xobjtype.is_record and xobjtype.metafields.__tostring then
-    return x:__tostring()
   ## elseif xtype.is_integral then
     ## if xtype.size <= primtypes.isize.size then
       return int2str((@#[xtype.is_signed and primtypes.isize or primtypes.usize]#)(x), 10)

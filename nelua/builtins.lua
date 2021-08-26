@@ -151,12 +151,10 @@ function builtins.print(context, node, argnodes)
   for i=1,#argtypes do
     local argtype = argtypes[i]
     local objtype = argtype:implicit_deref_type()
-    if objtype.is_record then
-      local metafields = objtype.metafields
-      if metafields.__tostring then
-        argtype = primtypes.string
-        argnodes[i] = aster.CallMethod{'__tostring', {}, argnodes[i]}
-      end
+    local metafields = objtype.metafields
+    if metafields and metafields.__tostring then
+      argtype = primtypes.string
+      argnodes[i] = aster.CallMethod{'__tostring', {}, argnodes[i]}
     end
     argattrs[i] = {name='a'..i, type=argtype}
   end

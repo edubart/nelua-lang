@@ -2014,6 +2014,9 @@ global function tostring(x: auto): string
 ```
 
 Convert a value to a string.
+A new string will be always allocated.
+When calling on records the `__tostring` metamethod may be called,
+in this case, it must always return a new allocated string.
 
 ### tonumber
 

@@ -68,6 +68,8 @@ Type.shape = shaper.shape {
   unary_operators = shaper.table,
   -- Binary operators defined for the type.
   binary_operators = shaper.table,
+  -- Table of meta fields (global methods/variables of the type).
+  metafields = shaper.table:is_optional(),
   -- A generic type that the type can represent when used as generic.
   generic = shaper.type:is_optional(),
   -- Whether the code generator should omit the type declaration.
@@ -1594,6 +1596,7 @@ function EnumType:_init(subtype, fields, node)
   IntegralType._init(self, 'enum', subtype.size, subtype.is_unsigned, subtype.align)
   self.subtype = subtype
   self.fields = fields
+  self.metafields = {}
   self:update_fields()
 end
 
@@ -1907,13 +1910,8 @@ RecordType.shape = shaper.fork_shape(Type.shape, {
     -- Type of the field.
     type = shaper.type,
   }),
-
-  -- Meta fields in the record (methods and global variables declared for it).
-  metafields = shaper.map_of(shaper.string, shaper.symbol),
-
   -- Whether to pack the record.
   packed = shaper.optional_boolean,
-
   -- Use in the lib in generics like 'span', 'vector' to represent the subtype.
   subtype = shaper.type:is_optional(),
 })
@@ -2041,9 +2039,14 @@ function RecordType:is_contiguous_of(subtype)
   return false
 end
 
--- Set a meta field for this record type to a symbol of a function or variable.
-function RecordType:set_metafield(name, symbol)
-  self.metafields[name] = symbol
+-- Set a meta field for this type to a symbol of a function or variable.
+function Type:set_metafield(name, symbol)
+  local metafields = self.metafields
+  if not metafields then
+    metafields = {}
+    self.metafields = metafields
+  end
+  metafields[name] = symbol
 end
 
 -- Get the desired type when converting this type from another type.

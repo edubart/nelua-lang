@@ -503,6 +503,24 @@ do -- tostring
   assert_string_eq(tostring((@enum{A=0})()), '0')
 end
 
+do -- tostring using __tostring metamethod
+  local MyEnum: type = @enum{A = 0, B}
+  function MyEnum.__tostring(value: MyEnum): string
+    ## for i,field in ipairs(value.type.fields) do
+    if value == #[field.value]# then
+      return string.copy(#[field.name]#)
+    end
+    ## end
+    return string.copy('Unknown')
+  end
+  local a = tostring(MyEnum.A)
+  local f = MyEnum.__tostring
+  local b = f(MyEnum.B)
+  assert(a == 'A' and b == 'B')
+  a:destroy()
+  b:destroy()
+end
+
 do -- tonumber
   assert(tonumber(1337) == 1337)
   assert(tonumber('1337') == 1337)

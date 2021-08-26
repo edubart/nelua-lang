@@ -1609,18 +1609,6 @@ local function visitor_Composite_FieldIndex(_, node, objtype, name)
   attr.type = type
 end
 
-local function visitor_EnumType_FieldIndex(_, node, objtype, name)
-  local attr = node.attr
-  local field = objtype.fields[name]
-  if not field then
-    node:raisef("cannot index field '%s' on enum '%s'", name, objtype)
-  end
-  attr.dotfieldname = field.name
-  attr.comptime = true
-  attr.value = field.value
-  attr.type = objtype
-end
-
 local function visitor_Type_MetaFieldIndex(context, node, objtype, name)
   local attr = node.attr
   local symbol = objtype.metafields[name]
@@ -1675,9 +1663,25 @@ local function visitor_Type_MetaFieldIndex(context, node, objtype, name)
   return symbol
 end
 
+local function visitor_EnumType_FieldIndex(context, node, objtype, name)
+  local attr = node.attr
+  local field = objtype.fields[name]
+  if not field then
+    local metafield = objtype.metafields and objtype.metafields[name]
+    if not metafield then
+      node:raisef("cannot index field '%s' on enum '%s'", name, objtype)
+    end
+    return visitor_Type_MetaFieldIndex(context, node, objtype, name)
+  end
+  attr.dotfieldname = field.name
+  attr.comptime = true
+  attr.value = field.value
+  attr.type = objtype
+end
+
 local function visitor_Type_FieldIndex(context, node, objtype, name)
   objtype = objtype:implicit_deref_type()
-  if objtype.is_enum then
+  if objtype.is_enum and not (context.state.infuncdef or context.state.inglobaldecl) then
     return visitor_EnumType_FieldIndex(context, node, objtype, name)
   elseif objtype.metafields then
     return visitor_Type_MetaFieldIndex(context, node, objtype, name)
