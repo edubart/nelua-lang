@@ -51,7 +51,6 @@ else ifeq ($(SYS), Darwin)
 else # probably POSIX
 	CC=cc
 	LIBS=-lm
-	LDFLAGS+=-Wl,-E
 	DEFS+=-DLUA_USE_POSIX
 endif
 

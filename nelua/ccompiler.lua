@@ -106,7 +106,8 @@ local function get_compiler_cflags(compileopts)
       cflags:add(' -l')
       cflags:addlist(compileopts.linklibs, ' -l')
     end
-    if ccinfo.is_linux and not ccinfo.is_mirc then -- always link math library on linux
+    if ccinfo.is_unix and -- always link math library on unix
+      (not ccinfo.is_mirc and not ccinfo.is_apple) then
       cflags:add(' -lm')
     end
   end
