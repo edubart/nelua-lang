@@ -3409,6 +3409,16 @@ it("forward type declaration", function()
     assert(foo:g(1) == 2)
     function Foo.f(x: integer): integer return x end
     function Foo:g(x: integer): integer return self.x + x end
+
+    local S <forwarddecl> = @record{}
+    local F = @function(integer): S
+    S = @record{ x: integer, f: F }
+    local s: S
+    s.f = function(x: integer): S
+      return {x=x}
+    end
+    local s2 = s.f(1)
+    assert(s2.x == 1)
   ]=])
   expect.run_error_c([=[
     local function f(x: integer): integer <forwarddecl> end

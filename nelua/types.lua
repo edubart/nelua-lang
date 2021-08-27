@@ -1649,7 +1649,7 @@ FunctionType.shape = shaper.fork_shape(Type.shape, {
   sideeffect = shaper.optional_boolean,
 })
 
-function FunctionType:_init(argattrs, rettypes, node)
+function FunctionType:_init(argattrs, rettypes, node, refonly)
   self.codename = types.gencodename('function', node)
   self.node = node
   Type._init(self, 'function', typedefs.ptrsize)
@@ -1679,10 +1679,12 @@ function FunctionType:_init(argattrs, rettypes, node)
   self.rettypes = rettypes or {}
 
   -- validate arg types
-  for i=1,#argtypes do
-    local argtype = argtypes[i]
-    if not argtype:is_defined() then
-      ASTNode.raisef(node, "in function argument: argument #%d cannot be of forward declared type '%s'", i, argtype)
+  if not refonly then
+    for i=1,#argtypes do
+      local argtype = argtypes[i]
+      if not argtype:is_defined() then
+        ASTNode.raisef(node, "in function argument: argument #%d cannot be of forward declared type '%s'", i, argtype)
+      end
     end
   end
 
@@ -1692,7 +1694,7 @@ function FunctionType:_init(argattrs, rettypes, node)
       local rettype = rettypes[i]
       if rettype.is_comptime then
         ASTNode.raisef(node, "in function return: return #%d cannot be of compile-time type '%s'", i, rettype)
-      elseif not rettype:is_defined() then
+      elseif not refonly and not rettype:is_defined() then
         ASTNode.raisef(node, "in function return: return #%d cannot be of forward declared type '%s'", i, rettype)
       end
     end

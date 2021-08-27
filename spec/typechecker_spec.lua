@@ -1978,13 +1978,12 @@ end)
 it("forward type declaration", function()
   expect.analyze_ast("local R <forwarddecl> = @record{}; R = @record{}; local S = @record{r: R}")
   expect.analyze_ast("local U <forwarddecl> = @union{}; U = @union{i: integer, n: number}; local S = @record{u: U}")
+  expect.analyze_ast("local R <forwarddecl> = @record{}; local f: function(x: R)")
   expect.analyze_error("local R <forwarddecl> = @record{}; local S = @record{r: R}",
     "cannot be of forward declared type")
   expect.analyze_error("local R <forwarddecl> = @record{}; local r: R",
     "cannot be of forward declared type")
   expect.analyze_error("local R <forwarddecl> = @record{}; local A = @[4]R",
-    "cannot be of forward declared type")
-  expect.analyze_error("local R <forwarddecl> = @record{}; local f: function(x: R)",
     "cannot be of forward declared type")
   expect.analyze_error("local R <forwarddecl> = @record{}; local function f(x: R) end",
     "cannot be of forward declared type")

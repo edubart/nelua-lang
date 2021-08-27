@@ -820,7 +820,7 @@ function visitors.FuncType(context, node)
   else
     rettypes = {}
   end
-  local type = types.FunctionType(argattrs, rettypes, node)
+  local type = types.FunctionType(argattrs, rettypes, node, true)
   type.sideeffect = true
   attr.type = primtypes.type
   attr.value = type
