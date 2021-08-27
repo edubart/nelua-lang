@@ -545,7 +545,7 @@ The following table shows Nelua primitive numeric types and their related types 
 | Type              | C Type              | Suffixes            |
 |-------------------|---------------------|---------------------|
 | `integer`         | `int64_t`           | `_i` `_integer`     |
-| `uinteger`        | `unt64_t`           | `_u` `_uinteger`    |
+| `uinteger`        | `uint64_t`          | `_u` `_uinteger`    |
 | `number`          | `double`            | `_n` `_number`      |
 | `byte`            | `uint8_t`           | `_b` `_byte`        |
 | `isize`           | `intptr_t`          | `_is` `_isize`      |
