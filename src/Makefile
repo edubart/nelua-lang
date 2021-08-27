@@ -1,7 +1,7 @@
 ## Base configurations.
 INCS=-Ilua
 DEFS=-DNDEBUG
-CFLAGS=-Wall -O2 -fno-plt -flto
+CFLAGS=-Wall -O2
 SRCS=lua/onelua.c lfs.c sys.c hasher.c lpeglabel/*.c
 HDRS=lua/*.h lpeglabel/*.h
 EXE=nelua-lua
@@ -13,7 +13,6 @@ DEFS+=-DLUA_COMPAT_5_3 -DMAXRECLEVEL=400
 
 ## Host system detection.
 SYS:=$(shell uname -s)
-CPUARCH:=$(shell uname -m)
 ifneq (,$(findstring MINGW,$(SYS)))
 	SYS=Windows
 endif
@@ -35,11 +34,12 @@ endif
 ## Setup flags for the host system.
 ifeq ($(SYS), Linux)
 	CC=gcc
+	CFLAGS+=-fno-plt -flto
 	LDFLAGS+=-Wl,-E
 	LIBS+=-lm -ldl
 	DEFS+=-DLUA_USE_LINUX
 else ifeq ($(SYS), Windows)
-	CC=$(CPUARCH)-w64-mingw32-gcc
+	CC=gcc
 	EXE=nelua-lua.exe
 	LDFLAGS+=-static
 	DEFS+=-D_CRT_SECURE_NO_WARNINGS # disable some warnings on MSVC
@@ -49,6 +49,7 @@ else ifeq ($(SYS), Darwin)
 	LDFLAGS+=-rdynamic
 	DEFS+=-DLUA_USE_MACOSX
 else # probably POSIX
+	CC=gcc
 	LIBS=-lm
 	DEFS+=-DLUA_USE_POSIX
 endif

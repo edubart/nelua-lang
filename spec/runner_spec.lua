@@ -165,8 +165,8 @@ end)
 it("static libraries", function()
   local ccinfo = ccompiler.get_cc_info()
   if ccinfo.is_gcc then
-    expect.run({'--static', 'tests/libmylib.nelua'})
-    expect.run({'tests/mylib_test.nelua'},[[
+    expect.run({'--static', 'tests/libmylib_static.nelua'})
+    expect.run({'tests/mylib_test.nelua', '-DSTATIC'},[[
 mylib - init
 mylib - in top scope
 mylib - sum

@@ -1,5 +1,4 @@
 local tabler = require 'nelua.utils.tabler'
-local platform = require 'nelua.utils.platform'
 
 local cdefs = {}
 
@@ -83,13 +82,6 @@ cdefs.for_compare_ops = {
 cdefs.search_compilers = {
   'gcc', 'clang', 'cc'
 }
-
-if platform.is_windows then --luacov:disable
-  cdefs.search_compilers = tabler.insertvalues({
-    'x86_64-w64-mingw32-gcc', 'x86_64-w64-mingw32-clang',
-    'i686-w64-mingw32-gcc', 'i686-w64-mingw32-clang',
-  }, cdefs.search_compilers)
-end --luacov:enable
 
 local compilers_flags = {}
 cdefs.compilers_flags = compilers_flags
