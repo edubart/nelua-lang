@@ -51,10 +51,23 @@ local function from(base, expbase, int, frac, exp)
   end
   -- parse the exponential part
   if exp then
-    local e = tonumber(exp)
-    local s = bn.ipow(expbase, math.abs(e))
-    if e < 0 then s = 1/s end
-    n = n * s
+    exp = tonumber(exp)
+    assert(math.type(exp) == 'integer')
+    local absexp = math.abs(exp)
+    local s = 1.0
+    local e = expbase + 0.0 -- force float
+    while absexp > 0 do
+      if absexp & 1 == 1 then
+        s = s * e
+      end
+      e = e * e
+      absexp = absexp >> 1
+    end
+    if exp < 0 then
+      n = n/s
+    else
+      n = n*s
+    end
   end
   return n
 end
@@ -69,22 +82,26 @@ function bn.from(v)
       if neg then n = -n end
       return n, 2
     elseif v:find('^[-+]?0[xX]') then -- hexadecimal number
-      if v:find('[.pP]') then -- has a fraction or exponent
-        return tonumber(v), 16
-      else -- integral
-        local neg, int, frac, exp = hexpatt:match(v)
-        assert(int and not frac and not exp, 'malformed hexadecimal number')
-        local n = bn.frombase(int, 16)
-        if neg then n = -n end
-        return n, 16
+      local neg, int, frac, exp = hexpatt:match(v)
+      assert(int, 'malformed hexadecimal number')
+      local n
+      if frac or exp then
+        n = from(16, 2, int, frac, exp)
+        n = bn.tonumber(n) + 0.0 -- force a float
+      else
+        n = bn.frombase(int, 16)
       end
+      if neg then n = -n end
+      return n, 16
     else
       v = v:lower()
       if v == 'inf' or v == 'infinity' then
         return math.huge, 10
       elseif v == '-inf' or v == '-infinity' then
         return -math.huge, 10
-      elseif v == 'nan' or v == '-nan' then
+      elseif v == 'nan' then
+        return -(0.0/0.0), 10
+      elseif v == '-nan' then
         return 0.0/0.0, 10
       else -- should be a decimal number
         local n = bn.parse(v)
