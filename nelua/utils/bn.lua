@@ -78,16 +78,19 @@ function bn.from(v)
         if neg then n = -n end
         return n, 16
       end
-    elseif v == 'inf' then
-      return math.huge, 10
-    elseif v == '-inf' then
-      return -math.huge, 10
-    elseif v == 'nan' or v == '-nan' then
-      return 0.0/0.0, 10
-    else -- should be a decimal number
-      local n = bn.parse(v)
-      assert(n, 'malformed number')
-      return n, 10
+    else
+      v = v:lower()
+      if v == 'inf' or v == 'infinity' then
+        return math.huge, 10
+      elseif v == '-inf' or v == '-infinity' then
+        return -math.huge, 10
+      elseif v == 'nan' or v == '-nan' then
+        return 0.0/0.0, 10
+      else -- should be a decimal number
+        local n = bn.parse(v)
+        assert(n, 'malformed number')
+        return n, 10
+      end
     end
   else -- should already be a number
     local n = bn.parse(v)
