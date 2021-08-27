@@ -1,9 +1,13 @@
 ##[[
 -- Add the current folder to the linker's library search path.
 cflags("-L "..config.output_dir)
-if ccinfo.is_linux then
-  -- We expect that 'mylib' library is available in the current path.
-  cflags "-Wl,-rpath,'$ORIGIN'"
+if STATIC then
+  cflags '-static'
+else
+  if ccinfo.is_unix then
+    -- We expect that 'mylib' library is available in the current path.
+    cflags "-Wl,-rpath,'$ORIGIN'"
+  end
 end
 -- Link mylib C library.
 linklib 'mylib'

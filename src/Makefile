@@ -49,7 +49,6 @@ else ifeq ($(SYS), Darwin)
 	LDFLAGS+=-rdynamic
 	DEFS+=-DLUA_USE_MACOSX
 else # probably POSIX
-	CC=cc
 	LIBS=-lm
 	DEFS+=-DLUA_USE_POSIX
 endif
