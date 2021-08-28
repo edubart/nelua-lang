@@ -62,9 +62,7 @@ local function run(argv, redirect)
     console.debugf('startup      %.1f ms', timer:elapsedrestart())
   end
 
-  if not config.turbo then
-    collectgarbage("restart")
-  end
+  collectgarbage("restart")
 
   -- determine input
   local input, infile
@@ -115,13 +113,22 @@ local function run(argv, redirect)
     console.debugf('preprocess   %.1f ms', preprocessor.working_time)
     console.debugf('analyze      %.1f ms', elapsed - aster.parsing_time - preprocessor.working_time)
   end
+  local function print_total_build()
+    if config.timing then
+      console.debug2f('total build  %.1f ms', globaltimer:elapsedrestart())
+    end
+  end
 
   if config.print_analyzed_ast then
     console.info(tostring(ast))
+    print_total_build()
     return 0
   end
 
-  if config.analyze then return 0 end
+  if config.analyze then
+    print_total_build()
+    return 0
+  end
 
   -- generate the code
   local code = generator.generate(context)
@@ -133,6 +140,7 @@ local function run(argv, redirect)
   -- only printing generated code?
   if config.print_code then
     console.info(code)
+    print_total_build()
     return 0
   end
 
@@ -161,9 +169,7 @@ local function run(argv, redirect)
     end
   end
 
-  if config.timing then
-    console.debug2f('total build  %.1f ms', globaltimer:elapsedrestart())
-  end
+  print_total_build()
 
   -- run
   if dorun and isexe then
