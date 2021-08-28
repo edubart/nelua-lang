@@ -1613,8 +1613,8 @@ local function visitor_Type_MetaFieldIndex(context, node, objtype, name)
   local attr = node.attr
   local symbol = objtype.metafields[name]
   local parentnode = context:get_visiting_node(1)
-  local infuncdef = context.state.infuncdef == parentnode
-  local inglobaldecl = context.state.inglobaldecl == parentnode
+  local infuncdef = (context.state.infuncdef == parentnode) and parentnode
+  local inglobaldecl = (context.state.inglobaldecl == parentnode) and parentnode
   local inpolydef = context.state.inpolydef and symbol == context.state.inpolydef
   if inpolydef then
     symbol = attr._symbol and attr or nil
@@ -1623,17 +1623,19 @@ local function visitor_Type_MetaFieldIndex(context, node, objtype, name)
     local symname = string.format('%s.%s', objtype.nickname or objtype.name, name)
     symbol = Symbol.promote_attr(attr, node, symname)
     symbol.codename = context:choose_codename(string.format('%s_%s', objtype.codename, name))
-    symbol:link_node(parentnode)
     if infuncdef then
+      symbol:link_node(infuncdef)
       -- declaration of record global function
       symbol.metafunc = true
       if node.is_ColonIndex then
         symbol.metafuncselftype = types.PointerType(objtype)
       end
-    elseif inglobaldecl then
+    elseif inglobaldecl then -- global declaration
+      symbol:link_node(inglobaldecl)
       -- declaration of record global variable
       symbol.metafield = true
     else
+      symbol:link_node(node)
       if objtype.is_string and not objtype.metafields.sub then
         node:raisef("cannot index meta field '%s' in record '%s', \z
           maybe you forgot to require module 'string'?", name, objtype)
