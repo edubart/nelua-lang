@@ -1,7 +1,13 @@
+##[[
+if ccinfo.is_emscripten then
+  cflags '-s USE_SDL=2 -s ASYNCIFY=1'
+end
+linklib 'SDL2'
+]]
+
 require 'math'
 
 -- SDL2 Snake Game Demo
-## linklib 'SDL2'
 
 -- import SDL structures
 local SDL_Event <cimport> = @record{

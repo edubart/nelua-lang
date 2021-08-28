@@ -3,7 +3,9 @@ cflags '-O3'
 cdefine 'SDL_MAIN_HANDLED'
 if ccinfo.is_gcc and not ccinfo.is_clang then
   cflags '-ffast-math -march=native -fopenmp'
-else
+elseif ccinfo.is_emscripten then
+  cflags '-s USE_SDL=2 -s ASYNCIFY=1'
+else -- TCC does not support intrinsic headers
   cdefine 'SDL_DISABLE_IMMINTRIN_H'
 end
 cinclude '<SDL2/SDL.h>'
