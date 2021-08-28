@@ -570,6 +570,12 @@ it("anonymous functions", function()
 
     call1(function() print 'hello' end)
     assert(call2(function(x: integer) <nosideeffect> return x+1 end) == 2)
+
+    do -- issue #114
+      local function f(a: string) end
+      local A = function() f('hello world') end
+      A()
+    end
   ]], "hello")
 end)
 

@@ -1117,9 +1117,13 @@ function visitors.VarDecl(context, node, emitter)
           if vartype.is_array then
             decemitter:add_text('{.v = ')
           end
-          context:push_forked_state{untypedinit = true}
+          if vartype.is_aggregate then
+            context:push_forked_state{untypedinit=true}
+          end
           decemitter:add_converted_val(vartype, valnode)
-          context:pop_state()
+          if vartype.is_aggregate then
+            context:pop_state()
+          end
           if vartype.is_array then
             decemitter:add_text('}')
           end

@@ -1334,7 +1334,7 @@ it("record methods", function()
     global A.a: integer
     global A.a: integer
   ]], "cannot redefine meta type field")
-  expect.analyze_error([[
+  expect.analyze_error([[ -- issue #113
     local R = @record{}
     global R.Foo = @record{ x: integer }
     local function x(): R.Fooo return R.Foo{10} end
