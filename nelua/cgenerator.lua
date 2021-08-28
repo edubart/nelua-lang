@@ -1232,8 +1232,11 @@ function visitors.FuncDef(context, node, emitter)
   local varnode, argnodes, blocknode = node[2], node[3], node[6]
   local funcname = varnode
   -- handle function variable assignment
-  if not attr.funcdeclared then
-    if varnode.is_Id then
+  if not attr.funcdeclared or not attr.comptime then
+    if varnode.is_IdDecl then
+      funcname = context.rootscope:generate_name(context:declname(varnode.attr))
+      emitter:add_indent_ln(varnode, ' = ', funcname, ';')
+    elseif varnode.is_Id then
       funcname = context.rootscope:generate_name(context:declname(varnode.attr))
       emitter:add_indent_ln(varnode, ' = ', funcname, ';')
     elseif varnode.is_index then

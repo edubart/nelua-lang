@@ -2819,7 +2819,9 @@ local function resolve_function_type(node, symbol, varnode, varsym, decl, argatt
   end
   attr.ftype = type
   if decl then
-    attr.comptime = true
+    if attr.comptime == nil then
+      attr.comptime = true
+    end
     attr.value = symbol
   end
   return type
@@ -2839,9 +2841,10 @@ function visitors.FuncDef(context, node, opts)
     symbol.scope:add_symbol(symbol)
     symbol:link_node(node)
     attr = node.attr
-  else -- we need to create an anonymous symbol
+  else
     attr = node.attr
-    if not attr._symbol then
+    if not attr._symbol then -- inside an array/dot index without symbol
+      -- we need to create an anonymous symbol
       symbol = Symbol.promote_attr(attr, node)
       symbol.codename = context:choose_codename('anonfunc')
       symbol.anonymous = true
@@ -2854,7 +2857,6 @@ function visitors.FuncDef(context, node, opts)
     end
     symbol.scope:add_symbol(symbol)
   end
-  symbol.defnode = node
   context:pop_state()
 
   -- we must know if the symbols is going to be polymorphic
@@ -2874,7 +2876,7 @@ function visitors.FuncDef(context, node, opts)
   end
 
   -- detect if is a function declaration/definition
-  local decl = not not declscope or forwarddecl
+  local decl = (not not declscope or forwarddecl)
   local defn = not (attr.nodecl or attr.cimport or attr.hookmain or forwarddecl)
   if symbol then
     if not forwarddecl and symbol.forwarddecl then
@@ -2890,6 +2892,12 @@ function visitors.FuncDef(context, node, opts)
     if defn then
       node.funcdefn = true
       symbol.funcdefined = true
+      if not symbol.defnode then -- set defnode only for first definition
+        symbol.defnode = node
+      elseif symbol.defnode ~= node then -- promote to variable
+        symbol.comptime = false
+        symbol.staticstorage = false
+      end
     end
   end
 

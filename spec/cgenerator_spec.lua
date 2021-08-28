@@ -3451,6 +3451,13 @@ it("function assignment", function()
       return x+1
     end
     assert(r.f(1) == 2)
+
+    do
+      local function f() return 1 end
+      assert(f() == 1)
+      function f() return 2 end
+      assert(f() == 2)
+    end
   ]=])
 end)
 
