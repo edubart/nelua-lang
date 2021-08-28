@@ -121,9 +121,9 @@ compilers_flags.gcc = tabler.update(tabler.copy(compilers_flags.cc), {
   cflags_release = "-O2 -DNDEBUG -fno-plt",
   cflags_shared = "-shared -fPIC",
   cflags_maximum_performance = "-Ofast -march=native -DNDEBUG -fno-plt -flto",
-  cmd_compile = '$(cc) -x c "$(cfile)" -o "$(binfile)" $(cflags)',
-  cmd_info = '$(cc) -x c -E "$(cfile)" $(cflags)',
-  cmd_defines = '$(cc) -x c -E -dM $(cflags) "$(cfile)"',
+  cmd_compile = '$(cc) -x c "$(cfile)" -x none -o "$(binfile)" $(cflags)',
+  cmd_info = '$(cc) -E -x c "$(cfile)" -x none $(cflags)',
+  cmd_defines = '$(cc) -E -dM -x c "$(cfile)" -x none $(cflags)',
 })
 -- Clang
 compilers_flags.clang = tabler.copy(compilers_flags.gcc)
@@ -148,9 +148,9 @@ compilers_flags.c2m = tabler.update(tabler.copy(compilers_flags.cc), {
 })
 -- GCC (C++)
 compilers_flags['g++'] = tabler.update(tabler.copy(compilers_flags.gcc), {
-  cmd_compile = '$(cc) -x c++ "$(cfile)" -o "$(binfile)" $(cflags)',
-  cmd_info = '$(cc) -x c++ -E "$(cfile)" $(cflags)',
-  cmd_defines = '$(cc) -x c++ -E -dM $(cflags) "$(cfile)"',
+  cmd_compile = '$(cc) -x c++ "$(cfile)" -x none -o "$(binfile)" $(cflags)',
+  cmd_info = '$(cc) -E -x c++ "$(cfile)" -x none $(cflags)',
+  cmd_defines = '$(cc) -E -dM -x c++ "$(cfile)" -x none $(cflags)',
   ext = '.cpp',
 })
 -- Clang (C++)
