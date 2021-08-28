@@ -1356,7 +1356,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
             if mulargstype.is_cvarargs and argtype then
               if argtype.is_string then -- we actually want a cstring
                 argtype = primtypes.cstring
-              elseif argtype.is_aggregate then
+              elseif argtype.is_record then
                 node:raisef("in call of function '%s' at argument %d: invalid type '%s' for 'cvarargs'",
                   calleename, i, argtype)
               end

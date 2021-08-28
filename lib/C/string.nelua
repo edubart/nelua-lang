@@ -11,7 +11,6 @@ require 'C'
 
 function C.memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,cinclude'<string.h>'> end
 function C.memmove(dest: pointer, src: pointer, n: csize): pointer <cimport,cinclude'<string.h>'> end
-function C.memccpy(dest: pointer, src: pointer, c: cint, n: csize): pointer <cimport,cinclude'<string.h>'> end
 function C.memset(s: pointer, c: cint, n: csize): pointer <cimport,cinclude'<string.h>'> end
 function C.memcmp(s1: pointer, s2: pointer, n: csize): cint <cimport,cinclude'<string.h>'> end
 function C.memchr(s: pointer, c: cint, n: csize): pointer <cimport,cinclude'<string.h>'> end
@@ -34,3 +33,9 @@ function C.strpbrk(s: cstring, accept: cstring): cstring <cimport,cinclude'<stri
 function C.strstr(haystack: cstring, needle: cstring): cstring <cimport,cinclude'<string.h>'> end
 function C.strlen(s: cstring): csize <cimport,cinclude'<string.h>'> end
 function C.strerror(errnum: cint): cstring <cimport,cinclude'<string.h>'> end
+
+-- C23
+
+function C.memccpy(dest: pointer, src: pointer, c: cint, n: csize): pointer <cimport,cinclude'<string.h>'> end
+function C.strdup(s: cstring): cstring <cimport,cinclude'<string.h>'> end
+function C.strndup(string: cstring, n: csize): cstring <cimport,cinclude'<string.h>'> end

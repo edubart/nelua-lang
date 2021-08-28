@@ -75,6 +75,4 @@ function C.lldiv(numer: clonglong, denom: clonglong): C.lldiv_t <cimport,cinclud
 
 global C.EXIT_SUCCESS: cint <const,cimport,cinclude'<stdlib.h>'>
 global C.EXIT_FAILURE: cint <const,cimport,cinclude'<stdlib.h>'>
-
 global C.RAND_MAX: cint <const,cimport,cinclude'<stdlib.h>'>
---global C.NULL <comptime,cinclude'<stdlib.h>'> = nilptr

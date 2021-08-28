@@ -47,3 +47,10 @@ function C.timespec_get(ts: *C.timespec, base: cint): cint <cimport,cinclude'<ti
 
 global C.CLOCKS_PER_SEC: C.clock_t <const,cimport,cinclude'<time.h>'>
 global C.TIME_UTC: cint <const,cimport,cinclude'<time.h>'>
+
+-- C23
+
+function C.asctime_r(tp: *C.tm, buf: cstring): cstring <cimport,cinclude'<time.h>'> end
+function C.ctime_r(timer: *C.time_t, buf: cstring): cstring <cimport,cinclude'<time.h>'> end
+function C.gmtime_r(timer: *C.time_t, tp: *C.tm): *C.tm <cimport,cinclude'<time.h>'> end
+function C.localtime_r(timer: *C.time_t, tp: *C.tm): *C.tm <cimport,cinclude'<time.h>'> end

@@ -63,7 +63,7 @@ function C.fputc(c: cint, stream: *C.FILE): cint <cimport,cinclude'<stdio.h>'> e
 function C.fgets(s: cstring, n: cint, stream: *C.FILE): cstring <cimport,cinclude'<stdio.h>'> end
 function C.fputs(s: cstring, stream: *C.FILE): cint <cimport,cinclude'<stdio.h>'> end
 
-function C.gets(s: cstring): cstring <cimport,cinclude'<stdio.h>'> end
+function C.gets(s: cstring): cstring <cimport,cinclude'<stdio.h>',deprecated> end
 function C.puts(s: cstring): cint <cimport,cinclude'<stdio.h>'> end
 
 function C.ungetc(c: cint, stream: *C.FILE): cint <cimport,cinclude'<stdio.h>'> end
