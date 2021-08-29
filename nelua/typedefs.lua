@@ -222,7 +222,7 @@ typedefs.function_annots = {
   cimport = shaper.shape{shaper.string:is_optional()},
   -- C file to include when using the function.
   cinclude = shaper.shape{shaper.string},
-  -- Custom name used for the function when generating the C code.
+  -- Custom name used for the function when generating the C code (implicitly sets `nodce`).
   codename = shaper.shape{shaper.string},
   -- A C qualifier to use when declaring the function. (e.g. 'extern')
   cqualifier = shaper.shape{shaper.string},
@@ -241,6 +241,8 @@ typedefs.function_annots = {
   -- Whether to skip declaring the function in C.
   -- When using this the function must be declared somewhere else, like in a C include or macro.
   nodecl = true,
+  -- Whether the compiler should never omit unused functions.
+  nodce = true,
   -- Whether the function can't trigger side effects.
   -- A function triggers side effects when it can throw errors or manipulate external variables.
   -- The compiler uses this to know if it should use a strict evaluation order when calling it.
@@ -267,7 +269,7 @@ typedefs.variable_annots = {
   cimport = shaper.shape{shaper.string:is_optional()},
   -- C file to include when using the variable.
   cinclude = shaper.shape{shaper.string},
-  -- Custom name used for the variable when generating the C code.
+  -- Custom name used for the variable when generating the C code (implicitly sets `nodce`).
   codename = shaper.shape{shaper.string},
   -- A C qualifier to use when declaring the variable. (e.g. 'extern')
   cqualifier = shaper.shape{shaper.string},

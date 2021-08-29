@@ -74,6 +74,8 @@ Type.shape = shaper.shape {
   generic = shaper.type:is_optional(),
   -- Whether the code generator should omit the type declaration.
   nodecl = shaper.optional_boolean,
+  -- Whether the compiler should never omit unused types.
+  nodce = shaper.optional_boolean,
   -- Whether the code generator should import the type from C.
   cimport = shaper.optional_boolean,
   -- Whether the type was marked as incomplete imported struct/union.

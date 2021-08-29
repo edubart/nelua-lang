@@ -601,6 +601,7 @@ function visitors.Annotation(context, node, opts)
     end
   elseif name == 'codename' then
     objattr.fixedcodename = params
+    objattr.nodce = true
   elseif istypedecl and (name == 'cincomplete' or name =='forwarddecl') then
     objattr.size = nil
     objattr.bitsize = nil
