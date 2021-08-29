@@ -520,6 +520,10 @@ it("operation on comptime variables", function()
     local function printf(format: cstring, ...: cvarargs): cint <cimport,nodecl,cinclude'<stdio.h>'> end
     printf(s)
   ]], [[printf("hello\n");]])
+  expect.generate_c([[
+    local ADDR: *uinteger <comptime> = (@*uinteger)(0xfffffffff)
+    local a = ADDR
+  ]], "a = ((nluint64_ptr)0xfffffffff)")
   expect.run_c([[
     -- sum/sub/mul
     assert(3 + 4 == 7)

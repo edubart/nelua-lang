@@ -367,6 +367,12 @@ function CEmitter:add_scalar_literal(num, numtype, base)
   end
 end
 
+-- Adds a pointer literal.
+function CEmitter:add_pointer_literal(value, type)
+  type = type or primtypes.pointer
+  self:add('((', type , ')0x', bn.tohexint(value), ')')
+end
+
 -- Adds a array literal from list of attrs `valattrs`.
 function CEmitter:add_array_literal(valattrs, arrtype)
   local context = self.context
@@ -402,6 +408,8 @@ function CEmitter:add_literal(valattr)
     self:add_string_literal(value, false)
   elseif valtype.is_cstring then
     self:add_string_literal(value, true)
+  elseif valtype.is_pointer then
+    self:add_pointer_literal(value, valtype)
   elseif valtype.is_procedure then
     self:add_text(self.context:declname(value))
   elseif valtype.is_niltype then
