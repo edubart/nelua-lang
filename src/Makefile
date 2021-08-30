@@ -25,14 +25,6 @@ ifneq (,$(findstring CYGWIN,$(SYS)))
 	SYS=Windows
 endif
 
-ifndef NO_RPMALLOC
-	## Enable rpmalloc
-	DEFS+=-DLUA_USE_RPMALLOC
-	SRCS+=rpmalloc/rpmalloc.c
-	## Tune rpmalloc
-	DEFS+=-DENABLE_GLOBAL_CACHE=0 -DENABLE_UNLIMITED_CACHE=1 -DBUILD_DYNAMIC_LINK
-endif
-
 ## Setup flags for the host system.
 ifeq ($(SYS), Linux)
 	CFLAGS=-O2 -fno-plt -flto
@@ -54,6 +46,15 @@ else # probably POSIX
 	CFLAGS=-O2
 	LIBS=-lm
 	DEFS+=-DLUA_USE_POSIX
+	NO_RPMALLOC=1
+endif
+
+ifndef NO_RPMALLOC
+	## Enable rpmalloc
+	DEFS+=-DLUA_USE_RPMALLOC
+	SRCS+=rpmalloc/rpmalloc.c
+	## Tune rpmalloc
+	DEFS+=-DENABLE_GLOBAL_CACHE=0 -DBUILD_DYNAMIC_LINK
 endif
 
 default: $(EXE)
