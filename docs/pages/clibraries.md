@@ -3103,14 +3103,6 @@ function C.memmove(dest: pointer, src: pointer, n: csize): pointer
 
 
 
-### C.memccpy
-
-```nelua
-function C.memccpy(dest: pointer, src: pointer, c: cint, n: csize): pointer
-```
-
-
-
 ### C.memset
 
 ```nelua
@@ -3263,6 +3255,30 @@ function C.strerror(errnum: cint): cstring
 
 
 
+### C.memccpy
+
+```nelua
+function C.memccpy(dest: pointer, src: pointer, c: cint, n: csize): pointer
+```
+
+
+
+### C.strdup
+
+```nelua
+function C.strdup(s: cstring): cstring
+```
+
+
+
+### C.strndup
+
+```nelua
+function C.strndup(string: cstring, n: csize): cstring
+```
+
+
+
 ---
 ## C.time
 
@@ -3408,6 +3424,38 @@ global C.CLOCKS_PER_SEC: C.clock_t
 
 ```nelua
 global C.TIME_UTC: cint
+```
+
+
+
+### C.asctime_r
+
+```nelua
+function C.asctime_r(tp: *C.tm, buf: cstring): cstring
+```
+
+
+
+### C.ctime_r
+
+```nelua
+function C.ctime_r(timer: *C.time_t, buf: cstring): cstring
+```
+
+
+
+### C.gmtime_r
+
+```nelua
+function C.gmtime_r(timer: *C.time_t, tp: *C.tm): *C.tm
+```
+
+
+
+### C.localtime_r
+
+```nelua
+function C.localtime_r(timer: *C.time_t, tp: *C.tm): *C.tm
 ```
 
 

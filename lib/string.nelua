@@ -1079,7 +1079,7 @@ local PACKMAXALIGN: usize <comptime> =
 
 -- Helper to get native endianness.
 local function isnativelittle(): boolean <inline>
-  local u: union{dummy: int32, little: int8} = {little=1}
+  local u: union{dummy: int32, little: uint8} = {dummy=1}
   return u.little == 1
 end
 
@@ -1129,7 +1129,7 @@ end
 Unpack an integer with `size` bytes and `islittle` endianness.
 If size is smaller than the size of a uint64 and integer is signed,
 must do sign extension (propagating the sign to the higher bits).
-Ff size is larger than the size of a uint64,
+If size is larger than the size of a uint64,
 it must check the unread bytes to see whether they do not cause an overflow.
 ]]
 local function unpackint(s: string, pos: *usize, size: usize, maxalign: usize, islittle: boolean, issigned: boolean): uint64

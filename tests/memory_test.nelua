@@ -4,7 +4,7 @@ require 'allocators.default'
 local allocator: auto = default_allocator
 
 -- utilities
-local vec2 = @record{x: integer, y: integer}
+local vec2 = @record{x: int8, y: int8}
 
 --------------------------------------------------------------------------------
 -- raw pointers
@@ -65,7 +65,7 @@ do -- move
   local p = (@*[0]vec2)(allocator:xalloc0(2*#@vec2))
   local pa, pb = &p[0], &p[1]
   $pa, $pb = {x=1,y=2}, {x=3,y=4}
-  memory.move(&((@*[0]integer)(p))[1], p, 3 * #@integer)
+  memory.move(&((@*[0]int8)(p))[1], p, 3 * #@int8)
   assert(pa.x == 1 and pa.y == 1 and pb.x == 2 and pb.y == 3)
   allocator:dealloc(p)
 end
@@ -86,11 +86,11 @@ do -- compare
   local pa = (@*vec2)(allocator:xalloc0(#@vec2))
   local pb = (@*vec2)(allocator:xalloc0(#@vec2))
   assert(memory.compare(pa, pb, #@vec2) == 0)
-  pa.x = 1 pb.x = 2
-  assert(memory.compare(pa, pb, #@vec2) == -1)
-  pa.x = 2 pb.x = 1
-  assert(memory.compare(pa, pb, #@vec2) == 1)
-  pa.x = 2 pb.x = 2
+  $pa = vec2{x=1,y=1} $pb = vec2{x=2,y=2}
+  assert(memory.compare(pa, pb, #@vec2) < 0)
+  $pa = vec2{x=2,y=2} $pb = vec2{x=1,y=1}
+  assert(memory.compare(pa, pb, #@vec2) > 0)
+  $pa = vec2{x=2,y=2} $pb = vec2{x=2,y=2}
   assert(memory.compare(pa, pb, #@vec2) == 0)
   allocator:dealloc(pa)
   allocator:dealloc(pb)
@@ -121,10 +121,10 @@ do -- find
   assert(memory.find(nilptr, 0, nilptr, 0) == nilptr)
   local p = (@*vec2)(allocator:xalloc0(#@vec2))
   p.x = 1 p.y = 2
-  local x: integer, y: integer = 1, 2
-  assert(memory.find(p, #@vec2, &x, #@integer) == &p.x)
-  assert(memory.find(p, #@vec2, &y, #@integer) == &p.y)
-  assert(memory.find(&x, #@integer, p, #@vec2) == nilptr)
+  local x: int8, y: int8 = 1, 2
+  assert(memory.find(p, #@vec2, &x, #@int8) == &p.x)
+  assert(memory.find(p, #@vec2, &y, #@int8) == &p.y)
+  assert(memory.find(&x, #@int8, p, #@vec2) == nilptr)
   assert(memory.find(p, #@vec2, p, #@vec2) == p)
   assert(memory.find(p, #@vec2, nilptr, 0) == p)
   allocator:dealloc(p)
@@ -201,8 +201,8 @@ do -- spanmove
   local p = allocator:spanalloc0(@vec2, 2)
   local pa, pb = &p[0], &p[1]
   $pa, $pb = {x=1,y=2}, {x=3,y=4}
-  local sb = (@span(integer))({ data=(@*[0]integer)(p.data), size=3 })
-  local db = (@span(integer))({ data=(@*[0]integer)(&((@*[0]integer)(p.data))[1]), size=3 })
+  local sb = (@span(int8))({ data=(@*[0]int8)(p.data), size=3 })
+  local db = (@span(int8))({ data=(@*[0]int8)(&((@*[0]int8)(p.data))[1]), size=3 })
   memory.spanmove(db, sb)
   --assert(pa.x == 1 and pa.y == 1 and pb.x == 2 and pb.y == 3)
   allocator:spandealloc(p)
@@ -225,15 +225,15 @@ do -- spancompare
   local pc = allocator:spanalloc0(@vec2, 0)
   assert(memory.spancompare(pa, pb) == 0)
   pa[0].x = 1 pb[0].x = 2
-  assert(memory.spancompare(pa, pb) == -1)
-  assert(memory.spancompare(pb, pa) == 1)
+  assert(memory.spancompare(pa, pb) < 0)
+  assert(memory.spancompare(pb, pa) > 0)
   pa[0].x = 2 pb[0].x = 1
-  assert(memory.spancompare(pa, pb) == 1)
-  assert(memory.spancompare(pb, pa) == -1)
+  assert(memory.spancompare(pa, pb) > 0)
+  assert(memory.spancompare(pb, pa) < 0)
   pa[0].x = 2 pb[0].x = 2
   assert(memory.spancompare(pa, pb) == 0)
-  assert(memory.spancompare(pa, pc) == 1)
-  assert(memory.spancompare(pc, pa) == -1)
+  assert(memory.spancompare(pa, pc) > 0)
+  assert(memory.spancompare(pc, pa) < 0)
   allocator:spandealloc(pa)
   allocator:spandealloc(pb)
   allocator:spandealloc(pc)
@@ -271,13 +271,13 @@ do -- new
 end
 
 do -- new with initialization
-  local v = allocator:new((@integer)(2))
+  local v = allocator:new((@int8)(2))
   assert($v == 2)
   allocator:delete(v)
 end
 
 do -- span new
-  local i = allocator:new(@integer, 2)
+  local i = allocator:new(@int8, 2)
   delete(i)
 
   local v = allocator:new(@vec2, 2)
@@ -317,13 +317,13 @@ do -- new
 end
 
 do -- new with initialization
-  local v = new((@integer)(2))
+  local v = new((@int8)(2))
   assert($v == 2)
   delete(v)
 end
 
 do -- span new
-  local i = allocator:new(@integer, 2)
+  local i = allocator:new(@int8, 2)
   assert(#i == 2)
   assert(i[0] == 0 and i[1] == 0)
   delete(i)
