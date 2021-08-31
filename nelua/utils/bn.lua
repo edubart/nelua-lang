@@ -95,13 +95,13 @@ function bn.from(v)
       return n, 16
     else
       v = v:lower()
-      if v == 'inf' or v == 'infinity' then
+      if v:find('^inf') then
         return math.huge, 10
-      elseif v == '-inf' or v == '-infinity' then
+      elseif v:find('^%-inf') then
         return -math.huge, 10
-      elseif v == 'nan' then
+      elseif v:find('^nan') then
         return -(0.0/0.0), 10
-      elseif v == '-nan' then
+      elseif v:find('^%-nan') then
         return 0.0/0.0, 10
       else -- should be a decimal number
         local n = bn.parse(v)

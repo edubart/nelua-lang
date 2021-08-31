@@ -103,7 +103,7 @@ function cbuiltins.NELUA_INLINE(context)
 #ifdef __GNUC__
   #define NELUA_INLINE __attribute__((always_inline)) inline
 #elif defined(_MSC_VER)
-  #define NELUA_NOINLINE __forceinline
+  #define NELUA_INLINE __forceinline
 #elif __STDC_VERSION__ >= 199901L
   #define NELUA_INLINE inline
 #else

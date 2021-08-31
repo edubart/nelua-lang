@@ -1,20 +1,34 @@
-# Paths in the current source directory
-PWD=$(shell pwd)
-EXAMPLES=$(wildcard examples/*.nelua)
-EXAMPLESDIR=$(abspath examples)
+## Paths in the current source directory
 NELUALUA=src/nelua-lua
 NELUASH=nelua.sh
 
-# Install variables
+## Detect the lua interpreter to use.
+ifeq ($(OS), Windows_NT)
+	NELUALUA=src/nelua-lua.exe
+	## Detect if running under unix compatible environment by finding 'rm'
+	ifeq (, $(shell where rm))
+		WINMODE=1
+	endif
+endif
+
+## Install variables
 PREFIX?=/usr/local
 DPREFIX=$(DESTDIR)$(PREFIX)
 INSTALL_BIN=$(DPREFIX)/bin
 INSTALL_LIB=$(DPREFIX)/lib/nelua
 INSTALL_LUALIB=$(DPREFIX)/lib/nelua/lualib
+LUA=$(NELUALUA)
 
-# All used utilities
-RM=rm -f
-RM_R=rm -rf
+## Utilities
+ifdef WINMODE
+	RM=del /Q
+	RM_R=del /S /Q
+	CACHE_DIR=$(USERPROFILE)\\.cache\\nelua
+else
+	RM=rm -f
+	RM_R=rm -rf
+	CACHE_DIR=$(HOME)/.cache/nelua
+endif
 SED=sed
 MKDIR=mkdir -p
 INSTALL_X=install -m755
@@ -24,30 +38,11 @@ LUACOV=luacov
 LUAMON=luamon -w nelua,spec,examples,lib,tests -e lua,nelua -q -x
 JEKYLL=bundle exec jekyll
 
-## Variables for Docker
+# Variables for Docker
 UID=$(shell id -u $(USER))
 GID=$(shell id -g $(USER))
 DOCKER=docker
-DOCKER_RUN=$(DOCKER) run -u $(UID):$(GID) --rm -it -v "$(PWD):/nelua" nelua
-
-## Host system detection.
-SYS:=$(shell uname -s)
-ifneq (,$(findstring MINGW,$(SYS)))
-	SYS=Windows
-endif
-ifneq (,$(findstring MSYS,$(SYS)))
-	SYS=Windows
-endif
-ifneq (,$(findstring CYGWIN,$(SYS)))
-	SYS=Windows
-endif
-
-## Detect the lua interpreter to use.
-ifeq ($(SYS), Windows)
-	LUA=$(realpath $(NELUALUA).exe)
-else
-	LUA=$(NELUALUA)
-endif
+DOCKER_RUN=$(DOCKER) run -u $(UID):$(GID) --rm -it -v "$(shell pwd):/nelua" nelua
 
 ## The default target.
 default: nelua-lua
@@ -59,11 +54,11 @@ nelua-lua:
 ## Compile Nelua's bundled Lua interpreter using PGO (Profile Guided optimization) and native,
 ## this can usually speed up compilation speed by ~6%.
 optimized-nelua-lua:
-	rm -rf pgo
+	$(RM_R) pgo
 	$(MAKE) --no-print-directory -C src MYCFLAGS="-O3 -march=native -fprofile-generate=pgo" clean default
 	$(NELUALUA) nelua.lua -qb tests/all_test.nelua
 	$(MAKE) --no-print-directory -C src MYCFLAGS="-O3 -march=native -fprofile-use=../pgo" clean default
-	rm -rf pgo
+	$(RM_R) pgo
 
 ## Run test suite.
 test: nelua-lua
@@ -88,12 +83,13 @@ coverage-test: nelua-lua
 	$(LUA) -lluacov  spec/init.lua
 	@$(MAKE) --no-print-directory coverage-genreport
 
+## Compile each example.
+examples/*.nelua: %.nelua:
+	$(LUA) nelua.lua -qb $@
+.PHONY: examples/*.nelua
+
 ## Compile all examples.
-compile-examples: nelua-lua
-	@for FILE in $(EXAMPLES); do \
-		echo 'compiling ' $$FILE; \
-		$(LUA) nelua.lua -qb $$FILE || exit 1; \
-	done
+compile-examples: nelua-lua examples/*.nelua
 
 ## Run the test suite, code coverage, lua checker and compile all examples.
 test-full: nelua-lua coverage-test check compile-examples
@@ -145,7 +141,7 @@ docs-gen:
 
 ## Clean the nelua cache directory.
 clean-cache:
-	$(RM_R) $(HOME)/.cache/nelua
+	$(RM_R) $(CACHE_DIR)
 
 ## Clean coverage files.
 clean-coverage:

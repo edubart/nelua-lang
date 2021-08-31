@@ -298,7 +298,7 @@ local function detect_lua_bin()
   for argi,v in pairs(arg) do
     if argi < minargi then
       minargi = argi
-      lua = v
+      lua = fs.abspath(v)
     end
   end
   return lua

@@ -118,7 +118,7 @@ compilers_flags.gcc = tabler.update(tabler.copy(compilers_flags.cc), {
   cflags_sanitize = "-Wall -Wextra -fsanitize=address,undefined",
   cflags_devel = "-g",
   cflags_debug = "-fsanitize-undefined-trap-on-error -ggdb",
-  cflags_release = "-O2 -DNDEBUG -fno-plt",
+  cflags_release = "-O2 -DNDEBUG",
   cflags_shared = "-shared -fPIC",
   cflags_maximum_performance = "-Ofast -march=native -DNDEBUG -fno-plt -flto",
   cmd_compile = '$(cc) -x c "$(cfile)" -x none -o "$(binfile)" $(cflags)',

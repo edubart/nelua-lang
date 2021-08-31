@@ -1,71 +1,84 @@
 ## Base configurations.
 INCS=-Ilua
-DEFS=-DNDEBUG
+DEFS=-DNDEBUG -DLUA_COMPAT_5_3 -DMAXRECLEVEL=400
 SRCS=lua/onelua.c lfs.c sys.c hasher.c lpeglabel/*.c
 HDRS=lua/*.h lpeglabel/*.h
 EXE=nelua-lua
-RM=rm -f
-PREFIX=/usr/local
-CC=gcc
-
-## Tune some values for the Lua interpreter
-DEFS+=-DLUA_COMPAT_5_3 -DMAXRECLEVEL=400
+EXEO=-o 
+CFLAGS=-O2
 
 ## Host system detection.
-SYS:=$(shell uname -s)
-ifneq (,$(findstring MINGW,$(SYS)))
+ifeq ($(OS), Windows_NT)
 	SYS=Windows
+	## Detect if running under unix compatible environment by finding 'rm'
+	ifeq (, $(shell where rm))
+		WINMODE=1
+	endif
+else
+	SYS=$(shell uname -s)
 endif
-ifneq (,$(findstring MSYS,$(SYS)))
-	SYS=Windows
-endif
-ifneq (,$(findstring CYGWIN,$(SYS)))
-	CPUARCH:=$(shell uname -m)
-	CC=$(CPUARCH)-w64-mingw32-gcc
-	SYS=Windows
+
+## Utilities
+ifdef WINMODE
+	RM=del /Q
+else
+	RM=rm -f
 endif
 
 ## Setup flags for the host system.
 ifeq ($(SYS), Linux)
+	CC=gcc
 	CFLAGS=-O2 -fno-plt -flto
 	LDFLAGS+=-Wl,-E
 	LIBS+=-lm -ldl
 	DEFS+=-DLUA_USE_LINUX
 else ifeq ($(SYS), Windows)
-	CFLAGS=-O2 -flto
+	ifdef VSCMD_VER
+		# MSVC
+		CC=cl
+		CFLAGS=/O2
+		EXEO=/link /out:
+	else ifneq (,$(findstring cygdrive,$(ORIGINAL_PATH)))
+		# Cygwin
+		CC=$(shell uname -m)-w64-mingw32-gcc
+		LDFLAGS+=-static
+	else # probably MSYS
+		CC=gcc
+		LDFLAGS+=-static
+	endif
 	EXE=nelua-lua.exe
-	LDFLAGS+=-static
-	DEFS+=-D_CRT_SECURE_NO_WARNINGS # disable some warnings on MSVC
+	DEFS+=-D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_WARNINGS # disable some warnings
 else ifeq ($(SYS), Darwin)
 	CC=clang
-	CFLAGS=-O2
 	LIBS+=-lm
 	LDFLAGS+=-rdynamic
 	DEFS+=-DLUA_USE_MACOSX
 else # probably POSIX
-	CFLAGS=-O2
-	LIBS=-lm
+	CC=gcc
+	LIBS+=-lm
 	DEFS+=-DLUA_USE_POSIX
 	NO_RPMALLOC=1
 endif
 
+## Enable rpmalloc?
 ifndef NO_RPMALLOC
-	## Enable rpmalloc
-	DEFS+=-DLUA_USE_RPMALLOC
 	SRCS+=rpmalloc/rpmalloc.c
-	## Tune rpmalloc
-	DEFS+=-DENABLE_GLOBAL_CACHE=0 -DBUILD_DYNAMIC_LINK
+	DEFS+=-DLUA_USE_RPMALLOC -DENABLE_GLOBAL_CACHE=0 -DBUILD_DYNAMIC_LINK
+	ifdef VSCMD_VER
+		LIBS+=advapi32.lib
+	endif
 endif
 
 default: $(EXE)
 
 ## Target to compile the Lua interpreter.
 $(EXE): $(SRCS) $(HDRS) lua/*.c Makefile
-	$(CC) -o $(EXE) \
+	$(CC) \
 		$(DEFS) \
 		$(INCS) \
 		$(CFLAGS) $(MYCFLAGS) \
 		$(SRCS) $(MYSRCS) \
+		$(EXEO)$(EXE) \
 		$(LDFLAGS) $(MYLDFLAGS) $(LIBS) $(MYLIBS)
 
 clean:
