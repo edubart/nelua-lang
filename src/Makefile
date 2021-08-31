@@ -2,7 +2,7 @@
 INCS=-Ilua
 DEFS=-DNDEBUG -DLUA_COMPAT_5_3 -DMAXRECLEVEL=400
 SRCS=lua/onelua.c lfs.c sys.c hasher.c lpeglabel/*.c
-HDRS=lua/*.h lpeglabel/*.h
+HDRS=lua/*.h lua/*.c lpeglabel/*.h
 EXE=nelua-lua
 EXEO=-o 
 CFLAGS=-O2
@@ -33,13 +33,13 @@ ifeq ($(SYS), Linux)
 	LIBS+=-lm -ldl
 	DEFS+=-DLUA_USE_LINUX
 else ifeq ($(SYS), Windows)
-	ifdef VSCMD_VER
-		# MSVC
-		CC=clang
-	else ifneq (,$(findstring cygdrive,$(ORIGINAL_PATH)))
+	ifneq (,$(findstring cygdrive,$(ORIGINAL_PATH)))
 		# Cygwin
 		CC=$(shell uname -m)-w64-mingw32-gcc
-	else # probably MSYS
+	else ifneq (, $(shell where clang))
+		# prefer clang (Visual Studio + Clang)
+		CC=clang
+	else # gcc (MSYS)
 		CC=gcc
 	endif
 	EXE=nelua-lua.exe
@@ -60,6 +60,7 @@ endif
 ## Enable rpmalloc?
 ifndef NO_RPMALLOC
 	SRCS+=rpmalloc/rpmalloc.c
+	HDRS+=rpmalloc/rpmalloc.h
 	DEFS+=-DLUA_USE_RPMALLOC -DENABLE_GLOBAL_CACHE=0 -DBUILD_DYNAMIC_LINK
 	ifdef VSCMD_VER
 		LIBS+=-ladvapi32
@@ -69,7 +70,7 @@ endif
 default: $(EXE)
 
 ## Target to compile the Lua interpreter.
-$(EXE): $(SRCS) $(HDRS) lua/*.c Makefile
+$(EXE): $(SRCS) $(HDRS) Makefile
 	$(CC) \
 		$(DEFS) \
 		$(INCS) \
