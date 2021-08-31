@@ -33,6 +33,9 @@ platform.is_cygwin = not not tostring(os.getenv('ORIGINAL_PATH')):find(':/cygdri
 -- Whether we are running on MSYS shell.
 platform.is_msys = os.getenv('MSYSTEM') ~= nil
 
+-- Whether we are running on MSVC shell.
+platform.is_msvc = os.getenv('VSCMD_VER') ~= nil
+
 --[[
 The separator for the PATH environment variable on the platform.
 Usually ':' on Linux and ';' on Windows.

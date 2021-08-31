@@ -5,7 +5,6 @@ This module defines implementations for many builtin C functions used by the C c
 ]]
 
 local pegger = require 'nelua.utils.pegger'
-local bn = require 'nelua.utils.bn'
 local cdefs = require 'nelua.cdefs'
 local CEmitter = require 'nelua.cemitter'
 local typedefs = require 'nelua.typedefs'
@@ -285,7 +284,7 @@ end
 function cbuiltins.NELUA_NIL(context)
   context:ensure_builtin('nlniltype')
   context:define_builtin_macro('NELUA_NIL', "#define NELUA_NIL (nlniltype)"..
-    (typedefs.emptysize == 0 and '{}' or '{0}'))
+    (typedefs.emptysize == 0 and '{}' or '{.x=0}'))
 end
 
 -- Used by infinite float number literal.
@@ -409,14 +408,19 @@ function cbuiltins.nelua_assert_narrow_(context, dtype, stype)
   elseif stype.is_signed and dtype.is_unsigned then -- signed -> unsigned
     emitter:add('x < 0')
     if stype.max > dtype.max then
-      emitter:add(' || x > 0x', bn.tohexint(dtype.max))
+      emitter:add(' || x > ')
+      emitter:add_scalar_literal(dtype.max, stype, 16)
     end
   elseif stype.is_unsigned and dtype.is_signed then -- unsigned -> signed
-    emitter:add('x > 0x', bn.tohexint(dtype.max), 'U')
+    assert(stype.max > dtype.max)
+    emitter:add('x > ')
+    emitter:add_scalar_literal(dtype.max, stype, 16)
   else -- signed -> signed / unsigned -> unsigned
-    emitter:add('x > 0x', bn.tohexint(dtype.max), (stype.is_unsigned and 'U' or ''))
+    emitter:add('x > ')
+    emitter:add_scalar_literal(dtype.max, dtype, 16)
     if stype.is_signed then -- signed -> signed
-      emitter:add(' || x < ', bn.todecint(dtype.min))
+      emitter:add(' || x < ')
+      emitter:add_scalar_literal(dtype.min, dtype, 16)
     end
   end
   emitter:add_ln(')) {') emitter:inc_indent()

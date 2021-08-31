@@ -35,18 +35,15 @@ ifeq ($(SYS), Linux)
 else ifeq ($(SYS), Windows)
 	ifdef VSCMD_VER
 		# MSVC
-		CC=cl
-		CFLAGS=/O2
-		EXEO=/link /out:
+		CC=clang
 	else ifneq (,$(findstring cygdrive,$(ORIGINAL_PATH)))
 		# Cygwin
 		CC=$(shell uname -m)-w64-mingw32-gcc
-		LDFLAGS+=-static
 	else # probably MSYS
 		CC=gcc
-		LDFLAGS+=-static
 	endif
 	EXE=nelua-lua.exe
+	LDFLAGS+=-static
 	DEFS+=-D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_WARNINGS # disable some warnings
 else ifeq ($(SYS), Darwin)
 	CC=clang
@@ -65,7 +62,7 @@ ifndef NO_RPMALLOC
 	SRCS+=rpmalloc/rpmalloc.c
 	DEFS+=-DLUA_USE_RPMALLOC -DENABLE_GLOBAL_CACHE=0 -DBUILD_DYNAMIC_LINK
 	ifdef VSCMD_VER
-		LIBS+=advapi32.lib
+		LIBS+=-ladvapi32
 	endif
 endif
 

@@ -353,7 +353,7 @@ function CEmitter:add_scalar_literal(num, numtype, base)
   elseif numtype.is_unsigned then
     self:add_text('U')
   end
-  if numtype.is_integral and not primtypes.cint:is_inrange(num) then
+  if numtype.is_integral and (not primtypes.cint:is_inrange(num) or num == primtypes.cint.min) then
     if numtype.is_clong or numtype.is_culong then
       self:add_text('L')
     elseif numtype.is_clonglong or numtype.is_culonglong or
