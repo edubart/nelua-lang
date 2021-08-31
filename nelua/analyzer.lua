@@ -1888,7 +1888,7 @@ function visitors.Switch(context, node)
       "`switch` statement must be convertible to an integral type, but got type `%s` (non integral)",
       valtype)
   end
-  local done = true
+  local done = valnode.done
   for i=1,#casepairs,2 do
     local caseexprs, caseblock = casepairs[i], casepairs[i+1]
 
