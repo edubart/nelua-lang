@@ -30,7 +30,6 @@ Although copying Lua syntax and semantics with minor changes is a goal of Nelua,
 features are implemented yet. Most of the dynamic parts, such as tables and handling dynamic types
 at runtime, are not implemented yet. So at the moment, using
 records instead of tables and using type notations is required.
-Visit [this](/diffs/) page for the full list of available Lua features.
 {: .callout.callout-warning}
 
 ## A note for C users
