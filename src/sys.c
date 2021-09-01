@@ -18,15 +18,15 @@
 #else
   #include <errno.h>
   #if defined (_POSIX_TIMERS) && _POSIX_TIMERS > 0
-  #ifdef _POSIX_MONOTONIC_CLOCK
-    #define HAVE_CLOCK_GETTIME
-    #include <time.h>
-  #else
-    #warning "A nanosecond resolution monotonic clock is not available;"
-    #warning "falling back to microsecond gettimeofday()"
-    #include <sys/time.h>
-  #endif
-  #elif defined(__APPLE__)
+    #ifdef _POSIX_MONOTONIC_CLOCK
+      #define HAVE_CLOCK_GETTIME
+      #include <time.h>
+    #else
+      #warning "A nanosecond resolution monotonic clock is not available;"
+      #warning "falling back to microsecond gettimeofday()"
+      #include <sys/time.h>
+    #endif
+  #elif defined(__APPLE__) || defined(__MSDOS__)
     #include <sys/time.h>
   #endif
 #endif

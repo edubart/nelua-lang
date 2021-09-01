@@ -181,8 +181,15 @@ typedef struct dir_data {
 
 #else
 
+#ifndef _O_TEXT
 #define _O_TEXT               0
+#endif
+#ifndef _O_BINARY
 #define _O_BINARY             0
+#endif
+#ifndef S_ISSOCK
+#define S_ISSOCK(mode)  (0)
+#endif
 #define lfs_setmode(file, m)   ((void)file, (void)m, 0)
 #define STAT_STRUCT struct stat
 #define STAT_FUNC stat
@@ -918,7 +925,7 @@ static void push_st_size(lua_State * L, STAT_STRUCT * info)
   lua_pushinteger(L, (lua_Integer) info->st_size);
 }
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__MSDOS__)
 /* blocks allocated for file */
 static void push_st_blocks(lua_State * L, STAT_STRUCT * info)
 {
@@ -1015,7 +1022,7 @@ struct _stat_members members[] = {
   { "change", push_st_ctime },
   { "size", push_st_size },
   { "permissions", push_st_perm },
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__MSDOS__)
   { "blocks", push_st_blocks },
   { "blksize", push_st_blksize },
 #endif

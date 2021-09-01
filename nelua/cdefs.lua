@@ -180,6 +180,9 @@ cdefs.target_info_code = [[
 #if defined(__WINNT__) || defined(__WINNT)
   is_winnt = true;
 #endif
+#if defined(__MS_DOS__) || defined(__MSDOS)
+  is_msdos = true;
+#endif
 #if defined(__APPLE__)
   is_apple = true;
 #endif
@@ -232,6 +235,9 @@ cdefs.target_info_code = [[
 #endif
 #if defined(__COMPCERT__)
   is_ccomp = true;
+#endif
+#if defined(__DJGPP__)
+  is_djgpp = true;
 #endif
 
 /* Architectures */

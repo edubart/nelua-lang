@@ -291,7 +291,7 @@ do -- math.atan2
   asserteq(math.atan2(-1, -1), -math.pi*3/4)
 end
 
-## if not ccinfo.is_avr then
+## if not ccinfo.is_avr and not ccinfo.is_msdos then
 do -- math.exp2
   asserteq(math.exp2(4.0), 16.0)
   asserteq(math.exp2(1.0), 2.0)

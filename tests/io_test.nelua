@@ -17,19 +17,24 @@ local function assert_string_eq(a: string, b: string)
 end
 
 do -- basic io.open/io.isopen/io.close
-  file, err, code = io.open('invalidfile', 'r')
+  file, err, code = io.open('invalid_file', 'r')
   assert(not file:isopen())
   assert(#err > 0)
   assert(code ~= 0)
 
-  file = io.open('LICENSE', 'r')
+  file, err, code = io.open('test_file.tmp', 'w')
+  assert(file:isopen())
+  assert(file:write('SOME_DATA') == true)
+  file:destroy()
+
+  file = io.open('test_file.tmp', 'r')
   assert(file:isopen())
   assert(file:close() == true)
   assert(file:close() == false)
   assert(not file:isopen())
   file:destroy()
 
-  file = io.open('LICENSE', 'r')
+  file = io.open('test_file.tmp', 'r')
   assert(file:isopen() == true)
   assert(io.close(file) == true)
   assert(not file:isopen())
@@ -38,15 +43,21 @@ end
 
 do -- io.popen
   local file = io.popen('echo test')
-  local s = file:read('a')
-  assert(s == 'test\n')
-  s:destroy()
-  file:close()
-  file:destroy()
+  ## if ccinfo.is_linux then
+  assert(file:isopen())
+  ## end
+  if file:isopen() then
+    local s = file:read('a')
+    print(s)
+    assert(s == 'test\n')
+    s:destroy()
+    file:close()
+    file:destroy()
+  end
 end
 
 do -- io.type
-  file = io.open('LICENSE', 'r')
+  file = io.open('test_file.tmp', 'r')
   assert(io.type(file) == 'file')
   file:close()
   file:destroy()
@@ -263,7 +274,7 @@ do -- os.rename, os.remove
 end
 
 do -- tostring
-  file = io.open('LICENSE', 'r')
+  file = io.open('test_file.tmp', 'r')
   assert(file:isopen())
   local s: string = tostring(file)
   assert(s:subview(1,6) == 'file (')
@@ -275,6 +286,8 @@ do -- tostring
   assert_string_eq(tostring(file2), 'file (closed)')
   file:destroy()
 end
+
+os.remove('test_file.tmp')
 
 ## end
 

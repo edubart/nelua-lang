@@ -60,10 +60,8 @@ end
 
 do -- os.now/os.sleep
   assert(os.now() == 0.0)
-  os.sleep(0.006) -- sleep a little longer because it may not be precise
-  assert(os.now() >= 0.004)
-  os.sleep(0.006)
-  assert(os.now() >= 0.008)
+  os.sleep(0.02)
+  assert(os.now() >= 0.01)
 end
 
 print 'os OK!'

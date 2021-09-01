@@ -46,3 +46,5 @@ do -- using a custom allocator
   s:destroy()
   -- sb does not need to be destroyed because we are using an arena allocator
 end
+
+print 'stringbuilder OK!'

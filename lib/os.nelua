@@ -333,6 +333,7 @@ function os.now(): number
   cinclude '<time.h>' -- for timespec_get/TIME_UTC
   cinclude '<stdbool.h>' -- for bool
   cinclude '<stdint.h>' -- for int64_t
+  cinclude '<errno.h>' -- for errno
   cinclude [[
 /* Include POSIX APIs. */
 #if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
@@ -357,9 +358,10 @@ function os.now(): number
   #define NELUA_HAVE_C11_TIMESPEC_GET
 #elif defined(_POSIX_TIMERS) && defined(_POSIX_MONOTONIC_CLOCK)
   #define NELUA_HAVE_POSIX_MONOTONIC_CLOCK
-#elif _POSIX_VERSION >= 200112L
+#elif defined(_POSIX_VERSION)
   #include <sys/time.h>
   #define NELUA_HAVE_POSIX_GETTIMEOFDAY
+#
 #endif
 ]]
   cemit [[
@@ -477,6 +479,8 @@ function os.sleep(secs: number): boolean
     } while(res != 0 && errno == EINTR);
     ok = res == 0;
   }
+#elif defined(_POSIX_VERSION)
+  usleep(us);
 #endif
 ]]
 ]==]

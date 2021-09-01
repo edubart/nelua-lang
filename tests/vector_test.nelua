@@ -108,8 +108,8 @@ do -- insert
 end
 
 do -- ipairs/mipairs
-  local vec: vector(number) = {1,2,3,4}
-  local sum: number = 0.0
+  local vec: vector(integer) = {1,2,3,4}
+  local sum = 0
   for i,v in ipairs(vec) do
     sum = sum + (i+1)*v
   end
@@ -129,8 +129,8 @@ do -- ipairs/mipairs
 end
 
 do -- pairs/mpairs
-  local vec: vector(number) = {1,2,3,4}
-  local sum: number = 0.0
+  local vec: vector(integer) = {1,2,3,4}
+  local sum: integer = 0
   for i,v in pairs(vec) do
     sum = sum + (i+1)*v
   end
@@ -150,8 +150,8 @@ do -- pairs/mpairs
 end
 
 do -- next/mnext
-  local vec: vector(number) = {1,2,3,4}
-  local sum: number = 0.0
+  local vec: vector(integer) = {1,2,3,4}
+  local sum: integer = 0
   for i,v in next,vec,-1 do
     sum = sum + (i+1)*v
   end
