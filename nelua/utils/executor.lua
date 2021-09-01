@@ -28,16 +28,7 @@ local function execute(cmd)
 end
 
 -- Quote and escape an argument for a command.
-local function quote_arg(argument)
-  if type(argument) == "table" then
-    -- encode an entire table
-    local r = {}
-    for i, arg in ipairs(argument) do
-      r[i] = quote_arg(arg)
-    end
-
-    return table.concat(r, " ")
-  end
+local function quote_arg(argument, exe)
   -- only a single argument
   if platform.is_windows then
     if argument == "" or argument:find('[ \f\t\v]') then
@@ -46,10 +37,12 @@ local function quote_arg(argument)
       -- see documentation for CommandLineToArgvW Windows function
       argument = '"' .. argument:gsub([[(\*)"]], [[%1%1\"]]):gsub([[\+$]], "%0%0") .. '"'
     end
-
     -- os.execute() uses system() C function, which on Windows passes command
     -- to cmd.exe. Escape its special characters.
-    return (argument:gsub('["^<>!|&%%]', "^%0"))
+    if not exe then
+      argument = argument:gsub('["^<>!|&%%]', "^%0")
+    end
+    return argument
   else
     if argument == "" or argument:find('[^a-zA-Z0-9_@%+=:,./-]') then
       -- to quote arguments on posix-like systems use single quotes
@@ -57,7 +50,6 @@ local function quote_arg(argument)
       -- add escaped quote (\'), open quoted string again (')
       argument = "'" .. argument:gsub("'", [['\'']]) .. "'"
     end
-
     return argument
   end
 end
@@ -66,14 +58,12 @@ end
 local function executeex(cmd, bin)
   local outfile = fs.tmpname()
   local errfile = fs.tmpname()
-
   if not platform.is_windows then
     -- adding '{' '}' braces captures crash messages to stderr
     -- in case of segfault of the running command
     cmd = '{ ' .. cmd .. '; }'
   end
   cmd = cmd .. " > " .. quote_arg(outfile) .. " 2> " .. quote_arg(errfile)
-
   local success, retcode = execute(cmd)
   local outcontent = fs.readfile(outfile, bin)
   local errcontent = fs.readfile(errfile, bin)
@@ -84,7 +74,7 @@ end
 
 -- Execute a command capturing the stdour/stderr output if required.
 local function pexec(exe, args, capture)
-  local command = exe
+  local command = quote_arg(exe, true)
   if args and #args > 0 then
     local strargs = table.concat(tabler.imap(args, quote_arg), ' ')
     command = command .. ' ' .. strargs
@@ -154,7 +144,6 @@ function executor.eval(exe, args)
   end
   return stdout
 end
-
 
 return executor
 -- luacov:enable

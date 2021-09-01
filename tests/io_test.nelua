@@ -80,16 +80,14 @@ do -- io.close for default output
 end
 
 -- this test may fail on some machines with "Permission denied"
--- so we test at compile time with Lua first
-## local f = io.tmpfile() if f then f:close()
 do -- io.tmpfile
   file = io.tmpfile()
-  assert(file:isopen())
-  assert(file:close())
-  file:destroy()
-  assert(not file:isopen())
+  if file:isopen() then
+    assert(file:close())
+    file:destroy()
+    assert(not file:isopen())
+  end
 end
-## end
 
 do -- filestream:read, filestream:write and filestream:seek
   file = io.open('test.tmp', 'w')

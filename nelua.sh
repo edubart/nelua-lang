@@ -17,9 +17,9 @@ if ! [ -x "$(command -v realpath)" ]; then
 fi
 
 # detect the current directory for this script
-SCRIPT=$(realpath $0)
-SCRIPT_DIR=$(dirname $SCRIPT)
-SCRIPT_DIRNAME=$(basename $SCRIPT_DIR)
+SCRIPT=$(realpath "$0")
+SCRIPT_DIR=$(dirname "$SCRIPT")
+SCRIPT_DIRNAME=$(basename "$SCRIPT_DIR")
 
 if [ "$SCRIPT_DIRNAME" = "bin" ]; then
   # in a system install
@@ -27,7 +27,7 @@ if [ "$SCRIPT_DIRNAME" = "bin" ]; then
     NELUA_LUA="$SCRIPT_DIR/nelua-lua"
   fi
   if [ -z "$NELUA_LUALIB" ]; then
-    USR_DIR=$(dirname $SCRIPT_DIR)
+    USR_DIR=$(dirname "$SCRIPT_DIR")
     NELUA_LUALIB="$USR_DIR/lib/nelua/lualib"
   fi
 else
@@ -59,13 +59,13 @@ fi
 
 # determine nelua's lua package path
 if [ "$OSTYPE" = "msys" ] || [ "$OSTYPE" = "cygwin" ]; then
-  NELUA_PACKAGE_PATH="$(cygpath -w $NELUA_LUALIB/)"
-  NELUA_PACKAGE_PATH="$(printf "%q\n" "$NELUA_PACKAGE_PATH")"
-  NELUA_NELUALUA="$(cygpath -w $NELUA_LUALIB/nelua.lua)"
+  NELUA_PACKAGE_PATH=$(cygpath -w "$NELUA_LUALIB/")
+  NELUA_NELUALUA=$(cygpath -w "$NELUA_LUALIB/nelua.lua")
+  NELUA_LUA=$(cygpath "$NELUA_LUA")
 else
   NELUA_PACKAGE_PATH="$NELUA_LUALIB/"
   NELUA_NELUALUA="$NELUA_LUALIB/nelua.lua"
 fi
 
 # execute nelua compiler
-exec $NELUA_LUA -e "package.path='${NELUA_PACKAGE_PATH}?.lua;'..package.path" $NELUA_NELUALUA "$@"
+exec "$NELUA_LUA" -e "package.path=[[${NELUA_PACKAGE_PATH}?.lua;]]..package.path" "$NELUA_NELUALUA" "$@"
