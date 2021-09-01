@@ -18,16 +18,21 @@ INSTALL_BIN=$(DPREFIX)/bin
 INSTALL_LIB=$(DPREFIX)/lib/nelua
 INSTALL_LUALIB=$(DPREFIX)/lib/nelua/lualib
 LUA=$(NELUALUA)
+ifdef HOME
+	CACHE_DIR=$(HOME)/.cache/nelua
+else ifdef USERPROFILE
+	CACHE_DIR=$(USERPROFILE)\\.cache\\nelua
+else
+	CACHE_DIR=.cache
+endif
 
 ## Utilities
 ifdef WINMODE
 	RM=del /Q
 	RM_R=del /S /Q
-	CACHE_DIR=$(USERPROFILE)\\.cache\\nelua
 else
 	RM=rm -f
 	RM_R=rm -rf
-	CACHE_DIR=$(HOME)/.cache/nelua
 endif
 SED=sed
 MKDIR=mkdir -p
@@ -145,14 +150,14 @@ clean-cache:
 
 ## Clean coverage files.
 clean-coverage:
-	$(RM) luacov.report.out luacov.stats.out *.gcov *.gcda
+	$(RM) luacov.report.out luacov.stats.out
 
 ## Clean the Lua interpreter.
 clean-nelua-lua:
 	$(MAKE) -C src clean
 
 ## Clean everything.
-clean: clean-cache clean-coverage clean-nelua-lua
+clean: clean-nelua-lua clean-cache clean-coverage
 
 ISGIT:=$(shell git rev-parse --is-inside-work-tree 2> /dev/null)
 ifeq ($(ISGIT),true)

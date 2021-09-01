@@ -72,8 +72,8 @@ default: $(EXE)
 ## Target to compile the Lua interpreter.
 $(EXE): $(SRCS) $(HDRS) Makefile
 	$(CC) \
-		$(DEFS) \
-		$(INCS) \
+		$(DEFS) $(MYDEFS) \
+		$(INCS) $(MYINCS) \
 		$(CFLAGS) $(MYCFLAGS) \
 		$(SRCS) $(MYSRCS) \
 		$(EXEO)$(EXE) \
