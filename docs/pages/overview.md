@@ -624,10 +624,10 @@ print(multiline2) -- outputs "my" and "text2" on a new line
 An array is a list with a size that is fixed and known at compile-time:
 
 ```nelua
-local a: array(integer, 4) = {1,2,3,4}
+local a: [4]integer = {1,2,3,4}
 print(a[0], a[1], a[2], a[3]) -- outputs: 1 2 3 4
 
-local b: [4]integer -- "[4]integer" is syntax sugar for "array(integer, 4)"
+local b: [4]integer
 print(b[0], b[1], b[2], b[3]) -- outputs: 0 0 0 0
 local len = #b -- get the length of the array, should be 4
 print(len) -- outputs: 4
@@ -749,10 +749,7 @@ A pointer points to a region in memory of a specific type:
 ```nelua
 local n = nilptr -- a generic pointer, initialized to nilptr
 local p: pointer -- a generic pointer to anything, initialized to nilptr
-local i: pointer(integer) -- pointer to an integer
-
--- syntax sugar
-local i: *integer
+local i: *integer -- pointer to an integer
 ```
 
 Pointers are directly translated to C raw pointers.
@@ -837,7 +834,7 @@ optional type or for detecting `nil` arguments in [polymorphic functions](#polym
 ### Void
 
 The void type is used internally for the generic pointer,
-that is, `pointer(void)`, `*void` and `pointer` types are all equivalent.
+that is, `*void` and `pointer` types are all equivalent.
 
 The void type can also be used explicitly mark that a function has no return:
 
@@ -848,8 +845,7 @@ end
 myprint() -- outputs: hello
 ```
 
-The compiler can automatic deduce function return types thus this is usually not
-needed.
+The compiler can automatic deduce function return types thus this is usually not needed.
 
 ### The "type" type
 

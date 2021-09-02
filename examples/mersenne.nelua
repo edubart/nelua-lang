@@ -6,7 +6,7 @@ local MT19937_M: uint32 <comptime> = 397
 
 local mt19937 = @record{
   i: uint32,
-  v: array(uint32, MT19937_N)
+  v: [MT19937_N]uint32
 }
 
 -- initialize random state with a seed

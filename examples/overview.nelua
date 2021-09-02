@@ -283,11 +283,13 @@ do print '#### String escape sequence'
 end
 
 do print '### Array'
-  local a: array(integer, 4) = {1,2,3,4}
+  local a: [4]integer = {1,2,3,4}
   print(a[0], a[1], a[2], a[3]) -- outputs: 1 2 3 4
 
-  local b: [4]integer -- "[4]integer" is syntax sugar for "array(integer, 4)"
+  local b: [4]integer
   print(b[0], b[1], b[2], b[3]) -- outputs: 0 0 0 0
+  local len = #b -- get the length of the array, should be 4
+  print(len) -- outputs: 4
 end
 
 do print '#### Array with inferred size'
@@ -360,10 +362,7 @@ end
 do print '### Pointer'
   local n = nilptr -- a generic pointer, initialized to nilptr
   local p: pointer --a generic pointer to anything, initialized to nilptr
-  local i: pointer(integer) -- pointer to an integer
-
-  -- syntax sugar
-  local i: *integer
+  local i: *integer -- pointer to an integer
 end
 
 do print '#### Unbounded Array'

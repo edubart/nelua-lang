@@ -1,7 +1,7 @@
 require 'span'
 
 do -- pointer to span
-  local arr: array(integer, 4) = {1,2,3,4}
+  local arr: [4]integer = {1,2,3,4}
   local s: span(integer) = { &arr[0], 4 }
   assert(#s == 4 and s[0] == 1 and s[1] == 2 and s[2] == 3 and s[3] == 4)
   s[0] = 5
@@ -16,7 +16,7 @@ do -- string to span
 end
 
 do -- array to span
-  local arr: array(integer, 4) = {1,2,3,4}
+  local arr: [4]integer = {1,2,3,4}
   local s: span(integer) = &arr
   assert(s.size == 4 and s.data == &arr[0])
   assert(#s == 4 and s[0] == 1 and s[1] == 2 and s[2] == 3 and s[3] == 4)
@@ -25,7 +25,7 @@ do -- array to span
 end
 
 do -- sub
-  local arr: array(integer, 4) = {1,2,3,4}
+  local arr: [4]integer = {1,2,3,4}
   local s: span(integer) = &arr
   s = s:sub(2,#s)
   assert(#s == 2 and s[0] == 3 and s[1] == 4)
@@ -36,7 +36,7 @@ do -- sub
 end
 
 do -- iterators
-  local arr: array(integer, 4) = {1,2,3,4}
+  local arr: [4]integer = {1,2,3,4}
   local s: span(integer) = &arr
   do -- ipairs
     local sum = 0.0
