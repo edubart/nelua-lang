@@ -158,9 +158,10 @@ end
 --[[
 Adds  `val` of type `valtype` converted to `type`.
 If `valtype` is unset then the type automatically detected from `val`.
-In case `explicit` is true then checks for underflow/overflow is skipped.
+In case `force` is true, then checks for underflow/overflow is skipped.
+If `untypedinit` is true, then type casting prefix is omitted if possible.
 ]]
-function CEmitter:add_converted_val(type, val, valtype, explicit)
+function CEmitter:add_converted_val(type, val, valtype, force, untypedinit)
   if type.is_comptime then
     self:add_nil_literal()
     return
@@ -170,7 +171,7 @@ function CEmitter:add_converted_val(type, val, valtype, explicit)
     valtype = valtype or valattr.type
     assert(valtype)
     if type == valtype then -- no conversion needed
-      self:add_value(val)
+      self:add_value(val, untypedinit)
     elseif type.is_boolean then -- ? -> boolean
       self:add_val2boolean(val, valtype)
     elseif type.is_pointer and valtype.is_string and
@@ -190,10 +191,12 @@ function CEmitter:add_converted_val(type, val, valtype, explicit)
     elseif type.is_aggregate and valtype.is_pointer and valtype.subtype == type then -- auto deref
       self:add_deref(val, valtype)
     else -- cast
-      self:add_typed_val(type, val, valtype, not explicit)
+      local checked = not (force or untypedinit)
+      self:add_typed_val(type, val, valtype, checked)
     end
   else
-    self:add_zeroed_type_literal(type, explicit)
+    local typed = force and not untypedinit
+    self:add_zeroed_type_literal(type, typed)
   end
 end
 
@@ -216,7 +219,7 @@ end
 Adds a `string` literal, or a `cstring` literal if `ascstring` is true.
 Intended for short strings, because it uses just one line.
 ]]
-function CEmitter:add_short_string_literal(val, ascstring)
+function CEmitter:add_short_string_literal(val, ascstring, untypedinit)
   local context = self.context
   local quotedliterals = context.quotedliterals
   local quoted_value = quotedliterals[val]
@@ -227,7 +230,6 @@ function CEmitter:add_short_string_literal(val, ascstring)
   if ascstring then
     self:add(quoted_value)
   else
-    local untypedinit = context.state.untypedinit
     if not untypedinit then
       self:add_text('(')
       self:add('(', primtypes.string, ')')
@@ -244,9 +246,8 @@ end
 Adds a `string` literal, or a `cstring` literal if `ascstring` is true.
 Intended for long strings, because it may use multiple lines.
 ]]
-function CEmitter:add_long_string_literal(val, ascstring)
+function CEmitter:add_long_string_literal(val, ascstring, untypedinit)
   local context = self.context
-  local untypedinit = context.state.untypedinit
   local stringliterals = context.stringliterals
   local varname = stringliterals[val]
   local size = #val
@@ -300,11 +301,11 @@ function CEmitter:add_long_string_literal(val, ascstring)
 end
 
 -- Adds a `string` literal, or a `cstring` literal if `ascstring` is true.
-function CEmitter:add_string_literal(val, ascstring)
+function CEmitter:add_string_literal(val, ascstring, untypedinit)
   if #val < 80 then
-    return self:add_short_string_literal(val, ascstring)
+    return self:add_short_string_literal(val, ascstring, untypedinit)
   end
-  return self:add_long_string_literal(val, ascstring)
+  return self:add_long_string_literal(val, ascstring, untypedinit)
 end
 
 -- Adds a scalar literal `num`, with appropriate suffix for type `numtype`.
@@ -374,9 +375,7 @@ function CEmitter:add_pointer_literal(value, type)
 end
 
 -- Adds a array literal from list of attrs `valattrs`.
-function CEmitter:add_array_literal(valattrs, arrtype)
-  local context = self.context
-  local untypedinit = context.state.untypedinit
+function CEmitter:add_array_literal(valattrs, arrtype, untypedinit)
   if untypedinit then
     self:add('{')
   else
@@ -385,7 +384,7 @@ function CEmitter:add_array_literal(valattrs, arrtype)
   local subtype = arrtype.subtype
   for i=1,#valattrs do
     if i > 1 then self:add_text(', ') end
-    self:add_literal(valattrs[i], subtype)
+    self:add_literal(valattrs[i], subtype, true)
   end
   if untypedinit then
     self:add('}')
@@ -396,7 +395,7 @@ end
 
 
 -- Adds a literal from attr `valattr`.
-function CEmitter:add_literal(valattr)
+function CEmitter:add_literal(valattr, untypedinit)
   local valtype = valattr.type
   assert(valattr.comptime or valtype.is_comptime)
   local value = valattr.value
@@ -405,9 +404,9 @@ function CEmitter:add_literal(valattr)
   elseif valtype.is_scalar then
     self:add_scalar_literal(value, valtype, valattr.base)
   elseif valtype.is_string then
-    self:add_string_literal(value, false)
+    self:add_string_literal(value, false, untypedinit)
   elseif valtype.is_cstring then
-    self:add_string_literal(value, true)
+    self:add_string_literal(value, true, untypedinit)
   elseif valtype.is_pointer then
     self:add_pointer_literal(value, valtype)
   elseif valtype.is_procedure then
@@ -415,7 +414,7 @@ function CEmitter:add_literal(valattr)
   elseif valtype.is_niltype then
     self:add_nil_literal()
   elseif valtype.is_array then
-    self:add_array_literal(value, valtype)
+    self:add_array_literal(value, valtype, untypedinit)
   else --luacov:disable
     errorer.errorf('not implemented: `CEmitter:add_literal` for valtype `%s`', valtype)
   end --luacov:enable

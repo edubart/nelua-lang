@@ -224,14 +224,14 @@ function visitors.Number(_, node, emitter)
 end
 
 -- Emits a string literal.
-function visitors.String(_, node, emitter)
+function visitors.String(_, node, emitter, untypedinit)
   local attr = node.attr
   local type = attr.type
   if type.is_stringy then
     if type.is_acstring then
       emitter:add('(', type, ')')
     end
-    emitter:add_string_literal(attr.value, type.is_cstring or type.is_acstring)
+    emitter:add_string_literal(attr.value, type.is_cstring or type.is_acstring, untypedinit)
   else -- an integral
     if type == primtypes.cchar then -- C character literal
       emitter:add(pegger.single_quote_c_string(string.char(bn.tointeger(attr.value))))
@@ -297,13 +297,12 @@ local function can_use_initializer(node)
   return true
 end
 
-function visitors.InitList(context, node, emitter)
+function visitors.InitList(_, node, emitter, untypedinit)
   local attr = node.attr
   local childnodes, type = node, attr.type
   local len = #childnodes
-  local untyped = context.state.untypedinit
   if len == 0 and type.is_aggregate then
-    emitter:add_zeroed_type_literal(type, not untyped)
+    emitter:add_zeroed_type_literal(type, not untypedinit)
   elseif type.is_composite then
     if type.cconstruct then -- used to construct vector types when generating GLSL code
       --luacov:disable
@@ -313,7 +312,7 @@ function visitors.InitList(context, node, emitter)
       --luacov:enable
     else
       if can_use_initializer(node) then
-        if not untyped then
+        if not untypedinit then
           emitter:add('(',type,')')
         end
         emitter:add_text('{')
@@ -342,25 +341,11 @@ function visitors.InitList(context, node, emitter)
               if j > 1 then
                 emitter:add_text(', ')
               end
-              local comptime = arrchildnode.attr.comptime
-              if comptime then
-                context:push_forked_state{untypedinit=true}
-              end
-              emitter:add_converted_val(fieldtype.subtype, arrchildnode)
-              if comptime then
-                context:pop_state()
-              end
+              emitter:add_converted_val(fieldtype.subtype, arrchildnode, nil, nil, arrchildnode.attr.comptime)
             end
             emitter:add_text('}')
           else
-            local comptime = childvalnode.attr.comptime
-            if comptime then
-              context:push_forked_state{untypedinit=true}
-            end
-            emitter:add_converted_val(fieldtype, childvalnode)
-            if comptime then
-              context:pop_state()
-            end
+            emitter:add_converted_val(fieldtype, childvalnode, nil, nil, childvalnode.attr.comptime)
           end
         end
         emitter:add_text('}')
@@ -399,7 +384,7 @@ function visitors.InitList(context, node, emitter)
   elseif type.is_array then
     local subtype = type.subtype
     if can_use_initializer(node) then
-      if untyped then
+      if untypedinit then
         emitter:add_text('{')
       else
         emitter:add('(',type,'){{')
@@ -408,16 +393,9 @@ function visitors.InitList(context, node, emitter)
         if i > 1 then
           emitter:add_text(', ')
         end
-        local comptime = childnode.attr.comptime
-        if comptime then
-          context:push_forked_state{untypedinit=true}
-        end
-        emitter:add_converted_val(subtype, childnode)
-        if comptime then
-          context:pop_state()
-        end
+        emitter:add_converted_val(subtype, childnode, nil, nil, childnode.attr.comptime)
       end
-      if untyped then
+      if untypedinit then
         emitter:add_text('}')
       else
         emitter:add_text('}}')
@@ -491,14 +469,14 @@ function visitors.Directive(context, node, emitter)
 end
 
 -- Emits a identifier.
-function visitors.Id(context, node, emitter)
+function visitors.Id(context, node, emitter, untypedinit)
   local attr = node.attr
   local type = attr.type
   assert(not type.is_comptime)
   if type.is_nilptr then
     emitter:add_null()
   elseif attr.comptime then
-    emitter:add_literal(attr)
+    emitter:add_literal(attr, untypedinit)
   else
     emitter:add(context:declname(attr))
   end
@@ -657,11 +635,15 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
 end
 
 -- Emits a call.
-function visitors.Call(context, node, emitter)
+function visitors.Call(context, node, emitter, untyped)
   local argnodes, calleenode = node[1], node[2]
   local attr = node.attr
   if attr.calleetype.is_type then -- is a type cast?
-    emitter:add_converted_val(attr.type, argnodes[1], nil, true)
+    local argnode = argnodes[1]
+    local argtype = argnode and argnode.attr.type
+    local type = attr.type
+    untyped = untyped and (not argtype or type == argtype)
+    emitter:add_converted_val(type, argnode, argtype, true, untyped)
   else -- usual function call
     local callee = calleenode
     local calleeattr = calleenode.attr
@@ -684,12 +666,12 @@ function visitors.CallMethod(context, node, emitter)
 end
 
 -- Emits field indexing.
-function visitors.DotIndex(context, node, emitter)
+function visitors.DotIndex(context, node, emitter, untypedinit)
   local attr = node.attr
   local objnode = node[2]
   local objtype = objnode.attr.type
   if attr.comptime then -- compile-time constant
-    emitter:add_literal(attr)
+    emitter:add_literal(attr, untypedinit)
   elseif objtype.is_type then -- global field
     emitter:add(context:declname(attr))
   else -- record/union field
@@ -1117,13 +1099,7 @@ function visitors.VarDecl(context, node, emitter)
           if vartype.is_array then
             decemitter:add_text('{.v = ')
           end
-          if vartype.is_aggregate then
-            context:push_forked_state{untypedinit=true}
-          end
-          decemitter:add_converted_val(vartype, valnode)
-          if vartype.is_aggregate then
-            context:pop_state()
-          end
+          decemitter:add_converted_val(vartype, valnode, nil, nil, vartype.is_aggregate)
           if vartype.is_array then
             decemitter:add_text('}')
           end
@@ -1338,13 +1314,13 @@ function visitors.Function(context, node, emitter)
 end
 
 -- Emits operation on one expression.
-function visitors.UnaryOp(context, node, emitter)
+function visitors.UnaryOp(context, node, emitter, untypedinit)
   local attr = node.attr
   if attr.type.is_any then
     node:raisef("compiler deduced type 'any' here, but it's not supported yet, please fix this variable type")
   end
   if attr.comptime then -- compile time constant
-    emitter:add_literal(attr)
+    emitter:add_literal(attr, untypedinit)
     return
   end
   local opname, argnode = node[1], node[2]
@@ -1353,14 +1329,14 @@ function visitors.UnaryOp(context, node, emitter)
 end
 
 -- Emits operation between two expressions.
-function visitors.BinaryOp(context, node, emitter)
+function visitors.BinaryOp(context, node, emitter, untypedinit)
   local attr = node.attr
   local type = attr.type
   if type.is_any then
     node:raisef("compiler deduced type 'any' here, but it's not supported yet, please fix this variable type")
   end
   if attr.comptime then -- compile time constant
-    emitter:add_literal(attr)
+    emitter:add_literal(attr, untypedinit)
     return
   end
   local lnode, opname, rnode = node[1], node[2], node[3]

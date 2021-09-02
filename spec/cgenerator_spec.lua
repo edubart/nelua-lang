@@ -568,6 +568,14 @@ it("function definition", function()
 end)
 
 it("anonymous functions", function()
+  expect.generate_c([[
+    local R = @record{f: function(integer): R, x: integer}
+    local function newR(r: R) return r end
+    local a = newR{f = function(x: integer) return newR{x=x} end}
+  ]], {
+    "return newR((R){.x = x});",
+    "a = newR((R){.f = anonfunc});",
+  })
   expect.run_c([[
     local function call1(f: function()) f() end
     local function call2(f: function(x: integer): integer) return f(1) end

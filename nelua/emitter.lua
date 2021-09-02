@@ -151,13 +151,13 @@ end
 Adds value `value`.
 The value will be automatically converted to a string according to its kind.
 ]]
-function Emitter:add_value(value)
+function Emitter:add_value(value, ...)
   local ty = type(value)
   if ty == 'string' then -- a string
     self:add_text(value)
   elseif ty == 'table' then
     if value._astnode then -- a node
-      self.context:traverse_node(value, self)
+      self.context:traverse_node(value, self, ...)
     elseif value._type then -- a type
       self:add_type(value)
     elseif value._symbol then -- a symbol
