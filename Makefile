@@ -40,9 +40,6 @@ else ifeq ($(SYS), Windows)
 		# prefer clang (Visual Studio + Clang)
 		CC=clang
 	else # gcc (MSYS)
-		ifeq ($(MSYSTEM), MSYS)
-			NO_RPMALLOC=1
-		endif
 		CC=gcc
 	endif
 	LDFLAGS+=-static
