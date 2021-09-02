@@ -175,10 +175,7 @@ local function run(argv, redirect)
   if dorun and isexe then
     local exe, exeargs = compiler.get_run_command(binaryfile, config.runargs, context.compileopts)
     if config.verbose then console.info(exe .. ' ' .. table.concat(exeargs, ' ')) end
-    local exec = redirect and executor.execex or executor.exec
-    local _, status, sout, serr = exec(exe, exeargs)
-    if sout then io.stdout:write(sout) io.stdout:flush() end
-    if serr then io.stderr:write(serr) io.stderr:flush() end
+    local _, status = executor.rexec(exe, exeargs, redirect)
     if config.timing then
       console.debugf('run          %.1f ms', timer:elapsedrestart())
     end

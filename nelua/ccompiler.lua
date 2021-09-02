@@ -320,13 +320,9 @@ function compiler.compile_static_library(objfile, outfile)
   local arcmd = string.format('%s rcs %s %s', ar, outfile, objfile)
   if config.verbose then console.info(arcmd) end
   -- compile the file
-  local stdout, stderr = executor.evalex(arcmd)
-  if not stdout then --luacov:disable
-    except.raisef("static library compilation for '%s' failed:\n%s", outfile, stderr)
+  if not executor.rexec(arcmd, nil, config.redirect_exec) then --luacov:disable
+    except.raisef("static library compilation for '%s' failed", outfile)
   end --luacov:enable
-  if stderr then
-    io.stderr:write(stderr)
-  end
 end
 
 function compiler.setup_env(cflags)
@@ -368,13 +364,9 @@ function compiler.compile_binary(cfile, outfile, compileopts)
   local cccmd = get_compile_args(cfile, midfile, cflags)
   if config.verbose then console.info(cccmd) end
   -- compile the file
-  local stdout, stderr = executor.evalex(cccmd)
-  if not stdout then --luacov:disable
-    except.raisef("C compilation for '%s' failed:\n%s", binfile, stderr)
+  if not executor.rexec(cccmd, nil, config.redirect_exec) then --luacov:disable
+    except.raisef("C compilation for '%s' failed", binfile)
   end --luacov:enable
-  if stderr then
-    io.stderr:write(stderr)
-  end
   -- compile static library
   if config.static then
     compiler.compile_static_library(midfile, binfile)

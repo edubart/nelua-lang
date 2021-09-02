@@ -119,13 +119,13 @@ end
 --[[
 Execute a command returning it's stdout.
 Args must be a table or nil, if args is nil then the args is extracted from exe.
-Returns the stdout plus stderr on success, otherwise nil plus an error message.
+Returns the stdout plus stderr on success, otherwise nil plus an error message and status code.
 ]]
 function executor.evalex(exe, args)
   exe, args = convertargs(exe, args)
   local ok, status, stdout, stderr = pexec(exe, args, true)
   if ok and status == 0 then
-    return stdout, stderr
+    return stdout, stderr, status
   end
   local err
   if stderr and #stderr > 0 then
@@ -133,7 +133,7 @@ function executor.evalex(exe, args)
   else
     err = 'command exited with code ' .. status
   end
-  return nil, err
+  return nil, err, status
 end
 
 -- Like `executor.evalex`, but returns only stdout on success and raises an error on failure.
@@ -143,6 +143,27 @@ function executor.eval(exe, args)
     error('failed to evaluate command:\n'..stderr)
   end
   return stdout
+end
+
+--[[
+Like `executor.exec`,
+but stdout/stderr is redirected to `io` stdout/stderr if `redirect` is true.
+]]
+function executor.rexec(exe, args, redirect)
+  if redirect then
+    local stdout, stderr, status = executor.evalex(exe, args)
+    if stdout then
+      io.stdout:write(stdout)
+      io.stdout:flush()
+    end
+    if stderr then
+      io.stderr:write(stderr)
+      io.stderr:flush()
+    end
+    return not not stdout, status
+  else
+    return executor.exec(exe, args)
+  end
 end
 
 return executor
