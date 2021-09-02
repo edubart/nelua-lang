@@ -25,7 +25,6 @@ INCS=-Isrc/lua
 DEFS=-DNDEBUG -DLUA_COMPAT_5_3 -DMAXRECLEVEL=400
 SRCS=src/lua/onelua.c src/lfs.c src/sys.c src/hasher.c src/lpeglabel/*.c
 HDRS=src/lua/*.h src/lua/*.c src/lpeglabel/*.h
-EXEO=-o
 CFLAGS=-O2
 ifeq ($(SYS), Linux)
 	CC=gcc
@@ -40,10 +39,10 @@ else ifeq ($(SYS), Windows)
 	else ifneq (, $(shell where clang 2>$(DEVNULL)))
 		# prefer clang (Visual Studio + Clang)
 		CC=clang
-		ifndef NO_RPMALLOC
-			LIBS+=-ladvapi32
-		endif
 	else # gcc (MSYS)
+		ifeq ($(MSYSTEM), MSYS)
+			NO_RPMALLOC=1
+		endif
 		CC=gcc
 	endif
 	LDFLAGS+=-static
@@ -60,6 +59,9 @@ else # probably POSIX
 	NO_RPMALLOC=1
 endif
 ifndef NO_RPMALLOC
+	ifeq ($(SYS), Windows)
+		LIBS+=-ladvapi32
+	endif
 	SRCS+=src/rpmalloc/rpmalloc.c
 	HDRS+=src/rpmalloc/rpmalloc.h
 	DEFS+=-DLUA_USE_RPMALLOC -DENABLE_GLOBAL_CACHE=0 -DBUILD_DYNAMIC_LINK
@@ -75,7 +77,7 @@ $(NELUALUA): $(SRCS) $(HDRS)
 		$(INCS) $(MYINCS) \
 		$(CFLAGS) $(MYCFLAGS) \
 		$(SRCS) $(MYSRCS) \
-		$(EXEO)$(NELUALUA) \
+		-o $(NELUALUA) \
 		$(LDFLAGS) $(MYLDFLAGS) $(LIBS) $(MYLIBS)
 
 # Compile Nelua's bundled Lua interpreter using PGO (Profile Guided optimization) and native,

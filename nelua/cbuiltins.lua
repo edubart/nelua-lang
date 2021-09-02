@@ -262,7 +262,7 @@ function cbuiltins.NELUA_UBSAN_UNREACHABLE(context)
   #if __has_feature(undefined_behavior_sanitizer)
     #define NELUA_UBSAN_UNREACHABLE __builtin_unreachable
   #endif
-#elif defined(__GNUC__) && !defined(_WIN32)
+#elif defined(__GNUC__) && defined(__gnu_linux__)
   NELUA_EXTERN void __ubsan_handle_builtin_unreachable(void*) __attribute__((weak));
   #define NELUA_UBSAN_UNREACHABLE() {if(&__ubsan_handle_builtin_unreachable) __builtin_unreachable();}
 #endif
