@@ -192,9 +192,8 @@ cdefs.target_info_code = [[
 #if defined(__ANDROID__)
   is_android = true;
 #endif
-#if defined(IOS) || defined(APPLE_IOS) || defined(__APPLE_IOS__) || \
-   defined(TARGET_OS_IOS) || defined(TARGET_OS_SIMULATOR) || defined(__IPHONEOS__) \
-   defined(__IOS__)  || defined(IOS) || defined(IOS_OBJ_C)
+#if defined(__APPLE_IOS__) || defined(TARGET_OS_IOS) || defined(IOS_OBJ_C) || \
+   defined(TARGET_OS_SIMULATOR) || defined(__IPHONEOS__) || defined(__IOS__)
   is_ios = true;
 #endif
 #if defined(__MACH__)
@@ -215,41 +214,37 @@ cdefs.target_info_code = [[
 #if defined(__gba__) || defined(__GBA__)
   is_gba = true;
 #endif
-#if defined(_NDS) || defined(NDS) || defined(__NDS__) || \
-    defined (__NDS)
+#if defined(_NDS) || defined(__NDS__) || defined (__NDS)
   is_nds = true;
 #endif
 #if defined(_3DS) || defined(__3DS__) || defined(__N3DS__)
   is_3ds = true;
 #endif
-#if defined(__SWITCH__) || defined(NINTENDO_SWITCH) || defined(__NX__) || \
-    defined(_SWITCH)
+#if defined(__SWITCH__) || defined(__NX__) || defined(_SWITCH)
   is_switch = true;
 #endif
-#if defined(GAMECUBE) || defined(__GAMECUBE__) || defined(__gamecube__)
+#if defined(__GAMECUBE__) || defined(__gamecube__)
   is_gamecube = true;
 #endif
-#if defined(__WII__) || defined(WIIU) || defined(WII) || \
-    defined(wiiu) || defined(wii) || defined(_WII) || \
-    defined(_WIIU) || defined(__WIIU__) || defined(__wii__) || defined(__wiiu__)
+#if defined(__WII__) || defined(_WII) || defined(__wii__)
   is_wii = true;
 #endif
-#if defined(__PSX__) || defined(PS1) || defined(__psx__) || \
-    defined(__PSONE__) || defined(PLAYSTATION_1) || defined(__PSX) || \
-    defined(_PSX)
+#if defined(_WIIU) || defined(__WIIU__) || defined(__wiiu__)
+  is_wiiu = true;
+#endif
+#if defined(__PSX__) || defined(__psx__) || defined(__PSONE__) || \
+    defined(__PSX) || defined(_PSX)
   is_ps1 = true;
 #endif
-#if defined(__PS2__) || defined(_PS2) || defined(PS2) || \
-    defined(PLAYSTATION_2)
+#if defined(__PS2__) || defined(_PS2)
   is_ps2 = true;
 #endif
 #if defined(__PS3__) || defined(_PS3) || defined(__PS3) || \
-    defined(PS3) || defined(PLAYSTATION3) || defined(__PSL1GHT__)
+    defined(PS3) || defined(__PSL1GHT__)
   is_ps3 = true;
 #endif
-#if defined(PS4) || defined(ORBIS) || defined(__PS4__) || \
-    defined(__ORBIS__) || defined(_PS4) || defined(__PS4) || \
-    defined(PLAYSTATION4)
+#if defined(ORBIS) || defined(__PS4__) || defined(__ORBIS__) || \
+    defined(_PS4) || defined(__PS4)
   is_ps4 = true;
 #endif
 #if defined(_PS5)
@@ -269,12 +264,11 @@ cdefs.target_info_code = [[
     defined(__xbox__) || defined(__xbox) || defined(_XBOX) || defined(xbox)
   is_xbox = true;
 #endif
-#if defined(_X360) || defined(XBOX360) || \
-    defined(__X360) || defined(__X360__)
+#if defined(_X360) || defined(__X360) || defined(__X360__)
   is_xbox360 = true;
 #endif
-#if defined(_XBOXONE) || defined(XBONE) || \
-    ((defined(_XBOX_ONE) || defined(_DURANGO)) && defined(_TITLE))
+#if defined(_XBOXONE) || ((defined(_XBOX_ONE) || defined(_DURANGO)) && \
+    defined(_TITLE))
   is_xbox_one = true;
 #endif
 #if defined(__BeOS) || defined(__BEOS__) || defined(_BEOS)
