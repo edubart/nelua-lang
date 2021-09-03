@@ -145,7 +145,7 @@ local function run(argv, redirect)
   end
 
   -- choose a infile for evals
-  if not infile then infile = 'eval_' .. stringer.hash(code) end
+  if not infile then infile = 'eval_' .. stringer.hash(code, 8) end
 
   -- save the generated code
   local outcacheprefix = fs.normcachepath(infile, config.cache_dir)
