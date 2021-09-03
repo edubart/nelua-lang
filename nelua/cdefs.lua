@@ -290,6 +290,12 @@ cdefs.target_info_code = [[
 #if defined(__sun) && defined(__SVR4)
   is_solaris = true;
 #endif
+#if defined(__WEBOS__)
+  is_webos = true;
+#endif
+#if defined(__native_client__)
+  is_nacl = true;
+#endif
 
 /* Compilers */
 #if defined(__VERSION__)
