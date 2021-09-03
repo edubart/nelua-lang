@@ -39,7 +39,7 @@ version.NELUA_GIT_DATE = nil
 -- Execute a git command inside Nelua's git repository.
 local function execute_git_command(args)
   -- try to detect nelua git directory using this script
-  local gitdir = fs.abspath(fs.join(fs.dirname(fs.dirname(fs.scriptname())), '.git'))
+  local gitdir = fs.abspath(fs.join(fs.dirname(fs.scriptname(), 3), '.git'))
   if fs.isdir(gitdir) then -- git directory found
     local execargs = tabler.insertvalues({'-C', gitdir}, args)
     local stdout = executor.evalex('git', execargs)

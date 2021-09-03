@@ -41,9 +41,13 @@ function fs.splitpath(p)
 end
 
 -- Return the directory part of a path.
-function fs.dirname(p)
-  local p1 = fs.splitpath(p)
-  return p1
+function fs.dirname(p, level)
+  level = level or 1
+  while level > 0 do
+    p = fs.splitpath(p)
+    level = level - 1
+  end
+  return p
 end
 
 -- Return the file part of a path.
@@ -178,7 +182,7 @@ end --luacov:enable
 
 -- Return the path for the current running Lua interpreter.
 function fs.findluabin()
-  local luabin = 'nelua-lua'
+  local luabin = _G.arg[0]
   local minargi = 0
   for argi,v in pairs(_G.arg) do
     if argi < minargi then
@@ -186,7 +190,8 @@ function fs.findluabin()
       luabin = v
     end
   end
-  if fs.isabs(luabin) and fs.isfile(luabin) then return luabin end
+  local luabinabs = fs.abspath(luabin)
+  if fs.isfile(luabinabs) then return luabinabs end
   local binpath = fs.findbinfile(luabin)
   if binpath then return binpath end
   return luabin
@@ -205,7 +210,7 @@ end
 -- Follow file symbolic links.
 function fs.followlink(p) --luacov:disable
   local fileat = lfs.symlinkattributes(p)
-  while fileat.target do
+  while fileat and fileat.target and fileat.target ~= p do
     p = fileat.target
     fileat = lfs.symlinkattributes(p)
   end
@@ -222,11 +227,10 @@ end --luacov:enable
 -- Setup package path (to make the compiler lua files visible)
 local exe_path = fs.realpath(fs.findluabin())
 local exe_dir = fs.dirname(exe_path)
-local exe_dirname = fs.basename(exe_dir)
 
 -- Find compiler lua files
-local nelua_lualib = exe_dir
-if exe_dirname == 'bin' then -- in a system install, prefer its libraries
+local nelua_lualib = fs.join(exe_dir, 'lualib')
+if fs.basename(exe_dir) == 'bin' then -- in a system install
   local system_lualib = fs.join(fs.dirname(exe_dir),'lib','nelua','lualib')
   if fs.isdir(system_lualib) then
     nelua_lualib = system_lualib
@@ -236,6 +240,5 @@ end
 -- Inject package path
 if fs.isdir(nelua_lualib) then
   package.path=fs.join(nelua_lualib,'?.lua')..';'..package.path
-  package.path=fs.join(nelua_lualib,'?','init.lua')..';'..package.path
-  package.path=fs.join(nelua_lualib,'thirdparty','?.lua')..';'..package.path
+  package.path=fs.join(nelua_lualib,'nelua','thirdparty','?.lua')..';'..package.path
 end

@@ -877,11 +877,11 @@ function cbuiltins.calls.print(context, node)
       defemitter:dec_indent()
       defemitter:add_indent_ln('}')
     elseif argtype.is_cstring then
-      context:ensure_builtins('fputs', 'stdout')
-      defemitter:add_ln('fputs(a',i,', stdout);')
+      context:ensure_builtins('fputs', 'stdout', 'NULL')
+      defemitter:add_ln('fputs(a',i,' != NULL ? a',i,' : "(null cstring)", stdout);')
     elseif argtype.is_acstring then
       context:ensure_builtins('fputs', 'stdout')
-      defemitter:add_ln('fputs((char*)a',i,', stdout);')
+      defemitter:add_ln('fputs(a',i,' != NULL ? (char*)a',i,' : "(null cstring)", stdout);')
     elseif argtype.is_niltype then
       context:ensure_builtins('fputs', 'stdout')
       defemitter:add_ln('fputs("nil", stdout);')

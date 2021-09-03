@@ -19,13 +19,15 @@ ifeq ($(SYS), Windows)
 	NELUALUA=./nelua-lua.exe
 	NELUALUAC=./nelua-luac.exe
 endif
+NELUARUN=$(NELUALUA) -lnelua nelua.lua
 
 ###############################################################################
 # Nelua's Lua interpreter
 
 # Compiler Flags
 INCS=-Isrc/lua
-DEFS=-DNDEBUG -DLUA_COMPAT_5_3 -DMAXRECLEVEL=400
+DEFS=-DNDEBUG -DLUA_COMPAT_5_3
+LUA_DEFS=-DMAXRECLEVEL=400
 SRCS=src/lua/onelua.c src/lfs.c src/sys.c src/hasher.c src/lpeglabel/*.c src/luainit.c
 HDRS=src/lua/*.h src/lua/*.c src/lpeglabel/*.h src/luainit.h
 CFLAGS=-O2
@@ -64,7 +66,7 @@ ifndef NO_RPMALLOC
 	endif
 	SRCS+=src/rpmalloc/rpmalloc.c
 	HDRS+=src/rpmalloc/rpmalloc.h
-	DEFS+=-DLUA_USE_RPMALLOC -DENABLE_GLOBAL_CACHE=0 -DBUILD_DYNAMIC_LINK
+	LUA_DEFS+=-DLUA_USE_RPMALLOC -DENABLE_GLOBAL_CACHE=0 -DBUILD_DYNAMIC_LINK
 endif
 
 # The default target.
@@ -73,7 +75,7 @@ default: $(NELUALUA)
 # Compile Nelua's bundled Lua interpreter.
 $(NELUALUA): $(SRCS) $(HDRS)
 	$(CC) \
-		$(DEFS) $(MYDEFS) \
+		$(DEFS) $(LUA_DEFS) $(MYDEFS) \
 		$(INCS) $(MYINCS) \
 		$(CFLAGS) $(MYCFLAGS) \
 		$(SRCS) $(MYSRCS) \
@@ -85,7 +87,7 @@ $(NELUALUA): $(SRCS) $(HDRS)
 optimized-nelua-lua:
 	$(RM_DIR) pgo
 	$(MAKE) --no-print-directory MYCFLAGS="-O3 -march=native -fprofile-generate=pgo" clean-nelualua default
-	$(NELUALUA) nelua.lua -qb tests/all_test.nelua
+	$(NELUARUN) -qb tests/all_test.nelua
 	$(MAKE) --no-print-directory MYCFLAGS="-O3 -march=native -fprofile-use=pgo" clean-nelualua default
 	$(RM_DIR) pgo
 
@@ -93,17 +95,18 @@ optimized-nelua-lua:
 ## Lua init script
 
 LUAC=$(NELUALUAC)
+LUAC_DEFS=-DMAKE_LUAC
 LUAC_SRCS=src/lua/onelua.c
-LUAC_HDRS=src/lua/*.h
+LUAC_HDRS=src/lua/*.h src/lua/*.c
 XXD=xxd
 
 # Compile Nelua's Lua compiler.
 $(NELUALUAC): $(LUAC_SRCS) $(LUAC_HDRS)
 	$(CC) \
-		-D MAKE_LUAC $(DEFS) $(MYDEFS) \
+		$(LUAC_DEFS) $(DEFS) $(MYDEFS) \
 		$(INCS) $(MYINCS) \
 		$(CFLAGS) $(MYCFLAGS) \
-		$(SRCS) $(MYSRCS) \
+		$(LUAC_SRCS) \
 		-o $(NELUALUAC) \
 		$(LDFLAGS) $(MYLDFLAGS) $(LIBS) $(MYLIBS)
 
@@ -145,7 +148,7 @@ coverage-test: $(NELUALUA)
 
 # Compile each example.
 examples/*.nelua: %.nelua:
-	$(LUA) nelua.lua -qb $@
+	$(NELUARUN) -qb $@
 .PHONY: examples/*.nelua
 
 # Compile all examples.
@@ -216,8 +219,6 @@ PREFIX?=/usr/local
 DPREFIX=$(DESTDIR)$(PREFIX)
 PREFIX_BIN=$(DPREFIX)/bin
 PREFIX_LIB=$(DPREFIX)/lib
-PREFIX_NELUALIB=$(PREFIX_LIB)/nelua/lib
-PREFIX_LUALIB=$(PREFIX_LIB)/nelua/lualib
 
 # Utilities
 SED=sed
@@ -249,30 +250,30 @@ ifeq ($(ISGIT),true)
 	$(eval NELUA_GIT_HASH := $(shell $(GIT) rev-parse HEAD))
 	$(eval NELUA_GIT_DATE := $(shell $(GIT) log -1 --format=%ci))
 	$(eval NELUA_GIT_BUILD := $(shell $(GIT) rev-list HEAD --count))
-	$(SED) -i.bak 's/NELUA_GIT_HASH = nil/NELUA_GIT_HASH = "$(NELUA_GIT_HASH)"/' "$(PREFIX_LUALIB)/nelua/version.lua"
-	$(SED) -i.bak 's/NELUA_GIT_DATE = nil/NELUA_GIT_DATE = "$(NELUA_GIT_DATE)"/' "$(PREFIX_LUALIB)/nelua/version.lua"
-	$(SED) -i.bak 's/NELUA_GIT_BUILD = nil/NELUA_GIT_BUILD = $(NELUA_GIT_BUILD)/' "$(PREFIX_LUALIB)/nelua/version.lua"
-	$(RM_FILE) "$(PREFIX_LUALIB)/nelua/version.lua.bak"
+	$(SED) -i.bak 's/NELUA_GIT_HASH = nil/NELUA_GIT_HASH = "$(NELUA_GIT_HASH)"/' "$(PREFIX_LIB)/nelua/lualib/nelua/version.lua"
+	$(SED) -i.bak 's/NELUA_GIT_DATE = nil/NELUA_GIT_DATE = "$(NELUA_GIT_DATE)"/' "$(PREFIX_LIB)/nelua/lualib/nelua/version.lua"
+	$(SED) -i.bak 's/NELUA_GIT_BUILD = nil/NELUA_GIT_BUILD = $(NELUA_GIT_BUILD)/' "$(PREFIX_LIB)/nelua/lualib/nelua/version.lua"
+	$(RM_FILE) "$(PREFIX_LIB)/nelua/lualib/nelua/version.lua.bak"
 endif
 
 # Install Nelua using PREFIX into DESTDIR.
 install: $(NELUALUA)
 	$(MKDIR) "$(PREFIX_BIN)"
 	$(INSTALL_EXE) $(NELUALUA) "$(PREFIX_BIN)/nelua-lua"
-	$(INSTALL_EXE) nelua.sh "$(PREFIX_BIN)/nelua"
-	$(MKDIR) "$(PREFIX_LUALIB)/nelua"
-	$(INSTALL_FILE) nelua.lua "$(PREFIX_LUALIB)/nelua.lua"
-	$(INSTALL_FILES) nelua/* "$(PREFIX_LUALIB)/nelua/"
-	$(MKDIR) "$(PREFIX_NELUALIB)"
-	$(INSTALL_FILES) lib/* "$(PREFIX_NELUALIB)/"
+	$(INSTALL_EXE) nelua "$(PREFIX_BIN)/nelua"
+	$(RM_DIR) "$(PREFIX_LIB)/nelua"
+	$(MKDIR) "$(PREFIX_LIB)/nelua"
+	$(INSTALL_FILES) lualib "$(PREFIX_LIB)/nelua/lualib"
+	$(INSTALL_FILES) lib "$(PREFIX_LIB)/nelua/lib"
 	$(MAKE) _update_install_version
 
 # Install Nelua using this folder in the system.
 install-as-symlink: $(NELUALUA)
+	$(MAKE) --no-print-directory uninstall
 	$(RM_FILE) "$(PREFIX_BIN)/nelua-lua"
 	ln -fs "$(realpath $(NELUALUA))" "$(PREFIX_BIN)/nelua-lua"
 	$(RM_FILE) "$(PREFIX_BIN)/nelua"
-	ln -fs "$(realpath nelua.sh)" "$(PREFIX_BIN)/nelua"
+	ln -fs "$(realpath nelua)" "$(PREFIX_BIN)/nelua"
 
 # Uninstall Nelua
 uninstall:

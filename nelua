@@ -22,4 +22,4 @@ SCRIPT_DIR=$(dirname "$SCRIPT")
 NELUA_LUA=$SCRIPT_DIR/nelua-lua
 
 # execute nelua compiler
-exec "$SCRIPT_DIR/nelua-lua" -l nelua -- "$@"
+exec "$SCRIPT_DIR/nelua-lua" -lnelua nelua.lua "$@"

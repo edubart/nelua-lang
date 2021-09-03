@@ -80,8 +80,7 @@ For example, suppose you want to install in your home directory.
 Then you would use `sudo make install PREFIX=~/nelua`,
 and the Nelua compiler would be available at `~/nelua/bin/nelua`.
 
-Alternatively you can run the `nelua.sh` file to run Nelua directly if you do not wish
-to install it anywhere on your system.
+Alternatively you can run the `./nelua` file to run Nelua directly if you do not wish to install it anywhere in your system.
 
 Proceed to the [testing section](#testing).
 

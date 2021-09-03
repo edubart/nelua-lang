@@ -63,9 +63,13 @@ function fs.splitpath(p)
 end
 
 -- Return the directory part of a path.
-function fs.dirname(p)
-  local p1 = fs.splitpath(p)
-  return p1
+function fs.dirname(p, level)
+  level = level or 1
+  while level > 0 do
+    p = fs.splitpath(p)
+    level = level - 1
+  end
+  return p
 end
 
 -- Return the file part of a path.
@@ -252,7 +256,7 @@ end
 -- Follow file symbolic links.
 function fs.followlink(p) --luacov:disable
   local fileat = lfs.symlinkattributes(p)
-  while fileat.target do
+  while fileat and fileat.target and fileat.target ~= p do
     p = fileat.target
     fileat = lfs.symlinkattributes(p)
   end
@@ -449,7 +453,7 @@ Returns the absolute path for the current Lua interpreter if possible,
 otherwise a command suitable to use with `os.execute`.
 ]]
 function fs.findluabin()
-  local luabin = 'nelua-lua'
+  local luabin = _G.arg[0]
   local minargi = 0
   for argi,v in pairs(_G.arg) do
     if argi < minargi then
@@ -457,7 +461,8 @@ function fs.findluabin()
       luabin = v
     end
   end
-  if fs.isabs(luabin) and fs.isfile(luabin) then return luabin end
+  local luabinabs = fs.abspath(luabin)
+  if fs.isfile(luabinabs) then return luabinabs end
   local binpath = fs.findbinfile(luabin)
   if binpath then return binpath end
   return luabin

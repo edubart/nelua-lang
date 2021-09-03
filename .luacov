@@ -1,7 +1,6 @@
-modules = {
-  ['nelua.*'] = '.',
-  ['nelua.utils.*'] = '.',
-  ['spec.*'] = '.',
-  ['spec.*.*'] = '.',
+exclude = {
+  'neluacfg',
+  'thirdparty',
+  'ppcode',
+  'pragma',
 }
-exclude = {'neluacfg'}
