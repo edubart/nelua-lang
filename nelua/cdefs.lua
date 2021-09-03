@@ -170,9 +170,6 @@ cdefs.target_info_code = [[
 #if defined(__gnu_linux__)
   is_gnu_linux = true;
 #endif
-#if defined(WINAPI_PARTITION_APP)
-  is_uwp = true;
-#endif
 #if defined(__WIN32__) || defined(__WIN32) || defined(_WIN32)
   is_win32 = true;
   is_windows = true;
@@ -183,7 +180,7 @@ cdefs.target_info_code = [[
 #if defined(__WINNT__) || defined(__WINNT)
   is_winnt = true;
 #endif
-#if defined(__DOS__) || defined(_DOS) || defined(__DOS)
+#if defined(__DOS__) || defined(__DOS) || defined(_DOS)
   is_dos = true;
 #endif
 #if defined(__MS_DOS__) || defined(__MSDOS)
@@ -191,21 +188,27 @@ cdefs.target_info_code = [[
 #endif
 #if defined(__APPLE__)
   is_apple = true;
+  #include <TargetConditionals.h>
+  #if defined(TARGET_OS_IOS)
+    is_ios = true;
+  #endif
+  #if defined(TARGET_OS_MAC)
+    is_macos = true;
+  #endif
+  #if defined(TARGET_OS_IPHONE)
+    is_iphone = true;
+  #endif
 #endif
 #if defined(__ANDROID__)
   is_android = true;
 #endif
-#if defined(__APPLE_IOS__) || defined(TARGET_OS_IOS) || defined(IOS_OBJ_C) || \
-   defined(TARGET_OS_SIMULATOR) || defined(__IPHONEOS__) || defined(__IOS__)
-  is_ios = true;
-#endif
 #if defined(__MACH__)
   is_mach = true;
 #endif
-#if defined(__HPUX__)
+#if defined(__HPUX__) || defined(__HPUX) || defined(__hpux__) || defined(__hpux)
   is_hpux = true;
 #endif
-#if defined(__SGI__)
+#if defined(__sgi__) || defined(__sgi)
   is_irix = true;
 #endif
 #if defined(__TIZEN__)
@@ -217,13 +220,13 @@ cdefs.target_info_code = [[
 #if defined(__gba__) || defined(__GBA__)
   is_gba = true;
 #endif
-#if defined(_NDS) || defined(__NDS__) || defined (__NDS)
+#if defined(__NDS__) || defined(__NDS) || defined(_NDS)
   is_nds = true;
 #endif
-#if defined(_3DS) || defined(__3DS__) || defined(__N3DS__)
+#if defined(__3DS__) || defined(_3DS) || defined(__N3DS__)
   is_3ds = true;
 #endif
-#if defined(__SWITCH__) || defined(__NX__) || defined(_SWITCH)
+#if defined(__SWITCH__) || defined(_SWITCH) || defined(__NX__)
   is_switch = true;
 #endif
 #if defined(__GAMECUBE__) || defined(__gamecube__)
@@ -232,55 +235,47 @@ cdefs.target_info_code = [[
 #if defined(__WII__) || defined(_WII) || defined(__wii__)
   is_wii = true;
 #endif
-#if defined(_WIIU) || defined(__WIIU__) || defined(__wiiu__)
+#if defined(__WIIU__) || defined(_WIIU) || defined(__wiiu__)
   is_wiiu = true;
 #endif
-#if defined(__PSX__) || defined(__psx__) || defined(__PSONE__) || \
-    defined(__PSX) || defined(_PSX)
+#if defined(__PSX__) || defined(__PSX) || defined(_PSX) || defined(__psx__) || \
+    defined(__PSONE__)
   is_ps1 = true;
 #endif
-#if defined(__PS2__) || defined(_PS2)
+#if defined(__PS2__) || defined(__PS2) || defined(_PS2)
   is_ps2 = true;
 #endif
-#if defined(__PS3__) || defined(_PS3) || defined(__PS3) || \
-    defined(PS3) || defined(__PSL1GHT__)
+#if defined(__PS3__) || defined(__PS3) || defined(_PS3)
   is_ps3 = true;
 #endif
-#if defined(ORBIS) || defined(__PS4__) || defined(__ORBIS__) || \
-    defined(_PS4) || defined(__PS4)
+#if defined(__PS4__) || defined(__PS4) || defined(_PS4) || \
+    defined(__ORBIS__)
   is_ps4 = true;
 #endif
-#if defined(_PS5)
+#if defined(__PS5__) || defined(__PS5) || defined(_PS5)
   is_ps5 = true;
 #endif
-#if defined(PSP) || defined(__PSP__) || defined(__psp__) || \
-    defined(__PSP) || defined(_PSP)
+#if defined(__PSP__) || defined(__PSP) || defined(_PSP)
   is_psp = true;
 #endif
-#if defined(_PSVITA) || defined(VITA) || defined(__vita__) || \
-    defined(__PSVITA) || defined(__VITA__) || defined(_PSVITA) || \
-    defined(SN_TARGET_PSP2) || defined(__PSV__) || defined(__psv__) || \
-    defined(_PSV) || defined(__PSVita__) || defined(__PSVita)
-  is_psvita = true;
+#if defined(__VITA__) || defined(__vita__)
 #endif
-#if defined(XBOX) || defined(__XBOX__) || defined(__XBOX) || \
-    defined(__xbox__) || defined(__xbox) || defined(_XBOX) || defined(xbox)
+#if defined(__XBOX__) || defined(__XBOX) || defined(_XBOX)
   is_xbox = true;
 #endif
-#if defined(_X360) || defined(__X360) || defined(__X360__)
+#if defined(__X360__) || defined(_X360) || defined(__X360)
   is_xbox360 = true;
 #endif
-#if defined(_XBOXONE) || ((defined(_XBOX_ONE) || defined(_DURANGO)) && \
-    defined(_TITLE))
+#if defined(_XBOXONE) || defined(_XBOX_ONE) || defined(_DURANGO)
   is_xbox_one = true;
 #endif
-#if defined(__BeOS) || defined(__BEOS__) || defined(_BEOS)
+#if defined(__BEOS__) || defined(_BEOS) || defined(__BeOS)
   is_beos = true;
 #endif
-#if defined(__HAIKU) || defined(__HAIKU__) || defined(_HAIKU)
+#if defined(__HAIKU__) || defined(__HAIKU) || defined(_HAIKU)
   is_haiku = true;
 #endif
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__DragonFly__)
   is_freebsd = true;
 #endif
 #if defined(__NetBSD__)
@@ -289,11 +284,11 @@ cdefs.target_info_code = [[
 #if defined(__OpenBSD__)
   is_openbsd = true;
 #endif
-#if defined(__DragonFly__)
-  is_dragonfly_bsd = true;
-#endif
-#if defined(__bsdi__) // Note: __bsdi__ means all BSDs
+#if defined(__bsdi__) || defined(__bsdi)
   is_bsd = true;
+#endif
+#if defined(__sun) && defined(__SVR4)
+  is_solaris = true;
 #endif
 
 /* Compilers */
@@ -370,8 +365,20 @@ cdefs.target_info_code = [[
 #if defined(__AVR__) || defined(__AVR)
   is_avr = true;
 #endif
-#if defined(__BIGGEST_ALIGNMENT__)
-  biggest_alignment = __BIGGEST_ALIGNMENT__;
+#if defined(__powerpc__)
+  is_powerpc = true;
+#endif
+#if defined(__mips__)
+  is_mips = true;
+#endif
+#if defined(__sparc__)
+  is_sparc = true;
+#endif
+#if defined(__s390__)
+  is_s390 = true;
+#endif
+#if defined(__s390x__)
+  is_s390x = true;
 #endif
 
 /* C standard */
@@ -501,6 +508,9 @@ cdefs.target_info_code = [[
 #endif
 
 /* Alignment */
+#if defined(__BIGGEST_ALIGNMENT__)
+  biggest_alignment = __BIGGEST_ALIGNMENT__;
+#endif
 #if defined(__EMSCRIPTEN__)
   alignof_long_long = 8;
   alignof_double = 8;
