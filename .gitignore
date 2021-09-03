@@ -1,4 +1,9 @@
 nelua_cache
+nelua-lua
+nelua-luac
+neluacfg.lua
+.neluacfg.lua
+.neluacfg.*.lua
 *.out
 *.tmp
 *.log
@@ -16,13 +21,10 @@ nelua_cache
 *.old
 *.zst
 *.obj
+*.luabc
 .vscode
 tempCodeRunner.*
-neluacfg.lua
-.neluacfg.lua
-.neluacfg.*.lua
 /play
-nelua-lua
 /pkg
 /mylib_test
 /pgo

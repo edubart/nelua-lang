@@ -1,6 +1,5 @@
 # Detect variables based on the host system.
 DEVNULL=/dev/null
-NELUALUA=src/nelua-lua
 ifeq ($(OS), Windows_NT)
 	SYS=Windows
 	ifeq ($(wildcard /dev/null),)
@@ -9,12 +8,16 @@ ifeq ($(OS), Windows_NT)
 	# Unix compatible environment?
 	ifeq (, $(shell where which 2>$(DEVNULL)))
 		WINMODE=1
-		NELUALUA=src\\nelua-lua.exe
-	else
-		NELUALUA=src/nelua-lua.exe
 	endif
 else
 	SYS=$(shell uname -s)
+endif
+
+NELUALUA=./nelua-lua
+NELUALUAC=./nelua-luac
+ifeq ($(SYS), Windows)
+	NELUALUA=./nelua-lua.exe
+	NELUALUAC=./nelua-luac.exe
 endif
 
 ###############################################################################
@@ -23,8 +26,8 @@ endif
 # Compiler Flags
 INCS=-Isrc/lua
 DEFS=-DNDEBUG -DLUA_COMPAT_5_3 -DMAXRECLEVEL=400
-SRCS=src/lua/onelua.c src/lfs.c src/sys.c src/hasher.c src/lpeglabel/*.c
-HDRS=src/lua/*.h src/lua/*.c src/lpeglabel/*.h
+SRCS=src/lua/onelua.c src/lfs.c src/sys.c src/hasher.c src/lpeglabel/*.c src/luainit.c
+HDRS=src/lua/*.h src/lua/*.c src/lpeglabel/*.h src/luainit.h
 CFLAGS=-O2
 ifeq ($(SYS), Linux)
 	CC=gcc
@@ -85,6 +88,29 @@ optimized-nelua-lua:
 	$(NELUALUA) nelua.lua -qb tests/all_test.nelua
 	$(MAKE) --no-print-directory MYCFLAGS="-O3 -march=native -fprofile-use=pgo" clean-nelualua default
 	$(RM_DIR) pgo
+
+###############################################################################
+## Lua init script
+
+LUAC=$(NELUALUAC)
+LUAC_SRCS=src/lua/onelua.c
+LUAC_HDRS=src/lua/*.h
+XXD=xxd
+
+# Compile Nelua's Lua compiler.
+$(NELUALUAC): $(LUAC_SRCS) $(LUAC_HDRS)
+	$(CC) \
+		-D MAKE_LUAC $(DEFS) $(MYDEFS) \
+		$(INCS) $(MYINCS) \
+		$(CFLAGS) $(MYCFLAGS) \
+		$(SRCS) $(MYSRCS) \
+		-o $(NELUALUAC) \
+		$(LDFLAGS) $(MYLDFLAGS) $(LIBS) $(MYLIBS)
+
+# Generates src/luainit.c (requires xxd tool from Vim)
+gen-luainit: $(NELUALUAC) src/luainit.lua
+	$(LUAC) -o src/luainit.luabc src/luainit.lua
+	$(XXD) -i src/luainit.luabc > src/luainit.h
 
 ###############################################################################
 # Testing
@@ -277,9 +303,13 @@ clean-coverage:
 clean-nelualua:
 	$(RM_FILE) "$(NELUALUA)"
 
+# Clean the Lua interpreter.
+clean-nelualuac:
+	$(RM_FILE) "$(NELUALUAC)"
+
 # Clean documentation.
 clean-docs:
 	cd docs && $(JEKYLL) clean
 
 # Clean everything.
-clean: clean-nelualua clean-cache clean-coverage
+clean: clean-nelualua clean-cache clean-coverage clean-nelualuac

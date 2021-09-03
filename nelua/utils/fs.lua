@@ -5,15 +5,15 @@ The fs (stands for filesystem) module is used to manage files and directories.
 ]]
 
 local lfs = require 'lfs'
-local platform = require 'nelua.utils.platform'
 local except = require 'nelua.utils.except'
 local stringer = require 'nelua.utils.stringer'
 local fs = {}
 
 -- Platform dependent variables.
-fs.sep = platform.dir_separator
-fs.pathsep = platform.path_separator
+fs.sep = _G.package.config:sub(1,1)
 fs.othersep = fs.sep ~= '/' and '/' or nil
+fs.winstyle = fs.sep == '\\'
+fs.pathsep = fs.winstyle and ';' or ':'
 
 -- Delete a file.
 function fs.deletefile(file)
@@ -77,7 +77,7 @@ end
 -- Is this an absolute path?
 function fs.isabs(p)
   if p:find('^/') then return true end
-  if platform.is_windows and p:find('^\\') or p:find('^.:') then return true end
+  if fs.winstyle and p:find('^\\') or p:find('^.:') then return true end
   return false
 end
 
@@ -113,7 +113,7 @@ function fs.normpath(p)
   -- split path into anchor and relative path.
   local anchor = ''
   --luacov:disable
-  if platform.is_windows then
+  if fs.winstyle then
     if p:find '^\\\\' then -- UNC
       anchor = '\\\\'
       p = p:sub(3)
@@ -164,7 +164,7 @@ function fs.abspath(p, pwd)
   if not fs.isabs(p) then
     pwd = pwd or lfs.currentdir()
     p = fs.join(pwd,p)
-  elseif platform.is_windows and not use_pwd and
+  elseif fs.winstyle and not use_pwd and
          p:find '^.[^:\\]' then --luacov:disable
     pwd = pwd or lfs.currentdir()
     p = pwd:sub(1,2)..p -- attach current drive to path like '\\fred.txt'
@@ -177,7 +177,7 @@ function fs.relpath(p, start)
   start = start or lfs.currentdir()
   p = fs.abspath(p, start)
   local compare
-  if platform.is_windows then --luacov:disable
+  if fs.winstyle then --luacov:disable
     p = p:gsub("/","\\")
     start = start:gsub("/","\\")
     compare = function(v) return v:lower() end
@@ -186,7 +186,7 @@ function fs.relpath(p, start)
   end --luacov:enable
   local startl, pl = stringer.split(start,fs.sep), stringer.split(p,fs.sep)
   local n = math.min(#startl,#pl)
-  if platform.is_windows and n > 0 and pl[1]:sub(2,2) == ':' and pl[1] ~= startl[1] then --luacov:disable
+  if fs.winstyle and n > 0 and pl[1]:sub(2,2) == ':' and pl[1] ~= startl[1] then --luacov:disable
     return p
   end --luacov:enable
   local k = n+1 -- default value if this loop doesn't bail out!
@@ -227,7 +227,7 @@ function fs.tmpname()
   -- on Windows if Lua is compiled using MSVC14 `os.tmpname`
   -- already returns an absolute path within TEMP env variable directory,
   -- no need to prepend it
-  if platform.is_windows and not res:find(':') then
+  if fs.winstyle and not res:find(':') then
     res = os.getenv('TEMP')..res
   end
   --luacov:enable
@@ -249,19 +249,34 @@ function fs.getmodtime(p)
   return lfs.attributes(p, 'modification')
 end
 
+-- Follow file symbolic links.
+function fs.followlink(p) --luacov:disable
+  local fileat = lfs.symlinkattributes(p)
+  while fileat.target do
+    p = fileat.target
+    fileat = lfs.symlinkattributes(p)
+  end
+  return p
+end --luacov:enable
+
+-- Returns the absolute real path of `p` (following links).
+function fs.realpath(p) --luacov:disable
+  return fs.followlink(fs.abspath(p))
+end --luacov:enable
+
 -- Create a directory path.
 function fs.makepath(path)
-  if platform.is_windows then --luacov:disable
+  if fs.winstyle then --luacov:disable
     path:gsub('/', fs.sep)
   end --luacov:enable
 
   path = fs.abspath(path)
 
   -- windows root drive case
-  if platform.is_windows and path:find('^%a:[\\]*$') then return true end
+  if fs.winstyle and path:find('^%a:[\\]*$') then return true end
 
   if not fs.isdir(path) then --luacov:disable
-    local dirpat = platform.is_windows and '(.+)\\[^\\]+$' or '(.+)/[^/]+$'
+    local dirpat = fs.winstyle and '(.+)\\[^\\]+$' or '(.+)/[^/]+$'
     local subpath = path:match(dirpat)
     local ok, err = fs.makepath(subpath)
     if not ok then return nil, err end
@@ -404,23 +419,48 @@ function fs.findmodulefile(name, pathstr, relpath)
 end
 
 -- Search for a file inside the system's PATH variable.
-function fs.findbinfile(name)
+function fs.findbinfile(name) --luacov:disable
   if name == fs.basename(name) then
     local path_pattern = string.format('[^%s]+', fs.pathsep)
-    for d in os.getenv("PATH"):gmatch(path_pattern) do
+    for d in os.getenv'PATH':gmatch(path_pattern) do
       local binpath = fs.abspath(fs.join(d, name))
       if fs.isfile(binpath) then return binpath end
-      if platform.is_windows then --luacov:disable
-        binpath = binpath .. '.exe'
+      if fs.winstyle then
+        binpath = binpath..'.exe'
         if fs.isfile(binpath) then return binpath end
-      end --luacov:enable
+      end
     end
-  else --luacov:disable
+  else
     local binpath = fs.abspath(name)
     if fs.isfile(binpath) then
       return binpath
     end
-  end --luacov:enable
+    if fs.winstyle and not binpath:find('%.exe$') then
+      binpath = binpath..'.exe'
+    end
+    if fs.isfile(binpath) then
+      return binpath
+    end
+  end
+end --luacov:enable
+
+--[[
+Returns the absolute path for the current Lua interpreter if possible,
+otherwise a command suitable to use with `os.execute`.
+]]
+function fs.findluabin()
+  local luabin = 'nelua-lua'
+  local minargi = 0
+  for argi,v in pairs(_G.arg) do
+    if argi < minargi then
+      minargi = argi
+      luabin = v
+    end
+  end
+  if fs.isabs(luabin) and fs.isfile(luabin) then return luabin end
+  local binpath = fs.findbinfile(luabin)
+  if binpath then return binpath end
+  return luabin
 end
 
 --[[

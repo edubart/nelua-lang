@@ -592,6 +592,7 @@ static void doREPL (lua_State *L) {
 
 /* }================================================================== */
 
+LUALIB_API void lua_luainit(lua_State *L);
 
 /*
 ** Main body of stand-alone interpreter (to be called in protected mode).
@@ -617,6 +618,7 @@ static int pmain (lua_State *L) {
   luaL_openlibs(L);  /* open standard libraries */
   createargtable(L, argv, argc, script);  /* create table 'arg' */
   lua_gc(L, LUA_GCGEN, 0, 0);  /* GC in generational mode */
+  lua_luainit(L); /* run script that adjusts 'package.path' */
   if (!(args & has_E)) {  /* no option '-E'? */
     if (handle_luainit(L) != LUA_OK)  /* run LUA_INIT */
       return 0;  /* error running LUA_INIT */

@@ -461,7 +461,7 @@ static const luaL_Reg hasherlib[] = {
   { NULL,   NULL  }
 };
 
-LUALIB_API int luaopen_hasher(lua_State *L)
+LUAMOD_API int luaopen_hasher(lua_State *L)
 {
   new_lib(L, hasherlib);
   return 1;

@@ -97,7 +97,7 @@
 #define chdir(p) (_chdir(p))
 #define getcwd(d, s) (_getcwd(d, s))
 #define rmdir(p) (_rmdir(p))
-#define LFS_EXPORT LUALIB_API
+#define LFS_EXPORT LUAMOD_API
 #ifndef fileno
 #define fileno(f) (_fileno(f))
 #endif

@@ -173,7 +173,7 @@ static const struct luaL_Reg sys_reg[] = {
   {NULL, NULL}
 };
 
-LUA_API int luaopen_sys(lua_State *L){
+LUAMOD_API int luaopen_sys(lua_State *L){
   luaL_newlib(L, sys_reg);
   return 1;
 }

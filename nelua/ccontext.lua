@@ -332,7 +332,8 @@ function CContext:define_function_builtin(name, qualifier, ret, args, body)
   if not self.pragmas.nostatic then
     declemitter:add_text('static ')
   end
-  if qualifier and qualifier ~= '' then
+  if qualifier and qualifier ~= '' and
+     not (qualifier == 'NELUA_INLINE' and self.pragmas.nocinlines) then
     declemitter:add_builtin(qualifier)
     declemitter:add_text(' ')
   end

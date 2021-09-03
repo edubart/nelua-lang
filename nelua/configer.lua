@@ -368,7 +368,7 @@ local function init_default_configs()
   end --luacov:enable
   defconfig.lib_path = libpath
   defconfig.lualib_path = lualibpath
-  defconfig.lua = detect_lua_bin()
+  defconfig.lua = fs.findluabin()
   defconfig.path = detect_search_path(libpath)
   defconfig.cc = detect_cc()
   defconfig.cflags = os.getenv('CFLAGS') or ''

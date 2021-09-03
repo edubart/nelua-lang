@@ -7,6 +7,8 @@ This is the Lua 5.4.3 interpreter used by Nelua, with the following changes:
 * Use a distribution friendly LUA_ROOT in luaconf.h
 * Use -fno-crossjumping -fno-gcse in lua VM for a faster instruction execution.
 * C compilation flags are tuned to squeeze more performance from the Lua interpreter.
+* Execute `luainit.lua` code on startup, used to adjust `package.path`
+to make Nelua compiler files available with `require`.
 
 Patch for the changes are available in `lua-changes.patch` file.
 

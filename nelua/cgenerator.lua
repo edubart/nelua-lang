@@ -1527,6 +1527,7 @@ function cgenerator.emit_feature_checks(context)
 end
 
 function cgenerator.emit_features_setup(context)
+  if context.pragmas.nocfeaturessetup then return end
   local emitter = CEmitter(context)
   emitter:add([[
 /* Enable 64 bit offsets for stdio APIs. */
