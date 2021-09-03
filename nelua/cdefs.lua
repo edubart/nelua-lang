@@ -183,6 +183,9 @@ cdefs.target_info_code = [[
 #if defined(__WINNT__) || defined(__WINNT)
   is_winnt = true;
 #endif
+#if defined(__DOS__) || defined(_DOS) || defined(__DOS)
+  is_dos = true;
+#endif
 #if defined(__MS_DOS__) || defined(__MSDOS)
   is_msdos = true;
 #endif
