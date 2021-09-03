@@ -170,6 +170,9 @@ cdefs.target_info_code = [[
 #if defined(__gnu_linux__)
   is_gnu_linux = true;
 #endif
+#if defined(WINAPI_PARTITION_APP)
+  is_uwp = true;
+#endif
 #if defined(__WIN32__) || defined(__WIN32) || defined(_WIN32)
   is_win32 = true;
   is_windows = true;
@@ -180,6 +183,9 @@ cdefs.target_info_code = [[
 #if defined(__WINNT__) || defined(__WINNT)
   is_winnt = true;
 #endif
+#if defined(__DOS__) || defined(_DOS) || defined(__DOS)
+  is_dos = true;
+#endif
 #if defined(__MS_DOS__) || defined(__MSDOS)
   is_msdos = true;
 #endif
@@ -189,8 +195,105 @@ cdefs.target_info_code = [[
 #if defined(__ANDROID__)
   is_android = true;
 #endif
+#if defined(__APPLE_IOS__) || defined(TARGET_OS_IOS) || defined(IOS_OBJ_C) || \
+   defined(TARGET_OS_SIMULATOR) || defined(__IPHONEOS__) || defined(__IOS__)
+  is_ios = true;
+#endif
 #if defined(__MACH__)
   is_mach = true;
+#endif
+#if defined(__HPUX__)
+  is_hpux = true;
+#endif
+#if defined(__SGI__)
+  is_irix = true;
+#endif
+#if defined(__TIZEN__)
+  is_tizen = true;
+#endif
+#if defined(__GAMEBOY__)
+  is_gameboy = true;
+#endif
+#if defined(__gba__) || defined(__GBA__)
+  is_gba = true;
+#endif
+#if defined(_NDS) || defined(__NDS__) || defined (__NDS)
+  is_nds = true;
+#endif
+#if defined(_3DS) || defined(__3DS__) || defined(__N3DS__)
+  is_3ds = true;
+#endif
+#if defined(__SWITCH__) || defined(__NX__) || defined(_SWITCH)
+  is_switch = true;
+#endif
+#if defined(__GAMECUBE__) || defined(__gamecube__)
+  is_gamecube = true;
+#endif
+#if defined(__WII__) || defined(_WII) || defined(__wii__)
+  is_wii = true;
+#endif
+#if defined(_WIIU) || defined(__WIIU__) || defined(__wiiu__)
+  is_wiiu = true;
+#endif
+#if defined(__PSX__) || defined(__psx__) || defined(__PSONE__) || \
+    defined(__PSX) || defined(_PSX)
+  is_ps1 = true;
+#endif
+#if defined(__PS2__) || defined(_PS2)
+  is_ps2 = true;
+#endif
+#if defined(__PS3__) || defined(_PS3) || defined(__PS3) || \
+    defined(PS3) || defined(__PSL1GHT__)
+  is_ps3 = true;
+#endif
+#if defined(ORBIS) || defined(__PS4__) || defined(__ORBIS__) || \
+    defined(_PS4) || defined(__PS4)
+  is_ps4 = true;
+#endif
+#if defined(_PS5)
+  is_ps5 = true;
+#endif
+#if defined(PSP) || defined(__PSP__) || defined(__psp__) || \
+    defined(__PSP) || defined(_PSP)
+  is_psp = true;
+#endif
+#if defined(_PSVITA) || defined(VITA) || defined(__vita__) || \
+    defined(__PSVITA) || defined(__VITA__) || defined(_PSVITA) || \
+    defined(SN_TARGET_PSP2) || defined(__PSV__) || defined(__psv__) || \
+    defined(_PSV) || defined(__PSVita__) || defined(__PSVita)
+  is_psvita = true;
+#endif
+#if defined(XBOX) || defined(__XBOX__) || defined(__XBOX) || \
+    defined(__xbox__) || defined(__xbox) || defined(_XBOX) || defined(xbox)
+  is_xbox = true;
+#endif
+#if defined(_X360) || defined(__X360) || defined(__X360__)
+  is_xbox360 = true;
+#endif
+#if defined(_XBOXONE) || ((defined(_XBOX_ONE) || defined(_DURANGO)) && \
+    defined(_TITLE))
+  is_xbox_one = true;
+#endif
+#if defined(__BeOS) || defined(__BEOS__) || defined(_BEOS)
+  is_beos = true;
+#endif
+#if defined(__HAIKU) || defined(__HAIKU__) || defined(_HAIKU)
+  is_haiku = true;
+#endif
+#if defined(__FreeBSD__)
+  is_freebsd = true;
+#endif
+#if defined(__NetBSD__)
+  is_netbsd = true;
+#endif
+#if defined(__OpenBSD__)
+  is_openbsd = true;
+#endif
+#if defined(__DragonFly__)
+  is_dragonfly_bsd = true;
+#endif
+#if defined(__bsdi__) // Note: __bsdi__ means all BSDs
+  is_bsd = true;
 #endif
 
 /* Compilers */
