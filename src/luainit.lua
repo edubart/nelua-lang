@@ -210,8 +210,13 @@ end
 -- Follow file symbolic links.
 function fs.followlink(p) --luacov:disable
   local fileat = lfs.symlinkattributes(p)
-  while fileat and fileat.target and fileat.target ~= p do
-    p = fileat.target
+  while fileat and fileat.target do
+    local target = fileat.target
+    if fs.winstyle and target:find('^UNC\\') then
+      target = target:gsub('^UNC\\', '\\\\') -- UNC
+    end
+    if target == p then break end
+    p = target
     fileat = lfs.symlinkattributes(p)
   end
   return p
