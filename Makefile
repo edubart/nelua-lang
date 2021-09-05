@@ -13,13 +13,15 @@ else
 	SYS=$(shell uname -s)
 endif
 
-NELUALUA=./nelua-lua
-NELUALUAC=./nelua-luac
+NELUALUA=nelua-lua
+NELUALUAC=nelua-luac
+NELUA=nelua
 ifeq ($(SYS), Windows)
-	NELUALUA=./nelua-lua.exe
-	NELUALUAC=./nelua-luac.exe
+	NELUALUA=nelua-lua.exe
+	NELUALUAC=nelua-luac.exe
+	NELUA=nelua.bat
 endif
-NELUARUN=$(NELUALUA) -lnelua nelua.lua
+NELUA_RUN=./$(NELUA)
 
 ###############################################################################
 # Nelua's Lua interpreter
@@ -28,8 +30,13 @@ NELUARUN=$(NELUALUA) -lnelua nelua.lua
 INCS=-Isrc/lua
 DEFS=-DNDEBUG -DLUA_COMPAT_5_3
 LUA_DEFS=-DMAXRECLEVEL=400
-SRCS=src/lua/onelua.c src/lfs.c src/sys.c src/hasher.c src/lpeglabel/*.c src/luainit.c
-HDRS=src/lua/*.h src/lua/*.c src/lpeglabel/*.h src/luainit.h
+SRCS=src/lua/onelua.c \
+	 $(wildcard src/*.c) \
+	 $(wildcard src/lpeglabel/*.c)
+HDRS=$(wildcard src/*.h) \
+	 $(wildcard src/lua/*.h) \
+	 $(wildcard src/lua/*.c) \
+	 $(wildcard src/lpeglabel/*.h)
 CFLAGS=-O2
 ifeq ($(SYS), Linux)
 	CC=gcc
@@ -87,17 +94,17 @@ $(NELUALUA): $(SRCS) $(HDRS)
 optimized-nelua-lua:
 	$(RM_DIR) pgo
 	$(MAKE) --no-print-directory MYCFLAGS="-O3 -march=native -fprofile-generate=pgo" clean-nelualua default
-	$(NELUARUN) -qb tests/all_test.nelua
+	$(NELUA_RUN) -qb tests/all_test.nelua
 	$(MAKE) --no-print-directory MYCFLAGS="-O3 -march=native -fprofile-use=pgo" clean-nelualua default
 	$(RM_DIR) pgo
 
 ###############################################################################
 ## Lua init script
 
-LUAC=$(NELUALUAC)
+LUAC=./$(NELUALUAC)
 LUAC_DEFS=-DMAKE_LUAC
 LUAC_SRCS=src/lua/onelua.c
-LUAC_HDRS=src/lua/*.h src/lua/*.c
+LUAC_HDRS=$(wildcard src/lua/*.h) $(wildcard src/lua/*.c)
 XXD=xxd
 
 # Compile Nelua's Lua compiler.
@@ -118,7 +125,7 @@ gen-luainit: $(NELUALUAC) src/luainit.lua
 ###############################################################################
 # Testing
 
-LUA=$(NELUALUA)
+LUA=./$(NELUALUA)
 LUACHECK=luacheck
 LUACOV=luacov
 LUAMON=luamon -w nelua,spec,examples,lib,tests -e lua,nelua -q -x
@@ -148,7 +155,7 @@ coverage-test: $(NELUALUA)
 
 # Compile each example.
 examples/*.nelua: %.nelua:
-	$(NELUARUN) -qb $@
+	$(NELUA_RUN) -qb $@
 .PHONY: examples/*.nelua
 
 # Compile all examples.
@@ -219,6 +226,7 @@ PREFIX?=/usr/local
 DPREFIX=$(DESTDIR)$(PREFIX)
 PREFIX_BIN=$(DPREFIX)/bin
 PREFIX_LIB=$(DPREFIX)/lib
+PREFIX_LIB_NELUA=$(PREFIX_LIB)/nelua
 
 # Utilities
 SED=sed
@@ -243,43 +251,91 @@ else ifeq ($(OS), Windows_NT)
 endif
 
 # In git directory?
-ISGIT=$(shell $(GIT) rev-parse --is-inside-work-tree 2>$(DEVNULL))
+IS_GIT=$(shell $(GIT) rev-parse --is-inside-work-tree 2>$(DEVNULL))
 
-_update_install_version:
-ifeq ($(ISGIT),true)
+# Patch 'version.lua' file using the current Git information.
+install-version-patch:
+ifeq ($(IS_GIT),true)
 	$(eval NELUA_GIT_HASH := $(shell $(GIT) rev-parse HEAD))
 	$(eval NELUA_GIT_DATE := $(shell $(GIT) log -1 --format=%ci))
 	$(eval NELUA_GIT_BUILD := $(shell $(GIT) rev-list HEAD --count))
-	$(SED) -i.bak 's/NELUA_GIT_HASH = nil/NELUA_GIT_HASH = "$(NELUA_GIT_HASH)"/' "$(PREFIX_LIB)/nelua/lualib/nelua/version.lua"
-	$(SED) -i.bak 's/NELUA_GIT_DATE = nil/NELUA_GIT_DATE = "$(NELUA_GIT_DATE)"/' "$(PREFIX_LIB)/nelua/lualib/nelua/version.lua"
-	$(SED) -i.bak 's/NELUA_GIT_BUILD = nil/NELUA_GIT_BUILD = $(NELUA_GIT_BUILD)/' "$(PREFIX_LIB)/nelua/lualib/nelua/version.lua"
-	$(RM_FILE) "$(PREFIX_LIB)/nelua/lualib/nelua/version.lua.bak"
+	$(SED) -i.bak 's/NELUA_GIT_HASH = nil/NELUA_GIT_HASH = "$(NELUA_GIT_HASH)"/' "$(PREFIX_LIB_NELUA)/lualib/nelua/version.lua"
+	$(SED) -i.bak 's/NELUA_GIT_DATE = nil/NELUA_GIT_DATE = "$(NELUA_GIT_DATE)"/' "$(PREFIX_LIB_NELUA)/lualib/nelua/version.lua"
+	$(SED) -i.bak 's/NELUA_GIT_BUILD = nil/NELUA_GIT_BUILD = $(NELUA_GIT_BUILD)/' "$(PREFIX_LIB_NELUA)/lualib/nelua/version.lua"
+	$(RM_FILE) "$(PREFIX_LIB_NELUA)/lualib/nelua/version.lua.bak"
 endif
 
 # Install Nelua using PREFIX into DESTDIR.
 install: $(NELUALUA)
 	$(MKDIR) "$(PREFIX_BIN)"
-	$(INSTALL_EXE) $(NELUALUA) "$(PREFIX_BIN)/nelua-lua"
+	$(INSTALL_EXE) $(NELUALUA) "$(PREFIX_BIN)/$(NELUALUA)"
 	$(INSTALL_EXE) nelua "$(PREFIX_BIN)/nelua"
-	$(RM_DIR) "$(PREFIX_LIB)/nelua"
-	$(MKDIR) "$(PREFIX_LIB)/nelua"
-	$(INSTALL_FILES) lualib "$(PREFIX_LIB)/nelua/lualib"
-	$(INSTALL_FILES) lib "$(PREFIX_LIB)/nelua/lib"
-	$(MAKE) _update_install_version
+	$(RM_DIR) "$(PREFIX_LIB_NELUA)"
+	$(MKDIR) "$(PREFIX_LIB_NELUA)"
+	$(INSTALL_FILES) lualib "$(PREFIX_LIB_NELUA)/lualib"
+	$(INSTALL_FILES) lib "$(PREFIX_LIB_NELUA)/lib"
+	$(MAKE) --no-print-directory install-version-patch
 
 # Install Nelua using this folder in the system.
 install-as-symlink: $(NELUALUA)
 	$(MAKE) --no-print-directory uninstall
-	$(RM_FILE) "$(PREFIX_BIN)/nelua-lua"
-	ln -fs "$(realpath $(NELUALUA))" "$(PREFIX_BIN)/nelua-lua"
+	$(RM_FILE) "$(PREFIX_BIN)/$(NELUALUA)"
+	ln -fs "$(realpath $(NELUALUA))" "$(PREFIX_BIN)/$(NELUALUA)"
 	$(RM_FILE) "$(PREFIX_BIN)/nelua"
 	ln -fs "$(realpath nelua)" "$(PREFIX_BIN)/nelua"
 
 # Uninstall Nelua
 uninstall:
-	$(RM_FILE) "$(PREFIX_BIN)/nelua-lua"
+	$(RM_FILE) "$(PREFIX_BIN)/$(NELUALUA)"
 	$(RM_FILE) "$(PREFIX_BIN)/nelua"
-	$(RM_DIR) "$(PREFIX_LIB)/nelua"
+	$(RM_DIR) "$(PREFIX_LIB_NELUA)"
+
+###############################################################################
+# Packaging
+
+# Utilities
+TAR_XZ=tar cfJ
+ZIP_DIR=zip -qr9
+
+# Package name
+ifeq ($(SYS), Windows)
+	ARCHNAME=x86_64
+else
+	ARCHNAME=$(shell uname -m)
+endif
+OSNAME=posix
+ifeq ($(SYS), Linux)
+	OSNAME=linux
+else ifeq ($(SYS), Windows)
+	OSNAME=windows
+else ifeq ($(SYS), Darwin)
+	OSNAME=macos
+endif
+PKGDIR=pkg
+PKGNAME=nelua-$(OSNAME)-$(ARCHNAME)-latest
+
+package: $(NELUALUA)
+	$(RM_DIR) "$(PKGDIR)/$(PKGNAME)"
+	$(MKDIR) "$(PKGDIR)/$(PKGNAME)"
+	$(INSTALL_FILES) lib "$(PKGDIR)/$(PKGNAME)/lib"
+	$(INSTALL_FILES) lualib "$(PKGDIR)/$(PKGNAME)/lualib"
+	$(MAKE) --no-print-directory install-version-patch PREFIX_LIB_NELUA="$(PKGDIR)/$(PKGNAME)"
+	$(INSTALL_FILE) LICENSE "$(PKGDIR)/$(PKGNAME)/LICENSE"
+ifeq ($(SYS), Windows)
+	$(INSTALL_EXE) nelua-lua.exe "$(PKGDIR)/$(PKGNAME)/nelua-lua.exe"
+	$(INSTALL_EXE) nelua.bat "$(PKGDIR)/$(PKGNAME)/nelua.bat"
+	$(RM_FILE) "$(PKGDIR)/$(PKGNAME).zip"
+	$(ZIP_DIR) "$(PKGDIR)/$(PKGNAME).zip" "$(PKGDIR)/$(PKGNAME)"
+else
+	$(INSTALL_EXE) nelua-lua "$(PKGDIR)/$(PKGNAME)/nelua-lua"
+	$(INSTALL_EXE) nelua "$(PKGDIR)/$(PKGNAME)/nelua"
+	$(RM_FILE) "$(PKGDIR)/$(PKGNAME).tar.xz"
+	$(TAR_XZ) "$(PKGDIR)/$(PKGNAME).tar.xz" "$(PKGDIR)/$(PKGNAME)"
+endif
+
+package-versioned:
+	$(MAKE) --no-print-directory package \
+		PKGNAME=nelua-$(OSNAME)-$(ARCHNAME)-$(shell $(NELUA_RUN) --semver)
 
 ###############################################################################
 # Clean
@@ -302,15 +358,18 @@ clean-coverage:
 
 # Clean the Lua interpreter.
 clean-nelualua:
-	$(RM_FILE) "$(NELUALUA)"
+	$(RM_FILE) $(NELUALUA)
 
 # Clean the Lua interpreter.
 clean-nelualuac:
-	$(RM_FILE) "$(NELUALUAC)"
+	$(RM_FILE) $(NELUALUAC)
+
+clean-packages:
+	$(RM_DIR) pkg
 
 # Clean documentation.
 clean-docs:
 	cd docs && $(JEKYLL) clean
 
 # Clean everything.
-clean: clean-nelualua clean-cache clean-coverage clean-nelualuac
+clean: clean-nelualua clean-cache clean-coverage clean-nelualuac clean-packages

@@ -149,7 +149,13 @@ local function action_version()
   console.infof('Build number: %s', version.NELUA_GIT_BUILD)
   console.infof('Git date: %s', version.NELUA_GIT_DATE)
   console.infof('Git hash: %s', version.NELUA_GIT_HASH)
+  console.infof('Semantic version: %s', version.NELUA_SEMVER)
   console.info('Copyright (C) 2019-2021 Eduardo Bart (https://nelua.io/)')
+  os.exit(0)
+end
+
+local function action_semver()
+  console.info(version.NELUA_SEMVER)
   os.exit(0)
 end
 
@@ -205,6 +211,7 @@ local function create_parser(args)
   argparser:flag('--print-analyzed-ast', 'Print the analyzed AST only')
   argparser:flag('--print-code', 'Print the generated code only')
   argparser:flag('--print-config', "Print config variables only"):action(action_print_config)
+  argparser:flag('--semver', 'Print semantic version'):action(action_semver)
   argparser:flag('--no-color', 'Disable colorized output in the terminal.', defconfig.no_color)
   -- the following are used only to debug/optimize the compiler
     argparser:flag('--profile-compiler', 'Print profiling for the compiler'):hidden(true)

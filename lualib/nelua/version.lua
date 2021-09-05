@@ -21,6 +21,12 @@ version.NELUA_VERSION_MAJOR = 0
 version.NELUA_VERSION_MINOR = 2
 -- Patch release number.
 version.NELUA_VERSION_PATCH = 0
+-- Git build number (the number of commits in git history).
+version.NELUA_GIT_BUILD = nil
+-- Latest git commit hash.
+version.NELUA_GIT_HASH = nil
+-- Latest git commit date.
+version.NELUA_GIT_DATE = nil
 -- Suffix for version (like '-dev', '-alpha' and '-beta')
 version.NELUA_VERSION_SUFFIX = '-dev'
 -- Nelua version in a string (like "Nelua 0.2.0-dev").
@@ -29,12 +35,6 @@ version.NELUA_VERSION = string.format("Nelua %d.%d.%d%s",
                                       version.NELUA_VERSION_MINOR,
                                       version.NELUA_VERSION_PATCH,
                                       version.NELUA_VERSION_SUFFIX)
--- Git build number (the number of commits in git history).
-version.NELUA_GIT_BUILD = nil
--- Latest git commit hash.
-version.NELUA_GIT_HASH = nil
--- Latest git commit date.
-version.NELUA_GIT_DATE = nil
 
 -- Execute a git command inside Nelua's git repository.
 local function execute_git_command(args)
@@ -91,6 +91,25 @@ local function detect_git_build()
   return res
 end
 
+local function get_semver()
+  local major, minor, patch, suffix =
+    version.NELUA_VERSION_MAJOR,
+    version.NELUA_VERSION_MINOR,
+    version.NELUA_VERSION_PATCH,
+    version.NELUA_VERSION_SUFFIX
+  local semver = string.format("%d.%d.%d%s", major, minor, patch, suffix)
+  if suffix == '-dev' then
+    local build, hash = version.NELUA_GIT_BUILD, version.NELUA_GIT_HASH
+    if build then
+      semver = semver..'.'..build
+    end
+    if hash then
+      semver = semver..'+'..hash:sub(1,8)
+    end
+  end
+  return semver
+end
+
 -- Allow gathering git information only when requested.
 setmetatable(version, {__index = function(_, k)
   if k == 'NELUA_GIT_HASH' then
@@ -99,6 +118,8 @@ setmetatable(version, {__index = function(_, k)
     return detect_git_date()
   elseif k == 'NELUA_GIT_BUILD' then
     return detect_git_build()
+  elseif k == 'NELUA_SEMVER' then
+    return get_semver()
   end
 end})
 
