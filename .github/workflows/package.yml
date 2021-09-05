@@ -1,0 +1,44 @@
+name: "package"
+
+on:
+  push:
+    branches:
+      - "master"
+
+jobs:
+  package:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{matrix.os}}
+    steps:
+    - uses: actions/checkout@master
+      with:
+        fetch-depth: 0
+    - name: Package
+      shell: bash
+      run: make package
+    - name: Adjust variables
+      shell: bash
+      id: pkgvars
+      run: |
+        case "${{matrix.os}}" in
+          windows-latest)
+            pkgfile=`ls pkg/*.zip`
+            ;;
+          *)
+            pkgfile=`ls pkg/*.tar.xz`
+            ;;
+        esac
+        echo "::set-output name=pkgfile::$pkgfile";
+    - name: Upload pre release
+      uses: ncipollo/release-action@v1
+      with:
+        name: Latest Nelua in development
+        tag: latest
+        artifacts: ${{steps.pkgvars.outputs.pkgfile}}
+        token: ${{secrets.GITHUB_TOKEN}}
+        prerelease: true
+        allowUpdates: true
+        body:
+          Precompiled Nelua binary package rebuilt at every new commit in master branch.

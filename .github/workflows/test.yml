@@ -20,6 +20,8 @@ jobs:
       CFLAGS: -Wextra -Werror
     steps:
     - uses: actions/checkout@master
+      with:
+        fetch-depth: 0
     - name: Show C compiler information
       run: ${{matrix.cc}} -v
     - name: Compile

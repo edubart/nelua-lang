@@ -295,7 +295,7 @@ uninstall:
 
 # Utilities
 TAR_XZ=tar cfJ
-ZIP_DIR=zip -qr9
+ZIP_DIR=7z a
 
 # Package name
 ifeq ($(SYS), Windows)
@@ -325,12 +325,12 @@ ifeq ($(SYS), Windows)
 	$(INSTALL_EXE) nelua-lua.exe "$(PKGDIR)/$(PKGNAME)/nelua-lua.exe"
 	$(INSTALL_EXE) nelua.bat "$(PKGDIR)/$(PKGNAME)/nelua.bat"
 	$(RM_FILE) "$(PKGDIR)/$(PKGNAME).zip"
-	$(ZIP_DIR) "$(PKGDIR)/$(PKGNAME).zip" "$(PKGDIR)/$(PKGNAME)"
+	cd $(PKGDIR); $(ZIP_DIR) "$(PKGNAME).zip" "$(PKGNAME)"
 else
 	$(INSTALL_EXE) nelua-lua "$(PKGDIR)/$(PKGNAME)/nelua-lua"
 	$(INSTALL_EXE) nelua "$(PKGDIR)/$(PKGNAME)/nelua"
 	$(RM_FILE) "$(PKGDIR)/$(PKGNAME).tar.xz"
-	$(TAR_XZ) "$(PKGDIR)/$(PKGNAME).tar.xz" "$(PKGDIR)/$(PKGNAME)"
+	cd $(PKGDIR); $(TAR_XZ) "$(PKGNAME).tar.xz" "$(PKGNAME)"
 endif
 
 package-versioned:
