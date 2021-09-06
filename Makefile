@@ -28,7 +28,7 @@ NELUA_RUN=./$(NELUA)
 
 # Compiler Flags
 INCS=-Isrc/lua
-DEFS=-DNDEBUG -DLUA_COMPAT_5_3
+DEFS=-DNDEBUG
 LUA_DEFS=-DMAXRECLEVEL=400
 SRCS=src/lua/onelua.c \
 	 $(wildcard src/*.c) \
@@ -82,7 +82,7 @@ default: $(NELUALUA)
 # Compile Nelua's bundled Lua interpreter.
 $(NELUALUA): $(SRCS) $(HDRS)
 	$(CC) \
-		$(DEFS) $(LUA_DEFS) $(MYDEFS) \
+		$(LUA_DEFS) $(DEFS) $(MYDEFS) \
 		$(INCS) $(MYINCS) \
 		$(CFLAGS) $(MYCFLAGS) \
 		$(SRCS) $(MYSRCS) \
@@ -295,7 +295,8 @@ uninstall:
 
 # Utilities
 TAR_XZ=tar cfJ
-ZIP_DIR=7z a
+ZIP_DIR=7z a -mm=Deflate -mx=9
+STRIP=strip
 
 # Package name
 ifeq ($(SYS), Windows)
@@ -322,13 +323,15 @@ package: $(NELUALUA)
 	$(MAKE) --no-print-directory install-version-patch PREFIX_LIB_NELUA="$(PKGDIR)/$(PKGNAME)"
 	$(INSTALL_FILE) LICENSE "$(PKGDIR)/$(PKGNAME)/LICENSE"
 ifeq ($(SYS), Windows)
-	$(INSTALL_EXE) nelua-lua.exe "$(PKGDIR)/$(PKGNAME)/nelua-lua.exe"
 	$(INSTALL_EXE) nelua.bat "$(PKGDIR)/$(PKGNAME)/nelua.bat"
+	$(INSTALL_EXE) nelua-lua.exe "$(PKGDIR)/$(PKGNAME)/nelua-lua.exe"
+	$(STRIP) "$(PKGDIR)/$(PKGNAME)/nelua-lua.exe"
 	$(RM_FILE) "$(PKGDIR)/$(PKGNAME).zip"
 	cd $(PKGDIR); $(ZIP_DIR) "$(PKGNAME).zip" "$(PKGNAME)"
 else
-	$(INSTALL_EXE) nelua-lua "$(PKGDIR)/$(PKGNAME)/nelua-lua"
 	$(INSTALL_EXE) nelua "$(PKGDIR)/$(PKGNAME)/nelua"
+	$(INSTALL_EXE) nelua-lua "$(PKGDIR)/$(PKGNAME)/nelua-lua"
+	$(STRIP) "$(PKGDIR)/$(PKGNAME)/nelua-lua"
 	$(RM_FILE) "$(PKGDIR)/$(PKGNAME).tar.xz"
 	cd $(PKGDIR); $(TAR_XZ) "$(PKGNAME).tar.xz" "$(PKGNAME)"
 endif
