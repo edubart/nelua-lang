@@ -168,7 +168,7 @@ function preprocessor.preprocess(context, ast)
     context.ppcontext = ppcontext
   end
   -- generate preprocess code only when a preprocessing directive is found
-  local preprocessed = false
+  local ppcode
   if mark_preprocessing_nodes(ast) then -- we really need to preprocess the ast
     -- second pass, emit the preprocess lua code
     local emitter = Emitter(ppcontext, 0)
@@ -180,7 +180,7 @@ function preprocessor.preprocess(context, ast)
     end
     ppcontext:traverse_node(ast, emitter)
     -- generate the preprocess function`
-    local ppcode = emitter:generate()
+    ppcode = emitter:generate()
     local chukname = '@ppcode'
     if ast.attr.filename then
       chukname = '@'..ast.attr.filename..':'..chukname
@@ -195,7 +195,6 @@ function preprocessor.preprocess(context, ast)
     if not ok then
       ast:raisef('error while preprocessing: %s', err)
     end
-    preprocessed = true
   end
   -- finish time tracking
   if timer then
@@ -205,7 +204,7 @@ function preprocessor.preprocess(context, ast)
       console.debugf('preprocessed %s (%.1f ms)', ast.src.name, timer:elapsed())
     end
   end
-  return preprocessed
+  return ppcode
 end
 
 return preprocessor

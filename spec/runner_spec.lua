@@ -61,7 +61,8 @@ it("print correct generated AST" , function()
   expect.run('--print-analyzed-ast examples/helloworld.nelua', [[type = "string"]])
 end)
 
-it("print correct generated code", function()
+it("print correct code", function()
+  expect.run({'--print-ppcode', '--eval', "##print(1)"}, 'print(1)')
   expect.run('--generator lua --print-code examples/helloworld.nelua', 'print("hello world")')
 end)
 

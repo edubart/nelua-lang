@@ -3303,7 +3303,13 @@ function analyzer.analyze(context)
   end
   context:push_forked_state{funcscope=context.rootscope}
   -- phase 1 traverse: preprocess
-  preprocessor.preprocess(context, ast)
+  local ppcode = preprocessor.preprocess(context, ast)
+  if config.print_ppcode then
+    if ppcode then
+      console.info(ppcode)
+    end
+    return
+  end
   -- phase 2 traverse: infer and check types
   repeat
     context:traverse_node(ast)

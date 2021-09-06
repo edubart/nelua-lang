@@ -121,11 +121,9 @@ local function run(argv, redirect)
 
   if config.print_analyzed_ast then
     console.info(tostring(ast))
-    print_total_build()
-    return 0
   end
 
-  if config.analyze then
+  if config.print_analyzed_ast or config.analyze or config.print_ppcode then
     print_total_build()
     return 0
   end
