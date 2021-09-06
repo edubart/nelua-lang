@@ -42,7 +42,7 @@ it("local variable", function()
   expect.analyze_error("local a: byte = 1.1", "is fractional")
   expect.analyze_error("local a: byte = {1}", "cannot be initialized using an initializer list")
   expect.analyze_error("local a, b = 1,2,3", "extra expressions in declaration")
-  expect.analyze_error("local a: void", "variable declaration cannot be of the empty type")
+  expect.analyze_error("local a: void", "variable declaration cannot be of the type")
   expect.analyze_error("local a: varanys", "variable declaration cannot be of the type")
   expect.analyze_error("local a: integer = 'string'_s", "literal suffix '_s' is undefined for strings")
   expect.analyze_error("local a: byte = 'aa'_byte", "literal suffix '_byte' expects a string of length 1")
@@ -1898,6 +1898,10 @@ it("generics", function()
     local gen = #[generic(function(S) return primtypes.string end)]#
     local x = @gen('asd')
   ]])
+  expect.analyze_error([[
+    local myarray = #[generic(function(T, N, B) return types.ArrayType(T, N) end)]#
+    local function f(a: myarray) end
+  ]], 'variable declaration cannot be of the type')
   expect.analyze_error([[
     local proxy = #[generic(function(T) static_error('my fail') end)]#
     local x = @proxy(integer)

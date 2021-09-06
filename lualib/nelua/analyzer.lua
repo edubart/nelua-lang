@@ -697,7 +697,10 @@ function visitors.IdDecl(context, node)
       typenode:raisef("invalid type")
     end
     if type.is_void then
-      node:raisef("variable declaration cannot be of the empty type '%s'", type)
+      node:raisef("variable declaration cannot be of the type '%s'", type)
+    elseif type.is_generic then
+      node:raisef("variable declaration cannot be of the type '%s', \z
+        maybe you forgot to instantiate the generic?", type)
     end
     attr.type = type
   end

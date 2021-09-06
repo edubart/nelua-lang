@@ -131,7 +131,7 @@ gen-luainit: $(NELUALUAC) src/luainit.lua
 LUA=./$(NELUALUA)
 LUACHECK=luacheck
 LUACOV=luacov
-LUAMON=luamon -w nelua,spec,examples,lib,tests -e lua,nelua -q -x
+LUAMON=luamon -w nelua,spec,examples,lib,lualib,tests -e lua,nelua -q -x
 
 # Run test suite.
 test: $(NELUALUA)
