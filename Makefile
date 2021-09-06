@@ -41,9 +41,12 @@ CFLAGS=-O2
 ifeq ($(SYS), Linux)
 	CC=gcc
 	CFLAGS=-O2 -fno-plt -flto
-	LDFLAGS+=-Wl,-E
-	LIBS+=-lm -ldl
 	DEFS+=-DLUA_USE_LINUX
+	LIBS+=-lm -ldl
+	LDFLAGS+=-Wl,-E
+	ifeq ($(CC), musl-gcc)
+		LDFLAGS+=-static
+	endif
 else ifeq ($(SYS), Windows)
 	ifneq (,$(findstring cygdrive,$(ORIGINAL_PATH)))
 		# Cygwin
@@ -58,13 +61,13 @@ else ifeq ($(SYS), Windows)
 	DEFS+=-D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_WARNINGS # disable some warnings
 else ifeq ($(SYS), Darwin)
 	CC=clang
+	DEFS+=-DLUA_USE_MACOSX
 	LIBS+=-lm
 	LDFLAGS+=-rdynamic
-	DEFS+=-DLUA_USE_MACOSX
 else # probably POSIX
 	CC=gcc
-	LIBS+=-lm
 	DEFS+=-DLUA_USE_POSIX
+	LIBS+=-lm
 	NO_RPMALLOC=1
 endif
 ifndef NO_RPMALLOC
