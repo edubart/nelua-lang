@@ -36,7 +36,7 @@ function builtins.require(context, node, argnodes)
     -- load it and parse
     local reqname = argnode.attr.value
     local reldir = argnode.src.name and fs.dirname(argnode.src.name) or nil
-    local filepath, err = fs.findmodulefile(reqname, config.path, reldir)
+    local filepath, err = fs.findmodule(reqname, config.path, reldir, 'nelua')
     if not filepath then
       if canloadatruntime then
         -- maybe it would succeed at runtime

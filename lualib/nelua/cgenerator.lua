@@ -1008,7 +1008,12 @@ function visitors.ForNum(context, node, emitter)
   end
   emitter:add('; ')
   if compop then -- fixed compare operator
-    emitter:add(itforname, ' ', cdefs.for_compare_ops[compop], ' ')
+    local for_compare_ops = {
+      le = '<=', ge = '>=',
+      lt = '<',  gt = '>',
+      ne = '!=', eq = '==',
+    }
+    emitter:add(itforname, ' ', for_compare_ops[compop], ' ')
     if traits.is_string(cmpval) then
       emitter:add(cmpval)
     else

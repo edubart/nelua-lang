@@ -60,6 +60,11 @@ function tabler.copy(t)
   return ot
 end
 
+-- Shallow copy a table and update its elements.
+function tabler.updatecopy(s,t)
+  return tabler.update(tabler.copy(s), t)
+end
+
 -- Check if a field is present in all values of an array table.
 function tabler.iallfield(t, field)
   for i=1,#t do

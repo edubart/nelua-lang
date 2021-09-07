@@ -16,9 +16,10 @@ end)
 
 it("compile simple programs" , function()
   expect.run('--no-cache --code examples/helloworld.nelua')
+  expect.run('--no-cache --object examples/helloworld.nelua')
+  expect.run('--no-cache --assembly examples/helloworld.nelua')
   expect.run('--generator lua --no-cache --code examples/helloworld.nelua')
   expect.run('--generator lua --binary examples/helloworld.nelua')
-  -- force reusing the cache:
   expect.run('--binary examples/helloworld.nelua')
 end)
 
@@ -42,7 +43,7 @@ it("error on parsing an invalid program" , function()
   expect.run_error('--lint invalid', 'invalid: No such file or directory')
   --expect.run_error({'--eval', "f()"}, 'undefined')
   expect.run_error({'--generator', 'lua', '--eval', "local a = 1_x"}, "literal suffix '_x' is undefined")
-  expect.run_error('--no-cache --cc invgcc examples/helloworld.nelua')
+  expect.run_error('--cc invgcc examples/helloworld.nelua')
 end)
 
 it("print correct generated AST" , function()
@@ -63,7 +64,7 @@ end)
 
 it("print correct code", function()
   expect.run({'--print-ppcode', '--eval', "##print(1)"}, 'print(1)')
-  expect.run('--generator lua --print-code examples/helloworld.nelua', 'print("hello world")')
+  expect.run('--print-code examples/helloworld.nelua', 'hello world')
 end)
 
 it("define option", function()
@@ -146,8 +147,7 @@ it("program arguments", function()
 end)
 
 it("shared libraries", function()
-  local ccinfo = ccompiler.get_cc_info()
-  if ccinfo.is_gcc then
+  if ccompiler.get_cc_info().is_gcc then
     expect.run({'--shared-lib', 'tests/libmylib.nelua'})
     expect.run({'tests/mylib_test.nelua'},[[
 mylib - init
@@ -164,8 +164,7 @@ it("bundled C libraries", function()
 end)
 
 it("static libraries", function()
-  local ccinfo = ccompiler.get_cc_info()
-  if ccinfo.is_gcc then
+  if ccompiler.get_cc_info().is_gcc then
     expect.run({'--static-lib', 'tests/libmylib_static.nelua'})
     expect.run({'tests/mylib_test.nelua', '-DSTATIC'},[[
 mylib - init
@@ -182,6 +181,11 @@ it("verbose", function()
     ## assert(true)
     assert(true)
   ]]})
+end)
+
+it("version", function()
+  expect.run('--version', "Nelua")
+  expect.run('--semver', ".")
 end)
 
 it("error tracebacks", function()

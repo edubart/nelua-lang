@@ -208,7 +208,7 @@ function fs.isfile(p)
 end
 
 -- Follow file symbolic links.
-function fs.followlink(p) --luacov:disable
+function fs.readlink(p) --luacov:disable
   local fileat = lfs.symlinkattributes(p)
   while fileat and fileat.target do
     local target = fileat.target
@@ -224,7 +224,7 @@ end --luacov:enable
 
 -- Returns the absolute real path of `p` (following links).
 function fs.realpath(p) --luacov:disable
-  return fs.followlink(fs.abspath(p))
+  return fs.readlink(fs.abspath(p))
 end --luacov:enable
 
 -------------------------------------------------------------------------

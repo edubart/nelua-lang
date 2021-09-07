@@ -14,52 +14,83 @@ local fs = require 'nelua.utils.fs'
 local except = require 'nelua.utils.except'
 local executor = require 'nelua.utils.executor'
 local configer = require 'nelua.configer'
+local config = configer.get()
 local platform = require 'nelua.utils.platform'
 local aster = require 'nelua.aster'
+local version = require 'nelua.version'
 local profiler
 local runner = {}
 
 local function print_total_build()
-  local config = configer.get()
   if config.timing then
     console.debug2f('total time   %.1f ms', globaltimer:elapsedrestart())
   end
 end
 
-local function run(argv, redirect)
-  -- parse config
-  local config = configer.parse(argv)
+local function action_show_version()
+  console.info(version.NELUA_VERSION)
+  console.infof('Build number: %s', version.NELUA_GIT_BUILD)
+  console.infof('Git date: %s', version.NELUA_GIT_DATE)
+  console.infof('Git hash: %s', version.NELUA_GIT_HASH)
+  console.infof('Semantic version: %s', version.NELUA_SEMVER)
+  console.info('Copyright (C) 2019-2021 Eduardo Bart (https://nelua.io/)')
+  return 0
+end
 
-  if config.no_color then console.set_colors_enabled(false) end
+local function action_show_semver()
+  console.info(version.NELUA_SEMVER)
+  return 0
+end
 
-  --luacov:disable
-  if config.script then
-    -- inject script and thirdparty directory into lua package path
-    local scriptdir = fs.dirname(fs.abspath(config.input))
-    package.path = fs.join(scriptdir,'?.lua')..platform.luapath_separator..
-                   fs.join(scriptdir,'?','init.lua')..platform.luapath_separator..
-                   package.path
-    -- replace arguments
-    local arg = _G.arg
-    for i=1,math.max(#arg,#config.runargs) do
-      arg[i] = config.runargs[i]
-    end
-    -- run the script
-    dofile(config.input)
-    return 0
+local function action_show_config(options)
+  local inspect = require 'nelua.thirdparty.inspect'
+  console.info(inspect(options))
+  return 0
+end
+
+local function action_run_script()
+  -- replace arguments
+  local arg = _G.arg
+  for i=1,math.max(#arg,#config.runargs) do
+    arg[i] = config.runargs[i]
   end
+  -- run the script
+  dofile(config.input)
+  return 0
+end
+
+local function load_nelua_init()
   local initeval = os.getenv('NELUA_INIT')
-  if initeval then
-    local ok = false
-    local initfunc, err = load(initeval, '@NELUA_INIT')
-    if initfunc then
-      ok, err = pcall(initfunc)
-    end
-    if not ok then
-      except.raisef('error while evaluation NELUA_INIT: %s', tostring(err))
-    end
+  if not initeval then return end
+  local ok = false
+  local initfunc, err = load(initeval, '@NELUA_INIT')
+  if initfunc then
+    ok, err = pcall(initfunc)
   end
-  --luacov:enable
+  if not ok then
+    except.raisef('error while evaluation NELUA_INIT: %s', tostring(err))
+  end
+end
+
+local function run(argv, redirect)
+  load_nelua_init()
+
+  -- parse config
+  local options = configer.parse(argv)
+
+  if config.version then
+    return action_show_version()
+  elseif config.semver then
+    return action_show_semver()
+  elseif config.config then
+    return action_show_config(options)
+  elseif config.script then
+    return action_run_script()
+  end
+
+  if config.no_color ~= nil then
+    console.set_colors_enabled(false)
+  end
 
   local generator = require('nelua.' .. config.generator .. 'generator')
   local compiler = generator.compiler
@@ -187,6 +218,7 @@ local function run(argv, redirect)
   end
 
   -- execute binary
+  dump(config.runargs)
   local exe, exeargs = compiler.get_run_command(outfile, config.runargs, context.compileopts)
   if config.verbose then console.info(exe .. ' ' .. table.concat(exeargs, ' ')) end
   local _, status = executor.rexec(exe, exeargs, redirect)

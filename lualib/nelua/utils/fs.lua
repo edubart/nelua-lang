@@ -7,6 +7,8 @@ The fs (stands for filesystem) module is used to manage files and directories.
 local lfs = require 'lfs'
 local except = require 'nelua.utils.except'
 local stringer = require 'nelua.utils.stringer'
+local memoize = require 'nelua.utils.memoize'
+local platform = require 'nelua.utils.platform'
 local fs = {}
 
 -- Platform dependent variables.
@@ -254,7 +256,7 @@ function fs.getmodtime(p)
 end
 
 -- Follow file symbolic links.
-function fs.followlink(p) --luacov:disable
+function fs.readlink(p) --luacov:disable
   local fileat = lfs.symlinkattributes(p)
   while fileat and fileat.target do
     local target = fileat.target
@@ -270,7 +272,7 @@ end --luacov:enable
 
 -- Returns the absolute real path of `p` (following links).
 function fs.realpath(p) --luacov:disable
-  return fs.followlink(fs.abspath(p))
+  return fs.readlink(fs.abspath(p))
 end --luacov:enable
 
 -- Create a directory path.
@@ -341,90 +343,6 @@ end
 -- Prefix a path with the cache path.
 function fs.getusercachepath(path)
   return fs.expanduser(fs.join('~', '.cache', path))
-end
-
-local modcache = {}
-
--- Helper for `fs.findmodulefile`, found modules are cached.
-local function findmodulefile(name, pathstr)
-  local key = name..';;;'..pathstr
-  local cached = modcache[key]
-  if cached then
-    return table.unpack(cached)
-  end
-  name = name:gsub('%.', fs.sep)
-  local triedpaths = {}
-  local modpath
-  for trypath in pathstr:gmatch('[^;]+') do
-    trypath = trypath:gsub('%?', name)
-    trypath = fs.abspath(trypath)
-    if fs.isfile(trypath) then
-      modpath = trypath
-      break
-    end
-    triedpaths[#triedpaths+1] = trypath
-  end
-  modcache[key] = {modpath, triedpaths}
-  return modpath, triedpaths
-end
-
---[[
-Search for a module using a path string or relative path.
-The path string must be a string like './?.nelua;./?/init.nelua'.
-]]
-function fs.findmodulefile(name, pathstr, relpath)
-  local fullpath
-  if relpath then
-    if fs.isabs(name) then -- absolute path
-      fullpath = fs.abspath(name)
-    elseif name:find('^%.%.?[/\\]') then -- relative with '../'
-      fullpath = fs.abspath(fs.join(relpath, name))
-    elseif name:find('^%.+') then -- relative with '.'
-      local dots, rest = name:match('^(%.+)(.*)')
-      rest = rest:gsub('%.', fs.sep)
-      if #dots == 1 then
-        fullpath = fs.abspath(fs.join(relpath, rest))
-      else
-        fullpath = fs.abspath(fs.join(relpath, string.rep('..'..fs.sep, #dots-1), rest))
-      end
-    end
-  end
-  local triedpaths
-  local modpath
-  if fullpath then -- full path of the file is known
-    local paths
-    if not fullpath:find('%.%w+$') then
-      paths = {
-        fullpath..'.nelua',
-        fs.join(fullpath,'init.nelua')
-      }
-    else
-      paths = {fullpath}
-    end
-    triedpaths = {}
-    for _,trypath in ipairs(paths) do
-      if fs.isfile(trypath) then
-        modpath = fs.abspath(trypath)
-        break
-      end
-      triedpaths[#triedpaths+1] = trypath
-    end
-  else -- search for a file in pathstr
-    if name:find('^~') then -- revert the path search order
-      name = name:sub(2)
-      local rpath = {}
-      for trypath in pathstr:gmatch('[^;]+') do
-        table.insert(rpath, 1, trypath)
-      end
-      pathstr = table.concat(rpath,';')
-    end
-    modpath, triedpaths = findmodulefile(name, pathstr)
-  end
-  local err
-  if not modpath then
-    err = "\tno file '" .. table.concat(triedpaths, "'\n\tno file '") .. "'"
-  end
-  return modpath, err, triedpaths
 end
 
 -- Search for a file inside the system's PATH variable.
@@ -499,6 +417,151 @@ function fs.dirmatch(path, patt)
     until not entry or entry:match(patt)
     return entry
   end, state
+end
+
+-- Helper for `fs.findmodule`, found modules are cached.
+local function findmodule(name, pathstr)
+  name = name:gsub('%.', fs.sep)
+  local triedpaths = {}
+  local modpath
+  for trypath in pathstr:gmatch('[^;]+') do
+    trypath = trypath:gsub('%?', name)
+    trypath = fs.abspath(trypath)
+    if fs.isfile(trypath) then
+      modpath = trypath
+      break
+    end
+    triedpaths[#triedpaths+1] = trypath
+  end
+  return modpath, triedpaths
+end
+findmodule = memoize(findmodule)
+
+--[[
+Search for a module using a path string or relative path.
+The path string must be a string like './?.nelua;./?/init.nelua'.
+]]
+function fs.findmodule(name, searchpath, relpath, ext)
+  local fullpath
+  if relpath then
+    if fs.isabs(name) then -- absolute path
+      fullpath = fs.abspath(name)
+    elseif name:find('^%.%.?[/\\]') then -- relative with '../'
+      fullpath = fs.abspath(fs.join(relpath, name))
+    elseif name:find('^%.+') then -- relative with '.'
+      local dots, rest = name:match('^(%.+)(.*)')
+      rest = rest:gsub('%.', fs.sep)
+      if #dots == 1 then
+        fullpath = fs.abspath(fs.join(relpath, rest))
+      else
+        fullpath = fs.abspath(fs.join(relpath, string.rep('..'..fs.sep, #dots-1), rest))
+      end
+    end
+  end
+  local triedpaths
+  local modpath
+  if fullpath then -- full path of the file is known
+    local paths
+    if not fullpath:find('%.%w+$') then
+      paths = {
+        fullpath..'.'..ext,
+        fs.join(fullpath,'init.'..ext)
+      }
+    else
+      paths = {fullpath}
+    end
+    triedpaths = {}
+    for _,trypath in ipairs(paths) do
+      if fs.isfile(trypath) then
+        modpath = fs.abspath(trypath)
+        break
+      end
+      triedpaths[#triedpaths+1] = trypath
+    end
+  else -- search for a file in searchpath
+    if name:find('^~') then -- revert the path search order
+      name = name:sub(2)
+      local rpath = {}
+      for trypath in searchpath:gmatch('[^;]+') do
+        table.insert(rpath, 1, trypath)
+      end
+      searchpath = table.concat(rpath,';')
+    end
+    modpath, triedpaths = findmodule(name, searchpath)
+  end
+  local err
+  if not modpath then
+    err = "\tno file '" .. table.concat(triedpaths, "'\n\tno file '") .. "'"
+  end
+  return modpath, err, triedpaths
+end
+
+--[[
+Make packages search path.
+When `ext` is 'nelua', it returns the NELUA_PATH system environment variable if present,
+otherwise make a default one from `libpath` and `ext`.
+]]
+function fs.makesearchpath(libpath, ext)
+  local path = os.getenv(ext:upper()..'_PATH')
+  if path then return path end
+  path = fs.join('.','?.'..ext)..';'..
+         fs.join('.','?','init.'..ext)..';'..
+         fs.join(libpath,'?.'..ext)..';'..
+         fs.join(libpath,'?','init.'..ext)
+  return path
+end
+
+-- Find where is the Nelua's lib directory.
+function fs.findnelualib()
+  local lualibpath = fs.dirname(fs.realpath(fs.scriptname()), 3)
+  local libpath = fs.join(fs.dirname(lualibpath), 'lib')
+  if fs.isdir(libpath) then
+    return libpath, lualibpath
+  end
+end
+
+--[[
+Find an available C compiler in the system.
+First reads the CC system environment variable,
+then try to search in the user binary directory.
+]]
+function fs.findcc()
+  local envcc = os.getenv('CC')
+  if envcc and fs.findbinfile(envcc) then return envcc end
+  local search_ccs
+  if platform.is_msys then --luacov:disable
+    search_ccs = {platform.msystem_chost..'-gcc'}
+  elseif platform.is_cygwin then
+    search_ccs = {'x86_64-w64-mingw32-gcc', 'i686-w64-mingw32-gcc'}
+  else
+    search_ccs = {}
+  end --luacov:enable
+  table.insert(search_ccs, 'gcc')
+  table.insert(search_ccs, 'clang')
+  for _,candidate in ipairs(search_ccs) do
+    if fs.findbinfile(candidate) then
+      return candidate
+    end
+  end
+  return nil
+end
+
+-- Find C compiler binutil (e.g: ar, strip) for the given C compiler.
+function fs.findccbinutil(cc, binname)
+  local bin = cc..'-'..binname
+  --luacov:disable
+  if not fs.findbinfile(binname) then
+    -- transform for example 'x86_64-pc-linux-gnu-gcc-11.1.0' -> 'x86_64-pc-linux-gnu-ar'
+    local possiblebin = cc:gsub('%-[0-9.]+$',''):gsub('[%w+_.]+$', binname)
+    if possiblebin:find(binname..'$') then
+      bin = possiblebin
+    end
+  end
+  if not fs.findbinfile(bin) then
+    bin = binname
+  end
+  --luacov:enable
+  return bin
 end
 
 return fs

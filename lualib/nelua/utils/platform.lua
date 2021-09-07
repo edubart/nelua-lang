@@ -21,6 +21,9 @@ Usually ':' on Linux and ';' on Windows.
 ]]
 platform.path_separator = platform.is_windows and ';' or ':'
 
+-- Separator of LUA_PATH variable.
+platform.luapath_separator = package.config:match('.[\r\n]+(.)')
+
 -- Whether we are running on Windows
 platform.is_windows = platform.dir_separator == '\\'
 
@@ -36,20 +39,14 @@ platform.is_macos = platform.is_unix and dynlibext == 'dylib'
 -- Whether we are running on CYGWIN shell.
 platform.is_cygwin = not not tostring(os.getenv('ORIGINAL_PATH')):find(':/cygdrive')
 
--- Whether we are running on MSYS shell.
-platform.is_msys = os.getenv('MSYSTEM') ~= nil
-
--- Whether we are running on MSVC shell.
-platform.is_msvc = os.getenv('VSCMD_VER') ~= nil
-
--- Host CPU word size in bits, usually 32 or 64
-platform.cpu_bits = string.packsize('T') * 8
-
--- Separator of LUA_PATH variable.
-platform.luapath_separator = package.config:match('.[\r\n]+(.)')
-
 -- MSYS2 variables.
 platform.msystem = os.getenv('MSYSTEM')
 platform.msystem_chost = os.getenv('MSYSTEM_CHOST')
+
+-- Whether we are running on MSYS shell.
+platform.is_msys = platform.msystem ~= nil
+
+-- Host CPU word size in bits, usually 32 or 64
+platform.cpu_bits = string.packsize('T') * 8
 
 return platform

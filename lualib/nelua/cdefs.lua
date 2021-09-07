@@ -1,5 +1,4 @@
 local tabler = require 'nelua.utils.tabler'
-local platform = require 'nelua.utils.platform'
 
 local cdefs = {}
 
@@ -71,32 +70,6 @@ cdefs.builtins_headers = {
   quadmath_snprintf = '<quadmath.h>',
 }
 
-cdefs.for_compare_ops = {
-  le = '<=',
-  ge = '>=',
-  lt = '<',
-  gt = '>',
-  ne = '!=',
-  eq = '==',
-}
-
-cdefs.search_compilers = {
-  'gcc', 'clang', 'cc'
-}
-
---luacov:disable
-if platform.is_msys then
-  cdefs.search_compilers = tabler.insertvalues({
-    platform.msystem_chost..'-gcc',
-  }, cdefs.search_compilers)
-elseif platform.is_cygwin then
-  cdefs.search_compilers = tabler.insertvalues({
-    'x86_64-w64-mingw32-gcc',
-    'i686-w64-mingw32-gcc',
-  }, cdefs.search_compilers)
-end
---luacov:enable
-
 local compilers_flags = {}
 cdefs.compilers_flags = compilers_flags
 
@@ -106,6 +79,7 @@ compilers_flags.cc = {
   cflags_release = "-O2 -DNDEBUG",
   cflags_maximum_performance = "-O3 -DNDEBUG",
   cflags_shared_lib = "-shared",
+  cflags_assembly = "-S",
   cflags_object = "-c",
   cmd_compile = '$(cc) "$(cfile)" $(cflags) -o "$(binfile)"',
   cmd_info = '$(cc) -E "$(cfile)" $(cflags)',
@@ -113,15 +87,14 @@ compilers_flags.cc = {
   ext = '.c',
 }
 -- GCC
-compilers_flags.gcc = tabler.update(tabler.copy(compilers_flags.cc), {
+compilers_flags.gcc = tabler.updatecopy(compilers_flags.cc, {
   cflags_base = "-pipe -fwrapv",
   cflags_sanitize = "-Wall -Wextra -fsanitize=address,undefined",
   cflags_devel = "-g",
   cflags_debug = "-fsanitize-undefined-trap-on-error -ggdb",
-  cflags_release = "-O2 -DNDEBUG",
-  cflags_assembly = "-S -fverbose-asm -g0",
-  cflags_shared_lib = "-shared -fPIC",
   cflags_maximum_performance = "-Ofast -march=native -DNDEBUG -fno-plt -flto",
+  cflags_shared_lib = "-shared -fPIC",
+  cflags_assembly = "-S -fverbose-asm -g0",
   cmd_compile = '$(cc) -x c "$(cfile)" -x none $(cflags) -o "$(binfile)"',
   cmd_info = '$(cc) -E -x c "$(cfile)" -x none $(cflags)',
   cmd_defines = '$(cc) -E -dM -x c "$(cfile)" -x none $(cflags)',
@@ -129,26 +102,25 @@ compilers_flags.gcc = tabler.update(tabler.copy(compilers_flags.cc), {
 -- Clang
 compilers_flags.clang = tabler.copy(compilers_flags.gcc)
 -- MinGW32 GCC
-compilers_flags['mingw32-gcc'] = tabler.update(tabler.copy(compilers_flags.gcc), {
-  cflags_release = "-O2 -DNDEBUG",
+compilers_flags['mingw32-gcc'] = tabler.updatecopy(compilers_flags.gcc, {
   cflags_shared_lib = '-shared -Wl,--out-implib,"$(binfile).a"',
   cflags_maximum_performance = "-Ofast -DNDEBUG -march=native -flto",
 })
 -- MinGW32 Clang
 compilers_flags['mingw32-clang'] = tabler.copy(compilers_flags['mingw32-gcc'])
 -- TCC
-compilers_flags.tcc = tabler.update(tabler.copy(compilers_flags.cc), {
+compilers_flags.tcc = tabler.updatecopy(compilers_flags.cc, {
   cflags_base = "-w",
   cflags_devel = "-g",
   cflags_debug = "-g",
 })
 -- C2M
-compilers_flags.c2m = tabler.update(tabler.copy(compilers_flags.cc), {
+compilers_flags.c2m = tabler.updatecopy(compilers_flags.cc, {
   cflags_base = "-w",
   cflags_shared_lib = "-c",
 })
 -- GCC (C++)
-compilers_flags['g++'] = tabler.update(tabler.copy(compilers_flags.gcc), {
+compilers_flags['g++'] = tabler.updatecopy(compilers_flags.gcc, {
   cmd_compile = '$(cc) -x c++ "$(cfile)" -x none $(cflags) -o "$(binfile)"',
   cmd_info = '$(cc) -E -x c++ "$(cfile)" -x none $(cflags)',
   cmd_defines = '$(cc) -E -dM -x c++ "$(cfile)" -x none $(cflags)',

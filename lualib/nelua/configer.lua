@@ -5,7 +5,6 @@ local metamagic = require 'nelua.utils.metamagic'
 local except = require 'nelua.utils.except'
 local sstream = require 'nelua.utils.sstream'
 local fs = require 'nelua.utils.fs'
-local cdefs = require 'nelua.cdefs'
 local platform = require 'nelua.utils.platform'
 local console = require 'nelua.utils.console'
 local stringer = require 'nelua.utils.stringer'
@@ -147,36 +146,7 @@ local function build_configs(conf)
   end --luacov:enable
 end
 
---luacov:disable
-local function action_version()
-  console.info(version.NELUA_VERSION)
-  console.infof('Build number: %s', version.NELUA_GIT_BUILD)
-  console.infof('Git date: %s', version.NELUA_GIT_DATE)
-  console.infof('Git hash: %s', version.NELUA_GIT_HASH)
-  console.infof('Semantic version: %s', version.NELUA_SEMVER)
-  console.info('Copyright (C) 2019-2021 Eduardo Bart (https://nelua.io/)')
-  os.exit(0)
-end
-
-local function action_semver()
-  console.info(version.NELUA_SEMVER)
-  os.exit(0)
-end
-
-local function print_verbose()
-  for _,file in ipairs(loadedconfigs) do
-    print(string.format("using config file '%s'", file))
-  end
-end
-
-local function action_print_config(options)
-  build_configs(options)
-  console.info(inspect(options))
-  os.exit(0)
-end
---luacov:enable
-
-local function create_parser(args)
+local function create_parser()
   local argparser = argparse("nelua", version.NELUA_VERSION)
   argparser:help_max_width(80)
   argparser:usage_margin(2)
@@ -190,23 +160,26 @@ local function create_parser(args)
     argparser:flag('-Y --assembly', "Compile as an assembly file", defconfig.compile_assembly),
     argparser:flag('-A --static-lib', "Compile as a static library", defconfig.compile_static_lib),
     argparser:flag('-H --shared-lib', "Compile as a shared library", defconfig.compile_shared_lib),
-    argparser:flag('-v --version', 'Print compiler detailed version'):action(action_version),
-    argparser:flag('--semver', 'Print compiler semantic version'):action(action_semver),
     argparser:flag('--script', "Run lua a script instead of compiling", defconfig.script),
     argparser:flag('--lint', 'Check for syntax errors only', defconfig.lint),
     argparser:flag('--print-ast', 'Print the AST only'),
     argparser:flag('--print-analyzed-ast', 'Print the analyzed AST only'),
     argparser:flag('--print-ppcode', 'Print the generated Lua preprocessing code only'),
     argparser:flag('--print-code', 'Print the generated code only'),
-    argparser:flag('--print-assembly', 'Print the assembly generated code only'),
-    argparser:flag('--print-config', 'Print config variables only'):action(action_print_config)
+    argparser:flag('--print-assembly', 'Print the assembly generated code only')
+  )
+  argparser:mutex(
+    argparser:argument("input", "Input source file"):args("?"),
+    argparser:flag('--config', 'Print config variables only'),
+    argparser:flag('-v --version', 'Print compiler detailed version'),
+    argparser:flag('--semver', 'Print compiler semantic version')
   )
   argparser:flag('-i --eval', 'Evaluate string code from input', defconfig.eval)
   argparser:flag('-d --debug', 'Run through GDB to get crash backtraces', defconfig.debug)
   argparser:flag('-S --sanitize', 'Enable undefined/address sanitizers at runtime', defconfig.sanitize)
   argparser:flag('-r --release', 'Release build (optimize for speed and disable runtime checks)', defconfig.release)
   argparser:flag('-M --maximum-performance', "Maximum performance build (use for benchmarking)")
-  -- argparser:flag('-s --strip', 'Strip the compiled binary', defconfig.strip)
+  argparser:flag('-s --strip', 'Remove symbols from the compiled binary (reduce its size)', defconfig.strip)
   -- argparser:flag('-O --optimize', 'Optimize level', defconfig.optimize)
   argparser:flag('-t --timing', 'Show compile timing information', defconfig.timing)
   argparser:flag('-T --more-timing', 'Show detailed compile timing information', defconfig.more_timing)
@@ -236,62 +209,12 @@ local function create_parser(args)
     argparser:option('--lua-options', "Lua options to use when running", defconfig.lua_options):hidden(true)
     argparser:flag('-q --quiet', "Be quiet", defconfig.quiet):hidden(true)
     argparser:flag('-j --turbo', "Compile faster by disabling the garbage collector (uses more MEM)"):hidden(true)
-  argparser:argument("input", "Input source file")
-    :action(function(options, _, v)
-    -- hacky way to stop handling options
-    if v then
-      local index = tabler.ifind(args, v) + 1
-      local found_stop_index = tabler.ifind(args, '--')
-      if not found_stop_index or found_stop_index > index-1 then
-        table.insert(args, index, '--')
-      end
-      options.input = v
-    end
-  end)
-  argparser:argument("runargs", "Arguments after '--' are passed to the running application")
+  argparser:argument("runargs", "Arguments passed to the application\n\z
+                                 Use '--' to is passed)")
     :args("*")
   return argparser
 end
 
--- Detect the default C compiler in the user system.
--- First reads the CC system environment variable,
--- then try to search in the user binary directory.
-local function detect_cc()
-  local envcc = os.getenv('CC')
-  if envcc and fs.findbinfile(envcc) then return envcc end
-  local cc = 'cc'
-  for _,candidate in ipairs(cdefs.search_compilers) do
-    if fs.findbinfile(candidate) then
-      cc = candidate
-      break
-    end
-  end
-  return cc
-end
-
--- Detect where is the Nelua's lib directory.
-local function detect_nelua_lib_path()
-  local thispath = fs.realpath(fs.scriptname())
-  local lualibpath = fs.dirname(fs.dirname(thispath))
-  local libpath = fs.join(fs.dirname(lualibpath), 'lib')
-  if fs.isdir(libpath) then
-    return libpath, lualibpath
-  end
-end
-
---[[
-Detect Nelua's packages path.
-It reads the NELUA_PATH system environment variable, otherwise use a default one.
-]]
-local function detect_search_path(libpath)
-  local path = os.getenv('NELUA_PATH')
-  if path then return path end
-  path = fs.join('.','?.nelua')..';'..
-         fs.join('.','?','init.nelua')..';'..
-         fs.join(libpath,'?.nelua')..';'..
-         fs.join(libpath,'?','init.nelua')
-  return path
-end
 
 -- Build configs that depends on other configs.
 function configer.build(options)
@@ -306,18 +229,22 @@ end
 
 -- Parse and build config from program arguments.
 function configer.parse(args)
-  local argparser = create_parser(tabler.icopy(args))
-  if not args[1] then --luacov:disable
+  local argparser = create_parser(args)
+  if not args[1] then -- no arguments? show help and exit
+    --luacov:disable
     print(argparser:get_help())
     os.exit(0)
-  end --luacov:enable
+    --luacov:enable
+  end
   local ok, options = argparser:pparse(args)
   except.assertraise(ok, options)
   configer.build(options)
-  if config.verbose then
-    print_verbose()
+  if config.verbose then -- print all loaded configs
+    for _,file in ipairs(loadedconfigs) do
+      print(string.format("using config file '%s'", file))
+    end
   end
-  return config
+  return options
 end
 
 -- Get config.
@@ -335,10 +262,8 @@ local function load_config(configfile)
   local ok, err = pcall(function()
     local conf = dofile(configfile)
     merge_configs(conf, defconfig)
-
     -- overwrite defconfig without making a new reference
     tabler.update(defconfig, conf)
-
   end)
   if ok then
     table.insert(loadedconfigs, configfile)
@@ -347,10 +272,12 @@ local function load_config(configfile)
   end --luacov:enable
 end
 
--- Initializes default config by detecting system variables,
--- and reading user and project configurations files.
+--[[
+Initializes default config by detecting system variables,
+and reading user and project configurations files.
+]]
 local function init_default_configs()
-  local libpath, lualibpath = detect_nelua_lib_path()
+  local libpath, lualibpath = fs.findnelualib()
   if not libpath then --luacov:disable
     console.error('Nelua installation is broken, lib path was not found!')
     os.exit(1)
@@ -358,8 +285,8 @@ local function init_default_configs()
   defconfig.lib_path = libpath
   defconfig.lualib_path = lualibpath
   defconfig.lua = fs.findluabin()
-  defconfig.path = detect_search_path(libpath)
-  defconfig.cc = detect_cc()
+  defconfig.path = fs.makesearchpath(libpath, 'nelua')
+  defconfig.cc = fs.findcc() or 'cc'
   defconfig.cflags = os.getenv('CFLAGS') or ''
 
   -- load global user config

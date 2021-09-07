@@ -27,7 +27,7 @@ local function get_compiler_flags(cc)
     if cc == ccname then
       return ccflags
     end
-    if stringer.endswith(cc, ccname) and (not foundccname or #ccname > #foundccname) then
+    if cc:find(ccname,1,true) and (not foundccname or #ccname > #foundccname) then
       foundccflags, foundccname = ccflags, ccname
     end
   end
@@ -267,13 +267,13 @@ end
 local function detect_output_extension(outfile, ccinfo)
   --luacov:disable
   if config.object then
-    if ccinfo.is_mir then
+    if ccinfo.is_mirc then
       return '.bmir'
     else
       return '.o'
     end
   elseif config.assembly then
-    if ccinfo.is_mir then
+    if ccinfo.is_mirc then
       return '.mir'
     else
       return '.s'
@@ -297,6 +297,8 @@ local function detect_output_extension(outfile, ccinfo)
       end
     elseif ccinfo.is_windows or ccinfo.is_cygwin then
       return '.exe', true
+    elseif ccinfo.is_mirc then
+      return '.bmir', true
     else
       return '', true
     end
@@ -304,29 +306,22 @@ local function detect_output_extension(outfile, ccinfo)
   --luacov:enable
 end
 
-local function find_ar()
-  local ar = config.cc..'-ar' -- try cc-ar first
-  --luacov:disable
-  if not fs.findbinfile(ar) then
-    local subar = config.cc:gsub('[%w+]+$', 'ar')
-    if subar:find('ar$') then
-      ar = subar
-    end
-  end
-  if not fs.findbinfile(ar) then
-    ar = 'ar'
-  end
-  --luacov:enable
-  return ar
-end
-
 function compiler.compile_static_lib(objfile, outfile)
-  local ar = find_ar()
+  local ar = fs.findccbinutil(config.cc, 'ar')
   local arcmd = string.format('%s rcs %s %s', ar, outfile, objfile)
   if config.verbose then console.info(arcmd) end
   -- compile the file
   if not executor.rexec(arcmd, nil, config.redirect_exec) then --luacov:disable
     except.raisef("static library compilation for '%s' failed", outfile)
+  end --luacov:enable
+end
+
+function compiler.strip_binary(binfile)
+  local strip = fs.findccbinutil(config.cc, 'strip')
+  local stripcmd = string.format('%s %s', strip, binfile)
+  if config.verbose then console.info(stripcmd) end
+  if not executor.rexec(stripcmd, nil, config.redirect_exec) then --luacov:disable
+    except.raisef("strip for '%s' failed", binfile)
   end --luacov:enable
 end
 
@@ -376,6 +371,9 @@ function compiler.compile_binary(cfile, outfile, compileopts)
   if config.static_lib then
     compiler.compile_static_lib(midfile, binfile)
     fs.deletefile(midfile)
+  end
+  if (config.shared_lib or isexe) and (not ccinfo.is_mirc or ccinfo.is_wasm) then
+    compiler.strip_binary(binfile)
   end
   return binfile, isexe
 end
