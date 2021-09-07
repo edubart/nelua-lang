@@ -114,12 +114,12 @@ compilers_flags.cc = {
 }
 -- GCC
 compilers_flags.gcc = tabler.update(tabler.copy(compilers_flags.cc), {
-  cflags_base = "-fwrapv",
+  cflags_base = "-pipe -fwrapv",
   cflags_sanitize = "-Wall -Wextra -fsanitize=address,undefined",
   cflags_devel = "-g",
   cflags_debug = "-fsanitize-undefined-trap-on-error -ggdb",
   cflags_release = "-O2 -DNDEBUG",
-  cflags_assembly = "-S -fverbose-asm",
+  cflags_assembly = "-S -fverbose-asm -g0",
   cflags_shared_lib = "-shared -fPIC",
   cflags_maximum_performance = "-Ofast -march=native -DNDEBUG -fno-plt -flto",
   cmd_compile = '$(cc) -x c "$(cfile)" -x none $(cflags) -o "$(binfile)"',
