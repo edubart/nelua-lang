@@ -60,31 +60,35 @@ local function build_configs(conf)
   -- fill missing configs
   merge_configs(conf, defconfig)
 
-  if conf.output then --luacov:disable
-    if conf.output:match('%.[ch]$') then
+  if conf.print_code then
+    conf.code = true
+  elseif conf.print_assembly then
+    conf.assembly = true
+  end
+  if config.code or conf.binary or conf.assembly or conf.object or
+     conf.static_lib or conf.shared_lib then
+    conf.compile_only = true
+  elseif conf.output then --luacov:disable
+    conf.compile_only = true
+    local output = conf.output
+    if output:find('%.[ch]$') then
       conf.generator = 'c'
-      conf.generate_code = true
-      conf.compile_binary = false
-    elseif conf.output:match('%.lua$') then
+      conf.code = true
+    elseif output:find('%.lua$') then
       conf.generator = 'lua'
-      conf.generate_code = true
-      conf.compile_binary = false
-    elseif conf.output:match('%.so$') or conf.output:match('%.dll$') or conf.output:match('%.dylib$') then
-      conf.generator = 'c'
-      conf.shared = true
-      conf.compile_binary = true
-      conf.generate_code = false
-    elseif conf.output:match('%.a$') then
-      conf.generator = 'c'
-      conf.static = true
-      conf.compile_binary = true
-      conf.generate_code = false
+      conf.code = true
+    elseif output:find('%.[sS]$') or output:find('%.mir$')  then
+      conf.assembly = true
+    elseif output:find('%.o$') or output:find('%.bmir$') then
+      conf.object = true
+    elseif output:find('%.so$') or output:find('%.dll$') or output:find('%.dylib$') then
+      conf.shared_lib = true
+    elseif output:find('%.a$') then
+      conf.static_lib = true
+    else
+      conf.binary = true
     end
   end --luacov:enable
-
-  if conf.static or conf.shared then
-    conf.compile_binary = true
-  end
 
   conf.lua_path = package.path
   conf.lua_cpath = package.cpath
@@ -174,52 +178,62 @@ end
 
 local function create_parser(args)
   local argparser = argparse("nelua", version.NELUA_VERSION)
-  argparser:flag('-c --generate-code', "Generate the code only", defconfig.compile)
-  argparser:flag('-b --compile-binary', "Compile the binaries only", defconfig.compile_binary)
+  argparser:help_max_width(80)
+  argparser:usage_margin(2)
+  argparser:help_usage_margin(2)
+  argparser:help_description_margin(28)
+  argparser:mutex(
+    argparser:flag('-c --code', "Compile the backend code only", defconfig.compile_code),
+    argparser:flag('-a --analyze', 'Analyze the code only', defconfig.analyze),
+    argparser:flag('-b --binary', "Compile the binary only", defconfig.compile_binary),
+    argparser:flag('-B --object', "Compile as an object file", defconfig.compile_object),
+    argparser:flag('-Y --assembly', "Compile as an assembly file", defconfig.compile_assembly),
+    argparser:flag('-A --static-lib', "Compile as a static library", defconfig.compile_static_lib),
+    argparser:flag('-H --shared-lib', "Compile as a shared library", defconfig.compile_shared_lib),
+    argparser:flag('-v --version', 'Print compiler detailed version'):action(action_version),
+    argparser:flag('--semver', 'Print compiler semantic version'):action(action_semver),
+    argparser:flag('--script', "Run lua a script instead of compiling", defconfig.script),
+    argparser:flag('--lint', 'Check for syntax errors only', defconfig.lint),
+    argparser:flag('--print-ast', 'Print the AST only'),
+    argparser:flag('--print-analyzed-ast', 'Print the analyzed AST only'),
+    argparser:flag('--print-ppcode', 'Print the generated Lua preprocessing code only'),
+    argparser:flag('--print-code', 'Print the generated code only'),
+    argparser:flag('--print-assembly', 'Print the assembly generated code only'),
+    argparser:flag('--print-config', 'Print config variables only'):action(action_print_config)
+  )
   argparser:flag('-e --eval', 'Evaluate string code from input', defconfig.eval)
-  argparser:flag('-l --lint', 'Only check syntax errors', defconfig.lint)
-  argparser:flag('-a --analyze', 'Analyze the code only', defconfig.analyze)
-  argparser:flag('-r --release', 'Release build (optimize for speed and disable runtime checks)', defconfig.release)
-  argparser:flag('-S --sanitize', 'Enable undefined/address sanitizers at runtime', defconfig.sanitize)
   argparser:flag('-d --debug', 'Run through GDB to get crash backtraces', defconfig.debug)
+  argparser:flag('-S --sanitize', 'Enable undefined/address sanitizers at runtime', defconfig.sanitize)
+  argparser:flag('-r --release', 'Release build (optimize for speed and disable runtime checks)', defconfig.release)
+  argparser:flag('-M --maximum-performance', "Maximum performance build (use for benchmarking)")
+  -- argparser:flag('-s --strip', 'Strip the compiled binary', defconfig.strip)
+  -- argparser:flag('-O --optimize', 'Optimize level', defconfig.optimize)
   argparser:flag('-t --timing', 'Show compile timing information', defconfig.timing)
   argparser:flag('-T --more-timing', 'Show detailed compile timing information', defconfig.more_timing)
   argparser:flag('-V --verbose', 'Show compile related information')
-  argparser:flag('-v --version', 'Print detailed version information'):action(action_version)
   argparser:flag('-w --no-warning', "Suppress all warning messages", defconfig.no_warning)
-  argparser:flag('-M --maximum-performance', "Maximum performance build (use for benchmarking)")
   argparser:flag('-C --no-cache', "Don't use any cached compilation", defconfig.no_cache)
+  argparser:flag('--no-color', 'Disable colorized output in the terminal.', defconfig.no_color)
   argparser:option('-o --output', 'Output file.', defconfig.output)
   argparser:option('-D --define', 'Define values in the preprocessor')
     :count("*"):convert(convert_param)
   argparser:option('-P --pragma', 'Set initial compiler pragma')
     :count("*"):convert(convert_param)
   argparser:option('-g --generator', "Code generator backend to use (lua/c)", defconfig.generator)
-  argparser:option('-p --path', "Set module search path", defconfig.path)
   argparser:option('-L --add-path', "Add module search path")
     :count("*"):convert(convert_add_path)
   argparser:option('--cc', "C compiler to use", defconfig.cc)
   argparser:option('--cflags', "Additional C flags to use on compilation", defconfig.cflags)
   argparser:option('--cache-dir', "Compilation cache directory", defconfig.cache_dir)
-  -- argparser:option('--lua', "Lua interpreter to use when runnning", defconfig.lua)
-  -- argparser:option('--lua-version', "Target lua version for lua generator", defconfig.lua_version)
-  -- argparser:option('--lua-options', "Lua options to use when running", defconfig.lua_options)
-  argparser:flag('--script', "Run lua a script instead of compiling", defconfig.script)
-  argparser:flag('--static', "Compile as a static library", defconfig.static)
-  argparser:flag('--shared', "Compile as a shared library", defconfig.shared)
-  argparser:flag('--print-ast', 'Print the AST only')
-  argparser:flag('--print-analyzed-ast', 'Print the analyzed AST only')
-  argparser:flag('--print-ppcode', 'Print the generated Lua preprocessing code only')
-  argparser:flag('--print-code', 'Print the generated code only')
-  argparser:flag('--print-config', "Print config variables only"):action(action_print_config)
-  argparser:flag('--semver', 'Print semantic version'):action(action_semver)
-  argparser:flag('--no-color', 'Disable colorized output in the terminal.', defconfig.no_color)
+  argparser:option('--path', "Set module search path", defconfig.path)
   -- the following are used only to debug/optimize the compiler
     argparser:flag('--profile-compiler', 'Print profiling for the compiler'):hidden(true)
     argparser:flag('--debug-resolve', "Print information about resolved types"):hidden(true)
     argparser:flag('--debug-scope-resolve', "Print number of resolved types per scope"):hidden(true)
   -- the following are deprecated
-    argparser:option('--cpu-bits', "Target CPU architecture bit size (64/32)"):hidden(true)
+    argparser:option('--lua', "Lua interpreter to use when runnning", defconfig.lua):hidden(true)
+    argparser:option('--lua-version', "Target lua version for lua generator", defconfig.lua_version):hidden(true)
+    argparser:option('--lua-options', "Lua options to use when running", defconfig.lua_options):hidden(true)
     argparser:flag('-q --quiet', "Be quiet", defconfig.quiet):hidden(true)
     argparser:flag('-j --turbo', "Compile faster by disabling the garbage collector (uses more MEM)"):hidden(true)
   argparser:argument("input", "Input source file")

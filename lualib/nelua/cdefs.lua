@@ -105,8 +105,8 @@ compilers_flags.cc = {
   cflags_base = "",
   cflags_release = "-O2 -DNDEBUG",
   cflags_maximum_performance = "-O3 -DNDEBUG",
-  cflags_shared = "-shared",
-  cflags_static = "-c",
+  cflags_shared_lib = "-shared",
+  cflags_object = "-c",
   cmd_compile = '$(cc) "$(cfile)" $(cflags) -o "$(binfile)"',
   cmd_info = '$(cc) -E "$(cfile)" $(cflags)',
   cmd_defines = '$(cc) -E -dM $(cflags) "$(cfile)"',
@@ -119,7 +119,8 @@ compilers_flags.gcc = tabler.update(tabler.copy(compilers_flags.cc), {
   cflags_devel = "-g",
   cflags_debug = "-fsanitize-undefined-trap-on-error -ggdb",
   cflags_release = "-O2 -DNDEBUG",
-  cflags_shared = "-shared -fPIC",
+  cflags_assembly = "-S -fverbose-asm",
+  cflags_shared_lib = "-shared -fPIC",
   cflags_maximum_performance = "-Ofast -march=native -DNDEBUG -fno-plt -flto",
   cmd_compile = '$(cc) -x c "$(cfile)" -x none $(cflags) -o "$(binfile)"',
   cmd_info = '$(cc) -E -x c "$(cfile)" -x none $(cflags)',
@@ -130,7 +131,7 @@ compilers_flags.clang = tabler.copy(compilers_flags.gcc)
 -- MinGW32 GCC
 compilers_flags['mingw32-gcc'] = tabler.update(tabler.copy(compilers_flags.gcc), {
   cflags_release = "-O2 -DNDEBUG",
-  cflags_shared = '-shared -Wl,--out-implib,"$(binfile).a"',
+  cflags_shared_lib = '-shared -Wl,--out-implib,"$(binfile).a"',
   cflags_maximum_performance = "-Ofast -DNDEBUG -march=native -flto",
 })
 -- MinGW32 Clang
@@ -144,7 +145,7 @@ compilers_flags.tcc = tabler.update(tabler.copy(compilers_flags.cc), {
 -- C2M
 compilers_flags.c2m = tabler.update(tabler.copy(compilers_flags.cc), {
   cflags_base = "-w",
-  cflags_shared = "-c",
+  cflags_shared_lib = "-c",
 })
 -- GCC (C++)
 compilers_flags['g++'] = tabler.update(tabler.copy(compilers_flags.gcc), {

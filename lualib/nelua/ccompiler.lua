@@ -84,10 +84,12 @@ local function get_compiler_cflags(compileopts)
       cflags:add(' '..config.cflags_devel)
     end
   end
-  if config.shared then
-    cflags:add(' '..ccflags.cflags_shared)
-  elseif config.static then
-    cflags:add(' '..ccflags.cflags_static)
+  if config.shared_lib then
+    cflags:add(' '..ccflags.cflags_shared_lib)
+  elseif config.static_lib or config.object then
+    cflags:add(' '..ccflags.cflags_object)
+  elseif config.assembly then
+    cflags:add(' '..ccflags.cflags_assembly)
   end
   if #config.cflags > 0 then
     cflags:add(' '..config.cflags)
@@ -97,7 +99,7 @@ local function get_compiler_cflags(compileopts)
     cflags:add(' ')
     cflags:addlist(compileopts.cflags, ' ')
   end
-  if not config.static then
+  if not config.static_lib and not config.object and not config.assembly then
     if #compileopts.ldflags > 0 then
       cflags:add(' -Wl,')
       cflags:addlist(compileopts.ldflags, ',')
@@ -237,7 +239,7 @@ function compiler.get_cc_info()
   return get_cc_info(config.cc, config.cflags)
 end
 
-function compiler.generate_code(ccode, cfile, compileopts)
+function compiler.compile_code(ccode, cfile, compileopts)
   local ccinfotext = compiler.get_cc_info().text
   local cflags = get_compiler_cflags(compileopts)
   local binfile = cfile:gsub('.c$','')
@@ -262,37 +264,39 @@ function compiler.generate_code(ccode, cfile, compileopts)
   if config.verbose then console.info("generated " .. cfile) end
 end
 
-local function detect_binary_extension(outfile, ccinfo)
+local function detect_output_extension(outfile, ccinfo)
   --luacov:disable
-  if ccinfo.is_wasm then
-    if outfile:match('%.wasm$') then
-      return '.wasm', true
+  if config.object then
+    if ccinfo.is_mir then
+      return '.bmir'
     else
-      return '.html', true
+      return '.o'
     end
-  elseif ccinfo.is_windows or ccinfo.is_cygwin then
-    if config.shared then
+  elseif config.assembly then
+    if ccinfo.is_mir then
+      return '.mir'
+    else
+      return '.s'
+    end
+  elseif config.static_lib then
+    return '.a'
+  elseif config.shared_lib then
+    if ccinfo.is_windows or ccinfo.is_cygwin then
       return '.dll'
-    elseif config.static then
-      return '.a'
-    else
-      return '.exe', true
-    end
-  elseif ccinfo.is_apple then
-    if config.shared then
+    elseif ccinfo.is_apple then
       return '.dylib'
-    elseif config.static then
-      return '.a'
     else
-      return '', true
-    end
-  elseif ccinfo.is_mirc then
-    return '.bmir', true
-  else
-    if config.shared then
       return '.so'
-    elseif config.static then
-      return '.a'
+    end
+  else -- binary executable
+    if ccinfo.is_wasm then
+      if outfile:find('%.wasm$') then
+        return '.wasm', true
+      else
+        return '.html', true
+      end
+    elseif ccinfo.is_windows or ccinfo.is_cygwin then
+      return '.exe', true
     else
       return '', true
     end
@@ -316,7 +320,7 @@ local function find_ar()
   return ar
 end
 
-function compiler.compile_static_library(objfile, outfile)
+function compiler.compile_static_lib(objfile, outfile)
   local ar = find_ar()
   local arcmd = string.format('%s rcs %s %s', ar, outfile, objfile)
   if config.verbose then console.info(arcmd) end
@@ -342,7 +346,7 @@ function compiler.compile_binary(cfile, outfile, compileopts)
   local cflags = get_compiler_cflags(compileopts)
   compiler.setup_env(cflags)
   local ccinfo = compiler.get_cc_info()
-  local binext, isexe = detect_binary_extension(outfile, ccinfo)
+  local binext, isexe = detect_output_extension(outfile, ccinfo)
   local binfile = outfile
   if not stringer.endswith(binfile, binext) then binfile = binfile .. binext end
   -- if the file with that hash already exists skip recompiling it
@@ -358,7 +362,7 @@ function compiler.compile_binary(cfile, outfile, compileopts)
   fs.eensurefilepath(binfile)
   -- we may use an intermediary file
   local midfile = binfile
-  if config.static then -- compile to an object first for static libraries
+  if config.static_lib then -- compile to an object first for static libraries
     midfile = binfile:gsub('.[a-z]+$', '.o')
   end
   -- generate compile command
@@ -369,8 +373,8 @@ function compiler.compile_binary(cfile, outfile, compileopts)
     except.raisef("C compilation for '%s' failed", binfile)
   end --luacov:enable
   -- compile static library
-  if config.static then
-    compiler.compile_static_library(midfile, binfile)
+  if config.static_lib then
+    compiler.compile_static_lib(midfile, binfile)
     fs.deletefile(midfile)
   end
   return binfile, isexe

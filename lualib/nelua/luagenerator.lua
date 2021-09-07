@@ -338,7 +338,7 @@ end
 function visitors.UnaryOp(_, node, emitter)
   local opname, argnode = node[1], node[2]
   local op = node:assertraisef(luadefs.unary_ops[opname], 'unary operator "%s" not found', opname)
-  if config.lua_version ~= '5.3' then
+  if config.lua_version == '5.1' then
     local fallop = luadefs.lua51_unary_ops[opname]
     if fallop then
       -- context:ensure_builtin(fallop.builtin)
@@ -356,7 +356,7 @@ end
 function visitors.BinaryOp(context, node, emitter)
   local lnode, opname, rnode = node[1], node[2], node[3]
   local op = node:assertraisef(luadefs.binary_ops[opname], 'binary operator "%s" not found', opname)
-  if config.lua_version ~= '5.3' then
+  if config.lua_version == '5.1' then
     local fallop = luadefs.lua51_binary_ops[opname]
     if fallop then
       -- if fallop.builtin then

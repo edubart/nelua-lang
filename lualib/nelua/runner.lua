@@ -19,6 +19,13 @@ local aster = require 'nelua.aster'
 local profiler
 local runner = {}
 
+local function print_total_build()
+  local config = configer.get()
+  if config.timing then
+    console.debug2f('total time   %.1f ms', globaltimer:elapsedrestart())
+  end
+end
+
 local function run(argv, redirect)
   -- parse config
   local config = configer.parse(argv)
@@ -86,12 +93,14 @@ local function run(argv, redirect)
 
   -- only checking syntax?
   if config.lint then
+    print_total_build()
     return 0
   end
 
   -- only printing ast?
   if config.print_ast then
     console.info(tostring(ast))
+    print_total_build()
     return 0
   end
 
@@ -107,30 +116,25 @@ local function run(argv, redirect)
     e.message = context:get_visiting_traceback(1) .. e:get_message()
   end)
 
+  -- setup benchmark timers
   if config.timing then
     local elapsed = timer:elapsedrestart()
     console.debugf('parse        %.1f ms', aster.parsing_time)
     console.debugf('preprocess   %.1f ms', preprocessor.working_time)
     console.debugf('analyze      %.1f ms', elapsed - aster.parsing_time - preprocessor.working_time)
   end
-  local function print_total_build()
-    if config.timing then
-      console.debug2f('total build  %.1f ms', globaltimer:elapsedrestart())
+
+  -- only analyzing ast?
+  if config.analyze or config.print_analyzed_ast or config.print_ppcode then
+    if config.print_analyzed_ast then
+      console.info(tostring(ast))
     end
-  end
-
-  if config.print_analyzed_ast then
-    console.info(tostring(ast))
-  end
-
-  if config.print_analyzed_ast or config.analyze or config.print_ppcode then
     print_total_build()
     return 0
   end
 
   -- generate the code
   local code = generator.generate(context)
-
   if config.timing then
     console.debugf('generate     %.1f ms', timer:elapsedrestart())
   end
@@ -147,40 +151,45 @@ local function run(argv, redirect)
 
   -- save the generated code
   local outcacheprefix = fs.normcachepath(infile, config.cache_dir)
-  local sourcefile = config.generate_code and config.output or outcacheprefix
+  local sourcefile = config.compile_code and config.output or outcacheprefix
   if not compiler.has_source_extension(sourcefile) then
     sourcefile = sourcefile .. compiler.source_extension
   end
-  compiler.generate_code(code, sourcefile, context.compileopts)
+  compiler.compile_code(code, sourcefile, context.compileopts)
 
-  local dorun = not config.generate_code and not config.compile_binary
-  local dobinarycompile = config.compile_binary or dorun
+  -- only compiling code?
+  if config.code then
+    print_total_build()
+    return 0
+  end
 
   -- compile the generated code
-  local binaryfile, isexe
-  if dobinarycompile then
-    local binfile = config.output or outcacheprefix
-    binaryfile, isexe = compiler.compile_binary(sourcefile, binfile, context.compileopts)
-
-    if config.timing then
-      console.debugf('compile      %.1f ms', timer:elapsedrestart())
-    end
+  local binfile = config.output or outcacheprefix
+  local outfile, isexe = compiler.compile_binary(sourcefile, binfile, context.compileopts)
+  if config.timing then
+    console.debugf('compile      %.1f ms', timer:elapsedrestart())
   end
 
-  print_total_build()
-
-  -- run
-  if dorun and isexe then
-    local exe, exeargs = compiler.get_run_command(binaryfile, config.runargs, context.compileopts)
-    if config.verbose then console.info(exe .. ' ' .. table.concat(exeargs, ' ')) end
-    local _, status = executor.rexec(exe, exeargs, redirect)
-    if config.timing then
-      console.debugf('run          %.1f ms', timer:elapsedrestart())
-    end
-    return status
+  -- only printing assembly code?
+  if config.print_assembly then
+    console.info(fs.readfile(outfile))
+    return 0
   end
 
-  return 0
+  -- only compiling binaries?
+  if config.compile_only or not isexe then
+    print_total_build()
+    return 0
+  end
+
+  -- execute binary
+  local exe, exeargs = compiler.get_run_command(outfile, config.runargs, context.compileopts)
+  if config.verbose then console.info(exe .. ' ' .. table.concat(exeargs, ' ')) end
+  local _, status = executor.rexec(exe, exeargs, redirect)
+  if config.timing then
+    console.debugf('run          %.1f ms', timer:elapsedrestart())
+  end
+  return status
 end
 
 function runner.run(argv, redirect)

@@ -179,7 +179,7 @@ it("lua 5.1 compat operators", function()
   expect.generate_lua("local a, b\nreturn a ~ b", "local a, b\nreturn bit.bxor(a, b)")
   expect.generate_lua("local a, b\nreturn a << b", "local a, b\nreturn bit.lshift(a, b)")
   expect.generate_lua("local a, b\nreturn a >> b", "local a, b\nreturn bit.rshift(a, b)")
-  config.lua_version = '5.3'
+  config.lua_version = '5.4'
 end)
 it("typed var initialization", function()
   expect.lua_gencode_equals("local a: integer", "local a: integer = 0")

@@ -15,11 +15,11 @@ it("version numbers" , function()
 end)
 
 it("compile simple programs" , function()
-  expect.run(' --no-cache --generate-code examples/helloworld.nelua')
-  expect.run('--generator lua --no-cache --generate-code examples/helloworld.nelua')
-  expect.run('--generator lua --compile-binary examples/helloworld.nelua')
+  expect.run('--no-cache --code examples/helloworld.nelua')
+  expect.run('--generator lua --no-cache --code examples/helloworld.nelua')
+  expect.run('--generator lua --binary examples/helloworld.nelua')
   -- force reusing the cache:
-  expect.run(' --compile-binary examples/helloworld.nelua')
+  expect.run('--binary examples/helloworld.nelua')
 end)
 
 it("run simple programs", function()
@@ -148,7 +148,7 @@ end)
 it("shared libraries", function()
   local ccinfo = ccompiler.get_cc_info()
   if ccinfo.is_gcc then
-    expect.run({'--shared', 'tests/libmylib.nelua'})
+    expect.run({'--shared-lib', 'tests/libmylib.nelua'})
     expect.run({'tests/mylib_test.nelua'},[[
 mylib - init
 mylib - in top scope
@@ -166,7 +166,7 @@ end)
 it("static libraries", function()
   local ccinfo = ccompiler.get_cc_info()
   if ccinfo.is_gcc then
-    expect.run({'--static', 'tests/libmylib_static.nelua'})
+    expect.run({'--static-lib', 'tests/libmylib_static.nelua'})
     expect.run({'tests/mylib_test.nelua', '-DSTATIC'},[[
 mylib - init
 mylib - in top scope
