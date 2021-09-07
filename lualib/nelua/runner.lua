@@ -73,10 +73,14 @@ local function run(argv, redirect)
 
   -- determine input
   local input, infile
-  if config.eval then
-    infile = 'eval_' .. stringer.hash(config.input, 8)
+  if config.eval then -- source from input argument
+    infile = 'eval_'..stringer.hash(config.input, 8)
     input = config.input
-  else
+  elseif config.input == '-' then -- source from stdin
+    --luacov:disable
+    infile = 'stdin_'..stringer.hash(config.input, 8)
+    input = io.read('*a')
+  else --luacov:enable
     infile = config.input
     input = fs.ereadfile(infile)
   end

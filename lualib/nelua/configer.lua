@@ -201,7 +201,7 @@ local function create_parser(args)
     argparser:flag('--print-assembly', 'Print the assembly generated code only'),
     argparser:flag('--print-config', 'Print config variables only'):action(action_print_config)
   )
-  argparser:flag('-e --eval', 'Evaluate string code from input', defconfig.eval)
+  argparser:flag('-i --eval', 'Evaluate string code from input', defconfig.eval)
   argparser:flag('-d --debug', 'Run through GDB to get crash backtraces', defconfig.debug)
   argparser:flag('-S --sanitize', 'Enable undefined/address sanitizers at runtime', defconfig.sanitize)
   argparser:flag('-r --release', 'Release build (optimize for speed and disable runtime checks)', defconfig.release)
