@@ -98,13 +98,13 @@ local function build_configs(conf)
     local luass = sstream()
     for _,addpath in ipairs(conf.add_path) do
       if addpath:find('?') then
-        neluass:addmany(addpath, ';')
-        luass:addmany(addpath, platform.luapath_separator)
+        neluass:addmany(';', addpath)
+        luass:addmany(platform.luapath_separator, addpath)
       else
-        neluass:addmany(addpath, '/?.nelua;',
-                        addpath, '/?/init.nelua;')
-        luass:addmany(addpath, '/?.lua', platform.luapath_separator,
-                      addpath, '/?/init.lua', platform.luapath_separator)
+        neluass:addmany(';', addpath, '/?.nelua;',
+                        ';', addpath, '/?/init.nelua')
+        luass:addmany(platform.luapath_separator, addpath, '/?.lua',
+                      platform.luapath_separator, addpath, '/?/init.lua')
       end
     end
     -- try to insert the lib path after the local lib path
@@ -112,13 +112,13 @@ local function build_configs(conf)
       local addpath = neluass:tostring()
       local localpath = fs.join('.','?.nelua')..';'..fs.join('.','?','init.nelua')
       conf.path = stringer.insertafter(conf.path, localpath, addpath) or
-                  addpath..conf.path
+                  addpath:sub(2)..';'..conf.path
     end
     do -- lua
       local addpath = luass:tostring()
       local localpath = fs.join('.','?.lua')..platform.luapath_separator..fs.join('.','?','init.lua')
       conf.lua_path = stringer.insertafter(conf.lua_path, localpath, addpath) or
-                      addpath..conf.lua_path
+                      addpath:sub(2)..platform.luapath_separator..conf.lua_path
       package.path = conf.lua_path
     end
   end

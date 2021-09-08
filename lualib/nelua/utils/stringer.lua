@@ -92,7 +92,7 @@ end
 function stringer.insertafter(s, matchtext, text)
   local matchpos = s:find(matchtext, 1, true)
   if matchpos then
-    return stringer.insert(s, matchpos+#matchtext+1, text)
+    return stringer.insert(s, matchpos+#matchtext, text)
   end
 end
 
