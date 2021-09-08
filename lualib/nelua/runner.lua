@@ -248,6 +248,7 @@ function runner.run(args, redirect)
   end, function(e) -- got a compile error
     console.logerr(e:get_message())
     status = 1
+    return true
   end)
   runner.stop_profiling()
   return status

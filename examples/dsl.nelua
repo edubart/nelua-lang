@@ -1,0 +1,108 @@
+##[[
+local aster = require 'nelua.aster'
+local rex = require 'nelua.thirdparty.lpegrex'
+local mydsl = {}
+
+-- Grammar of our DSL.
+local patt = rex.compile[==[
+chunk           <-| SKIP? expr* (!.)^UnexpectedSyntax
+expr            <-- Paren / Number / Boolean / String / Id
+Paren           <== `(` @expr expr* @`)`
+Boolean         <== `true`->totrue / `false`->tofalse
+Number          <== {[0-9]+ ('.' [0-9]*)?}->tonumber SKIP
+String          <== '"' {[^"]+} '"' SKIP
+Id              <== {NAME_SUFFIX} SKIP
+NAME_SUFFIX     <-- (!')' !';' !%sp .)+
+COMMENT         <-- ';' [^%cn]* %cn?
+SKIP            <-- (%sp+ / COMMENT)*
+]==]
+
+-- List of operations that can be used with parenthesis.
+local binops = {['+'] = 'add', ['<'] = 'lt', ['..'] = 'concat'}
+
+-- Converts a DSL expression into a Nelua's ASTNode.
+function mydsl.make_expr(node)
+  if node.tag == 'Paren' then
+    local funcname = node[1][1]
+    if binops[funcname] then
+      return aster.BinaryOp{mydsl.make_expr(node[2]), binops[funcname], mydsl.make_expr(node[3])}
+    end
+    return aster.Call{mydsl.make_exprs(node, 2), aster.Id{funcname}}
+  end
+  return aster[node.tag]{node[1]} -- String / Number / Boolean / Id
+end
+
+-- Converts a list of DSL expressions into a list of Nelua's ASTNode.
+function mydsl.make_exprs(node, init, last)
+  local exprnodes = {}
+  for i=init,last or #node do
+    table.insert(exprnodes, mydsl.make_expr(node[i]))
+  end
+  return exprnodes
+end
+
+-- Inject statements inside a block.
+function mydsl.inject_stmts(statnodes, init, last)
+  for i=init or 1,last or #statnodes do -- loop through all DSL statement nodes
+    local statnode = statnodes[i] -- get statement node
+    assert(statnode.tag == 'Paren' and statnode[1].tag == 'Id') -- we expect only Paren nodes
+    local name = statnode[1][1] -- action name for the Paren node
+    if name == 'let' then -- variable declaration
+      local varname, expr = statnode[2][1], mydsl.make_expr(statnode[3])]]
+      local #|varname|# = #[expr]#
+##[[elseif name == 'fn' then -- function definition
+      local fnname, fnparams, params = statnode[2][1], statnode[3], {}
+      for _,paramnode in ipairs(fnparams) do -- make list of parameters
+        table.insert(params, aster.IdDecl{paramnode[1], aster.Id{'auto'}})
+      end]]
+      local function #|fnname|#(#[aster.unpack(params)]#): auto -- define the function
+        ## mydsl.inject_stmts(statnode, 4, #statnode-1) -- inject function statements
+        return #[mydsl.make_expr(statnode[#statnode])]# -- return function result
+      end
+##[[elseif name == 'while' then -- while loop
+      local cond = mydsl.make_expr(statnode[2])]]
+      while #[cond]# do
+        ## mydsl.inject_stmts(statnode, 3)
+      end
+##[[elseif name == '=' then -- variable assignment
+      local varname, expr = statnode[2][1], mydsl.make_expr(statnode[3])]]
+      #|varname|# = #[expr]#
+##[[else -- function call
+      local args = mydsl.make_exprs(statnode, 2)]]
+      #|name|#(#[aster.unpack(args)]#)
+##[[end
+  end
+end
+
+function mydsl.compile(code)
+  local dslast = static_assert(patt:match(code))
+  -- uncomment the following to debug/preview the DSL AST
+  -- print(rex.prettyast(dslast))
+  mydsl.inject_stmts(dslast)
+end
+]]
+
+require 'string'
+
+print 'Hello from Nelua!'
+
+#[mydsl.compile]# [[
+  (print "Hello from DSL!")
+  (fn fib (n)
+    (let a 0)
+    (let b 1)
+    (let i 0)
+    (while (< i n)
+      (let tmp a)
+      (= a b)
+      (= b tmp)
+      (= b (+ a b))
+      (= i (+ i 1))
+    )
+    a
+  )
+  (let n (fib 10))
+  (print (.. "Fib 10 is " n))
+]]
+
+print 'Hello from Nelua again!'
