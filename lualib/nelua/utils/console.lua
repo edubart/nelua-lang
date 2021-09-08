@@ -61,8 +61,8 @@ end
 
 -- Find isatty() function in 'sys' or 'term' module.
 local function get_isatty() --luacov:disable
-  local has_sys, sys = pcall(require, 'sys')
-  if has_sys and sys.isatty then
+  local sys = _G.sys
+  if sys and sys.isatty then
     return sys.isatty
   else
     local has_term, termcore = pcall(require, 'term')
@@ -100,8 +100,14 @@ end
 local logex = console.logex
 
 -- Formatted logging functions (string.format style)
-function console.warnf(format, ...)  logex(io.stderr, colors.warn,  pformat(format, ...)) end
-function console.errorf(format, ...) logex(io.stderr, colors.error, pformat(format, ...)) end
+function console.warnf(format, ...)
+  logex(io.stderr, colors.warn,
+        'warning: '..colors.bright..pformat(format, ...)..colors.reset)
+end
+function console.errorf(format, ...)
+  logex(io.stderr, colors.error,
+        'error: '..colors.reset..pformat(format, ...))
+end
 function console.debugf(format, ...) logex(io.stdout, colors.debug, pformat(format, ...)) end
 function console.debug2f(format, ...) logex(io.stdout, colors.debug2, pformat(format, ...)) end
 function console.infof(format, ...)  logex(io.stdout, colors.info,  pformat(format, ...)) end
@@ -109,13 +115,13 @@ function console.logf(format, ...)   logex(io.stdout, nil,  pformat(format, ...)
 function console.logerrf(format, ...)logex(io.stderr, nil,  pformat(format, ...)) end
 
 -- Logging functions (print style).
-function console.warn(...)  logex(io.stderr, colors.warn,  pconcat(...)) end
-function console.error(...) logex(io.stderr, colors.error, pconcat(...)) end
-function console.debug(...) logex(io.stdout, colors.debug, pconcat(...)) end
-function console.debug2(...) logex(io.stdout, colors.debug2, pconcat(...)) end
-function console.info(...)  logex(io.stdout, colors.info,  pconcat(...)) end
-function console.log(...)   logex(io.stdout, nil,  pconcat(...)) end
-function console.logerr(...)logex(io.stderr, nil,  pconcat(...)) end
+function console.warn(...) console.warnf(pconcat(...)) end
+function console.error(...) console.errorf(pconcat(...)) end
+function console.debug(...) console.debugf(pconcat(...)) end
+function console.debug2(...) console.debug2f(pconcat(...)) end
+function console.info(...) console.infof(pconcat(...)) end
+function console.log(...) logex(io.stdout, nil, pconcat(...)) end
+function console.logerr(...)logex(io.stderr, nil, pconcat(...)) end
 
 -- Guess if colors should be enabled on the running terminal.
 console.set_colors_enabled(console.is_colors_supported())

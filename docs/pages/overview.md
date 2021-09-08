@@ -1544,7 +1544,7 @@ print('hello')
 ```
 
 For a complete list
-of AST shapes that can be created using the `aster` module read the [AST definitions file](https://github.com/edubart/nelua-lang/blob/master/nelua/astdefs.lua) or the
+of AST shapes that can be created using the `aster` module read the [AST definitions file](https://github.com/edubart/nelua-lang/blob/master/lualib/nelua/astdefs.lua) or the
 [syntax definitions spec file](https://github.com/edubart/nelua-lang/blob/master/spec/syntaxdefs_spec.lua)
 for examples.
 {:.alert.alert-info}
@@ -2126,7 +2126,7 @@ not need to do runtime type branching (the type branching is only done at compil
 
 The property `type.is_scalar` is used here to check the incoming type.
 All the properties defined by the compiler to check the incoming types can be
-[seen here](https://github.com/edubart/nelua-lang/blob/master/nelua/types.lua#L44).
+[seen here](https://github.com/edubart/nelua-lang/blob/master/lualib/nelua/types.lua#L44).
 {:.alert.alert-info}
 
 ### Specializing with concepts

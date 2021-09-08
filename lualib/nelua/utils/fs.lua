@@ -538,15 +538,18 @@ function fs.findcc()
   end --luacov:enable
   table.insert(search_ccs, 'gcc')
   table.insert(search_ccs, 'clang')
-  for _,candidate in ipairs(search_ccs) do
-    if fs.findbinfile(candidate) then
-      return candidate
+  for _,cc in ipairs(search_ccs) do
+    if fs.findbinfile(cc) then
+      return cc
     end
   end
   return nil
 end
 
--- Find C compiler binutil (e.g: ar, strip) for the given C compiler.
+--[[
+Find C compiler binary utilities in system's path for the given C compiler.
+For example, this function can be used to find 'ar', 'strip', 'objdump', etc..
+]]
 function fs.findccbinutil(cc, binname)
   local bin = cc..'-'..binname
   --luacov:disable

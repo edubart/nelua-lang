@@ -244,6 +244,6 @@ end
 
 -- Inject package path
 if fs.isdir(nelua_lualib) then
-  package.path=fs.join(nelua_lualib,'?.lua')..';'..package.path
   package.path=fs.join(nelua_lualib,'nelua','thirdparty','?.lua')..';'..package.path
+  package.path=fs.join(nelua_lualib,'?.lua')..';'..package.path
 end

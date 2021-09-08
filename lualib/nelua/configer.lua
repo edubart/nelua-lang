@@ -1,5 +1,4 @@
 local argparse = require 'nelua.thirdparty.argparse'
-local inspect = require 'nelua.thirdparty.inspect'
 local tabler = require 'nelua.utils.tabler'
 local metamagic = require 'nelua.utils.metamagic'
 local except = require 'nelua.utils.except'
@@ -58,6 +57,16 @@ end
 local function build_configs(conf)
   -- fill missing configs
   merge_configs(conf, defconfig)
+
+  if config.no_color then -- disable console coloring
+    console.set_colors_enabled(false)
+  end
+
+  if config.verbose then -- print all loaded configs
+    for _,file in ipairs(loadedconfigs) do
+      print(string.format("using config file '%s'", file))
+    end
+  end
 
   if conf.print_code then
     conf.code = true
@@ -239,11 +248,6 @@ function configer.parse(args)
   local ok, options = argparser:pparse(args)
   except.assertraise(ok, options)
   configer.build(options)
-  if config.verbose then -- print all loaded configs
-    for _,file in ipairs(loadedconfigs) do
-      print(string.format("using config file '%s'", file))
-    end
-  end
   return options
 end
 

@@ -5,12 +5,10 @@ The nanotimer is a utility used to count elapsed time in milliseconds.
 Used in the compiler to debug compiling time and profiling.
 ]]
 
-local metamagic = require 'nelua.utils.metamagic'
-
 -- Find nanotime function in 'sys' or 'chronos' module.
 local function get_nanotime() --luacov:disable
-  local has_sys, sys = pcall(require, 'sys')
-  if has_sys and sys.nanotime then
+  local sys = _G.sys
+  if sys and sys.nanotime then
     return sys.nanotime
   end
   local has_chronos, chronos = pcall(require, 'chronos')
@@ -21,8 +19,8 @@ local function get_nanotime() --luacov:disable
 end --luacov:enable
 
 local function get_cpucycles() --luacov:disable
-  local has_sys, sys = pcall(require, 'sys')
-  if has_sys then
+  local sys = _G.sys
+  if sys then
     local cpucycles = sys.rdtscp or sys.rdtsc
     if cpucycles then
       return cpucycles
@@ -40,9 +38,11 @@ local cpucycles = get_cpucycles()
 -- The nanotimer class is manually instead of using the `class` module to have more efficiency.
 local nanotimer = {nanotime = nanotime, cpucycles = cpucycles}
 local nanotimer_mt = {__index = nanotimer}
-local function createnanotimer()
+
+-- Allow calling nanotimer to create a new timer.
+setmetatable(nanotimer, {__call = function(_)
   return setmetatable({s = nanotime()}, nanotimer_mt)
-end
+end})
 
 --luacov:disable
 
@@ -65,9 +65,6 @@ function nanotimer.elapsedrestart(t)
   t.s = s
   return e
 end
-
--- Allow calling nanotimer to create a new timer.
-metamagic.setmetacall(nanotimer, createnanotimer)
 
 -- Global timer, used to track overall run time.
 nanotimer.globaltimer = nanotimer()

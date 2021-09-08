@@ -308,7 +308,7 @@ end
 
 function compiler.compile_static_lib(objfile, outfile)
   local ar = fs.findccbinutil(config.cc, 'ar')
-  local arcmd = string.format('%s rcs %s %s', ar, outfile, objfile)
+  local arcmd = string.format('%s rcs "%s" "%s"', ar, outfile, objfile)
   if config.verbose then console.info(arcmd) end
   -- compile the file
   if not executor.rexec(arcmd, nil, config.redirect_exec) then --luacov:disable
@@ -318,7 +318,7 @@ end
 
 function compiler.strip_binary(binfile)
   local strip = fs.findccbinutil(config.cc, 'strip')
-  local stripcmd = string.format('%s %s', strip, binfile)
+  local stripcmd = string.format('%s -x "%s"', strip, binfile)
   if config.verbose then console.info(stripcmd) end
   if not executor.rexec(stripcmd, nil, config.redirect_exec) then --luacov:disable
     except.raisef("strip for '%s' failed", binfile)
