@@ -87,22 +87,21 @@ require 'string'
 print 'Hello from Nelua!'
 
 #[mydsl.compile]# [[
-  (print "Hello from DSL!")
-  (fn fib (n)
-    (let a 0)
-    (let b 1)
-    (let i 0)
-    (while (< i n)
-      (let tmp a)
-      (= a b)
-      (= b tmp)
-      (= b (+ a b))
-      (= i (+ i 1))
-    )
-    a
+(print "Hello from DSL!")
+(fn fib (n)
+  (let a 0)
+  (let b 1)
+  (let i 0)
+  (while (< i n)
+    (let tmp a)
+    (= a b)
+    (= b (+ a tmp))
+    (= i (+ i 1))
   )
-  (let n (fib 10))
-  (print (.. "Fib 10 is " n))
+  a
+)
+(let n (fib 10))
+(print (.. "Fib 10 is " n))
 ]]
 
 print 'Hello from Nelua again!'

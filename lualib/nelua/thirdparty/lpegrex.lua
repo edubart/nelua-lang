@@ -601,7 +601,7 @@ local function ast2string(node, indent, ss)
     elseif ty == 'string' then
       local escaped = child
         :gsub([[\]], [[\\]])
-        :gsub([["])]], [[\"]])
+        :gsub([["]], [[\"]])
         :gsub('\n', '\\n')
         :gsub('\t', '\\t')
         :gsub('\r', '\\r')

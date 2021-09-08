@@ -3101,7 +3101,6 @@ it("require builtin", function()
   expect.run_error_c([[
     require 'invalid_file'
   ]], "module 'invalid_file' not found")
-  expect.run_c_from_file('tests/memory_test.nelua')
 end)
 
 it("name collision", function()

@@ -15,12 +15,13 @@ it("version numbers" , function()
 end)
 
 it("compile simple programs" , function()
-  expect.run('--no-cache --code examples/helloworld.nelua')
   expect.run('--no-cache --object examples/helloworld.nelua')
   expect.run('--no-cache --assembly examples/helloworld.nelua')
+  expect.run('--no-cache --code examples/helloworld.nelua')
+  expect.run('--no-cache --binary --strip examples/helloworld.nelua')
+  expect.run('--code examples/helloworld.nelua')
   expect.run('--generator lua --no-cache --code examples/helloworld.nelua')
   expect.run('--generator lua --binary examples/helloworld.nelua')
-  expect.run('--binary examples/helloworld.nelua')
 end)
 
 it("run simple programs", function()
@@ -166,7 +167,7 @@ end)
 it("static libraries", function()
   if ccompiler.get_cc_info().is_gcc then
     expect.run({'--static-lib', 'tests/libmylib_static.nelua'})
-    expect.run({'tests/mylib_test.nelua', '-DSTATIC'},[[
+    expect.run({'tests/mylib_static_test.nelua'},[[
 mylib - init
 mylib - in top scope
 mylib - sum

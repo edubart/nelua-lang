@@ -372,7 +372,7 @@ function compiler.compile_binary(cfile, outfile, compileopts)
     compiler.compile_static_lib(midfile, binfile)
     fs.deletefile(midfile)
   end
-  if (config.shared_lib or isexe) and (not ccinfo.is_mirc or ccinfo.is_wasm) then
+  if config.strip and (config.shared_lib or isexe) and (not ccinfo.is_mirc or ccinfo.is_wasm) then
     compiler.strip_binary(binfile)
   end
   return binfile, isexe

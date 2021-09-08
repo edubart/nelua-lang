@@ -1,0 +1,2 @@
+## STATIC=true
+require 'tests.mylib_test'
