@@ -316,9 +316,10 @@ end
 
 -- The syntaxdefs module.
 local syntaxdefs = {
+  extension = 'nelua',
   errors = errors,
   grammar = grammar,
-  defs = defs
+  defs = defs,
 }
 
 return syntaxdefs

@@ -35,6 +35,8 @@ local aster = {
   shaper = astshaper,
   -- Cumulative parsing time.
   parsing_time = 0,
+  -- List of syntax definitions.
+  syntaxes = {}
 }
 
 -- Create a new AST node with name `tag` from arguments `...`.
@@ -152,15 +154,20 @@ end
 Parse source code `content` with name `name` returning an AST on success.
 In case of a syntax error then an exception is thrown.
 ]]
-function aster.parse(content, name)
+function aster.parse(content, name, extension)
   local timer
   if config.timing or config.more_timing then
     timer = nanotimer()
   end
   src = {content=content, name=name}
-  local ast, errlabel, errpos = aster.syntax_patt:match(content)
+  extension = extension or (name and name:match('%.([^.]+)$')) or 'nelua'
+  local syntax = aster.syntaxes[extension] or aster.syntaxes.nelua
+  local ast, errlabel, errpos = syntax.patt:match(content)
+  if ast and syntax.transformcb then
+    ast, errlabel, errpos = syntax.transformcb(ast, content, name)
+  end
   if not ast then
-    local errmsg = aster.syntax_errors[errlabel] or errlabel
+    local errmsg = syntax.errors[errlabel] or errlabel
     local message = errorer.get_pretty_source_pos_errmsg(src, errpos, nil, errmsg, 'syntax error')
     except.raise({label = 'ParseError', message = message, errlabel = errlabel, errpos = errpos})
   end
@@ -176,15 +183,23 @@ function aster.parse(content, name)
 end
 
 --[[
-Set syntax from a PEG grammar `grammar` and error label list `errors`.
+Register a new syntax from a PEG grammar, where `syntax` is a table with the fields:
+- `extension` is the file extension, used to detect syntax from input names (e.g 'nelua').
+- `grammar` is a textual PEG grammar, following LPegRex rules.
+- `errors` is a table of syntax errors labels with their description.
+- `defs` is a table of default values to be passed to the grammar.
+- `transformcb` is a function to be called after successfully parsing a chunk,
+it receives arguments `(ast, content, name)`,
+it should return the transformed ast back or nil plus an error label and error pos.
 ]]
-function aster.set_syntax(grammar, errors, defs)
-  defs = defs or {}
-  defs.__options = {tag=aster.create_from}
-  aster.grammar = grammar
-  aster.syntax_errors = errors
-  aster.defs = defs
-  aster.syntax_patt = lpegrex.compile(grammar, defs)
+function aster.register_syntax(syntax)
+  syntax.errors = syntax.errors or {}
+  syntax.defs = syntax.defs or {}
+  syntax.defs.__options = {tag=aster.create_from}
+  if not syntax.patt then
+    syntax.patt = lpegrex.compile(syntax.grammar, syntax.defs)
+  end
+  aster.syntaxes[syntax.extension] = syntax
 end
 
 -- Clones an AST or a list of ASTs.
@@ -206,6 +221,6 @@ require 'nelua.astdefs'
 
 -- Set current aster syntax for parsing.
 local syntaxdefs = require 'nelua.syntaxdefs'
-aster.set_syntax(syntaxdefs.grammar, syntaxdefs.errors, syntaxdefs.defs)
+aster.register_syntax(syntaxdefs)
 
 return aster

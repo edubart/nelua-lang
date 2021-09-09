@@ -190,12 +190,31 @@ Replaces current node values and metatable with the ones from node `node`.
 Used to replace a node with a different node while reusing the original node reference.
 ]]
 function ASTNode:transform(node)
-  setmetatable(self, getmetatable(node))
+  local mt = getmetatable(node)
+  setmetatable(self, mt)
+  if not mt then -- transforming into a list, must clear all fields
+    for k in pairs(self) do
+      self[k] = nil
+    end
+  end
   for i=1,math.max(#self, #node) do
     self[i] = node[i]
   end
   self.attr = node.attr
   self.pattr = node.pattr
+  return self
+end
+
+--[[
+Copies source origin from `node`, so error messages with this node
+will print source origin.
+Origin is determined by `src`, `pos`, `endpos` fields.
+]]
+function ASTNode:copy_origin(node)
+  self.src = node.src
+  self.pos = node.pos
+  self.endpos = node.endpos
+  return self
 end
 
 --[[

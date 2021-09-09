@@ -1,0 +1,117 @@
+--[[
+DSL Example Part 1
+
+This is an example of making a DSL with Schema like syntax,
+that compiles to Nelua AST, that later effectively compiles to C.
+]]
+
+##[[
+local aster = require 'nelua.aster'
+local rex = require 'nelua.thirdparty.lpegrex'
+local mydsl = {}
+
+-- Grammar of our DSL.
+local patt = rex.compile[==[
+chunk : Tuple   <== SKIP? expr* (!.)^UnexpectedSyntax
+expr            <-- Tuple / Number / Boolean / String / Id
+Tuple           <== `(` @expr expr* @`)`
+Boolean         <== `true`->totrue / `false`->tofalse
+Number          <== {[0-9]+ ('.' [0-9]*)?}->tonumber SKIP
+String          <== '"' {[^"]+} '"' SKIP
+Id              <== {NAME_SUFFIX} SKIP
+NAME_SUFFIX     <-- (!')' !';' !%sp .)+
+COMMENT         <-- ';' [^%cn]* %cn?
+SKIP            <-- (%sp+ / COMMENT)*
+]==]
+
+-- List of binary operations that can be used with parenthesis.
+local binops = {['+'] = 'add', ['<'] = 'lt', ['..'] = 'concat'}
+
+-- Converts a DSL expression into a Nelua's ASTNode.
+function mydsl.make_expr(dslexpr)
+  if dslexpr.tag == 'Tuple' then
+    assert(dslexpr[1].tag == 'Id')
+    local funcname = dslexpr[1][1]
+    if binops[funcname] then
+      return aster.BinaryOp{mydsl.make_expr(dslexpr[2]),
+                            binops[funcname],
+                            mydsl.make_expr(dslexpr[3])}
+    end
+    return aster.Call{mydsl.make_exprs(dslexpr, 2), aster.Id{funcname}}
+  end
+  return aster[dslexpr.tag]{dslexpr[1]} -- String / Number / Boolean / Id
+end
+
+-- Converts a list of DSL expressions into a list of Nelua's ASTNode.
+function mydsl.make_exprs(dslexprs, init, last)
+  local exprnodes = {}
+  for i=init,last or #dslexprs do
+    table.insert(exprnodes, mydsl.make_expr(dslexprs[i]))
+  end
+  return exprnodes
+end
+
+-- Inject statements inside a block.
+function mydsl.inject_stmts(dsltuple, init, last)
+  for i=init or 1,last or #dsltuple do -- loop through all DSL statement nodes
+    local dslstmt = dsltuple[i] -- get statement node
+    assert(dslstmt.tag == 'Tuple' and dslstmt[1].tag == 'Id') -- we expect only Tuple nodes
+    local action = dslstmt[1][1] -- action name for the Tuple node
+    if action == 'let' then -- variable declaration
+      local varname, expr = dslstmt[2][1], mydsl.make_expr(dslstmt[3])]]
+      local #|varname|# = #[expr]#
+##[[elseif action == 'fn' then -- function definition
+      local fnname, fnparams, params = dslstmt[2][1], dslstmt[3], {}
+      for _,paramnode in ipairs(fnparams) do -- make list of parameters
+        table.insert(params, aster.IdDecl{paramnode[1], aster.Id{'auto'}})
+      end]]
+      local function #|fnname|#(#[aster.unpack(params)]#): auto -- define the function
+        ## mydsl.inject_stmts(dslstmt, 4, #dslstmt-1) -- inject function statements
+        return #[mydsl.make_expr(dslstmt[#dslstmt])]# -- return function result
+      end
+##[[elseif action == 'while' then -- while loop
+      local cond = mydsl.make_expr(dslstmt[2])]]
+      while #[cond]# do
+        ## mydsl.inject_stmts(dslstmt, 3)
+      end
+##[[elseif action == '=' then -- variable assignment
+      local varname, expr = dslstmt[2][1], mydsl.make_expr(dslstmt[3])]]
+      #|varname|# = #[expr]#
+##[[else -- function call
+      local args = mydsl.make_exprs(dslstmt, 2)]]
+      #|action|#(#[aster.unpack(args)]#)
+##[[end
+  end
+end
+
+function mydsl.compile(code)
+  local dslast = static_assert(patt:match(code))
+  -- uncomment the following to debug/preview the DSL AST
+  -- print(rex.prettyast(dslast))
+  mydsl.inject_stmts(dslast)
+end
+]]
+
+require 'string'
+
+print 'Hello from Nelua!'
+
+#[mydsl.compile]# [[
+(print "Hello from DSL!")
+(fn fib (n)
+  (let a 0)
+  (let b 1)
+  (let i 0)
+  (while (< i n)
+    (let tmp a)
+    (= a b)
+    (= b (+ a tmp))
+    (= i (+ i 1))
+  )
+  a
+)
+(let n (fib 10))
+(print (.. "Fib 10 is " n))
+]]
+
+print 'Hello from Nelua again!'

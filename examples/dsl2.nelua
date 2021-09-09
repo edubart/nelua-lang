@@ -1,0 +1,20 @@
+--[[
+DSL Example Part 2
+
+This is evolution of DSL example part 1, with the following additions:
+- Use the `aster` compiler module, making easier to parse/process AST nodes.
+- Make able to load DSL with `.lisp` file extension.
+- Move the DSL logic to a Lua file.
+]]
+
+
+## require 'dsl2'
+
+require 'string'
+
+print 'Hello from Nelua!'
+
+-- Execute our DSL
+require './dsl2.lisp'
+
+print 'Hello from Nelua again!'
