@@ -182,6 +182,7 @@ end
 
 -- Return relative path from current directory or optional start point.
 function fs.relpath(p, start)
+  --luacov:disable
   start = start or lfs.currentdir()
   p = fs.abspath(p, start)
   local compare
@@ -207,6 +208,7 @@ function fs.relpath(p, start)
     for i = k,#pl do rell[#rell+1] = pl[i] end
   end
   return table.concat(rell,fs.sep)
+  --luacov:enable
 end
 
 -- Replace a starting '~' with the user's home directory.
@@ -314,16 +316,6 @@ function fs.makefile(filename, content)
     end
   end
   return fs.writefile(filename, content)
-end
-
--- Choose file path inside a cache directory for an input file path.
-function fs.normcachepath(infile, cachedir)
-  local path = infile:gsub('%.[^./\\]+$','')
-  path = fs.relpath(path)
-  path = path:gsub('%.%.[/\\]+', '')
-  path = fs.join(cachedir, path)
-  path = fs.normpath(path)
-  return path
 end
 
 -- Prefix a path with the user config path.

@@ -199,13 +199,19 @@ local function run(args, redirect)
     console.info(code)
     return 0
   end
-  -- choose a inputname for evals
-  if not inputname then inputname = 'eval_' .. stringer.hash(code, 8) end
+  -- choose a name for generated files
+  local barename
+  if inputname then
+    barename = fs.basename(inputname):gsub('%.[^./\\]+$','') -- remove file extension
+  end
+  if not barename or barename == '' then
+    barename = 'eval_' .. stringer.hash(code, 8)
+  end
   -- save the generated code
-  local outcacheprefix = fs.normcachepath(inputname, config.cache_dir)
-  local sourcefile = config.compile_code and config.output or outcacheprefix
+  local outprefix = fs.join(config.cache_dir, barename)
+  local sourcefile = config.compile_code and config.output or outprefix
   if not compiler.has_source_extension(sourcefile) then
-    sourcefile = sourcefile .. compiler.source_extension
+    sourcefile = sourcefile..compiler.source_extension
   end
   compiler.compile_code(code, sourcefile, context.compileopts)
   -- only compiling code?
@@ -213,7 +219,7 @@ local function run(args, redirect)
     return 0
   end
   -- compile the generated code
-  local binfile = config.output or outcacheprefix
+  local binfile = config.output or outprefix
   local outfile, isexe = compiler.compile_binary(sourcefile, binfile, context.compileopts)
   if config.timing then
     console.debugf('compile      %.1f ms', timer:elapsedrestart())

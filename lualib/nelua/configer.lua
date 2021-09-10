@@ -145,9 +145,10 @@ local function build_configs(conf)
   end
 
   -- determine output directory
-  local outpath = conf.output or (conf.eval and 'eval' or conf.input)
-  if outpath then
-    conf.output_dir = fs.dirname(fs.normcachepath(outpath, conf.cache_dir))
+  if config.output then
+    conf.output_dir = fs.dirname(fs.abspath(config.output))
+  else
+    conf.output_dir = conf.cache_dir
   end
 
   if conf.maximum_performance or conf.release then --luacov:disable
