@@ -87,7 +87,8 @@ local function load_nelua_init()
     ok, err = pcall(initfunc)
   end
   if not ok then
-    except.raisef('error while executing NELUA_INIT: %s', tostring(err))
+    console.errorf('failed to execute NELUA_INIT: %s', tostring(err))
+    return 1
   end
 end
 
@@ -246,7 +247,12 @@ function runner.run(args, redirect)
     end
     tracker.report() -- show tracker statistics in case of any
   end, function(e) -- got a compile error
-    console.logerr(e:get_message())
+    local msg = e:get_message()
+    if not msg:find('error: ') then
+      console.error(e:get_message())
+    else
+      console.logerr(e:get_message())
+    end
     status = 1
     return true
   end)

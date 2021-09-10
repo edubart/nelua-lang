@@ -99,8 +99,8 @@ local function executeex(command, bin)
   local success, reason, status = execute(command)
   local outcontent = fs.readfile(outfile, bin) or ''
   local errcontent = fs.readfile(errfile, bin) or ''
-  os.remove(outfile)
-  os.remove(errfile)
+  fs.deletefile(outfile)
+  fs.deletefile(errfile)
   if reason == 'signal' then
     local sigerrmsg = get_signal_errmsg(status)
     if #errcontent > 0 then

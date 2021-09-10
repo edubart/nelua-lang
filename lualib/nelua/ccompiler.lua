@@ -136,9 +136,10 @@ end
 local function gen_source_file(cc, code)
   local ccflags = get_compiler_flags(cc)
   local cfile = fs.tmpname()
-  fs.deletefile(cfile)
+  fs.deletefile(cfile) -- we have to delete the tmp file
   cfile = cfile..ccflags.ext
-  fs.ewritefile(cfile, code)
+  local ok, err = fs.makefile(cfile, code)
+  except.assertraisef(ok, "failed to create C source file: %s", err)
   return cfile
 end
 
@@ -259,8 +260,8 @@ function compiler.compile_code(ccode, cfile, compileopts)
     return cfile
   end
   -- create file
-  fs.eensurefilepath(cfile)
-  fs.ewritefile(cfile, sourcecode)
+  local ok, err = fs.makefile(cfile, sourcecode)
+  except.assertraisef(ok, 'failed to create C source file: %s', err)
   if config.verbose then console.info("generated " .. cfile) end
 end
 
@@ -353,8 +354,15 @@ function compiler.compile_binary(cfile, outfile, compileopts)
       return binfile, isexe
     end
   end
-  -- ensure the directory exists for the binary file
-  fs.eensurefilepath(binfile)
+  do -- ensure the directory exists for the binary file
+    local bindir = fs.dirname(binfile)
+    local ok, err = fs.makepath(bindir)
+    if not ok then -- maybe it's a binary, lets remove it
+      fs.deletefile(bindir)
+      ok, err = fs.makepath(bindir)
+    end
+    except.assertraisef(ok, 'failed to create directory for output binary: %s', err)
+  end
   -- we may use an intermediary file
   local midfile = binfile
   if config.static_lib then -- compile to an object first for static libraries

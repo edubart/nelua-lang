@@ -3,6 +3,7 @@ local pegger = require 'nelua.utils.pegger'
 local stringer = require 'nelua.utils.stringer'
 local tabler = require 'nelua.utils.tabler'
 local console = require 'nelua.utils.console'
+local except = require 'nelua.utils.except'
 local config = require 'nelua.configer'.get()
 local version = require 'nelua.version'
 
@@ -31,8 +32,8 @@ function lua_compiler.compile_code(luacode, luafile)
     return luafile
   end
 
-  fs.eensurefilepath(luafile)
-  fs.ewritefile(luafile, sourcecode)
+  local ok, err = fs.makefile(luafile, sourcecode)
+  except.assertraisef(ok, "failed to create Lua source file: %s", err)
   if config.verbose then console.info("generated " .. luafile) end
 end
 

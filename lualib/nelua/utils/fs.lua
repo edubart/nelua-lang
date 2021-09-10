@@ -5,7 +5,6 @@ The fs (stands for filesystem) module is used to manage files and directories.
 ]]
 
 local lfs = require 'lfs'
-local except = require 'nelua.utils.except'
 local stringer = require 'nelua.utils.stringer'
 local memoize = require 'nelua.utils.memoize'
 local platform = require 'nelua.utils.platform'
@@ -34,7 +33,10 @@ function fs.readfile(filename, is_bin)
   return res
 end
 
--- Write a string to a file.
+--[[
+Write string `str` into file `filename`, creating necessary directories as needed.
+Returns true on success, otherwise nil plus and error message.
+]]
 function fs.writefile(filename, str, is_bin)
   local mode = is_bin and 'b' or ''
   local f,err = io.open(filename,'w'..mode)
@@ -277,6 +279,7 @@ end --luacov:enable
 
 -- Create a directory path.
 function fs.makepath(path)
+  if path == '' then return true end
   if fs.winstyle then --luacov:disable
     path:gsub('/', fs.sep)
   end --luacov:enable
@@ -290,39 +293,27 @@ function fs.makepath(path)
     local dirpat = fs.winstyle and '(.+)\\[^\\]+$' or '(.+)/[^/]+$'
     local subpath = path:match(dirpat)
     local ok, err = fs.makepath(subpath)
-    if not ok then return nil, err end
-    return lfs.mkdir(path)
-  else --luacov:enable
+    if not ok then return nil, path..': '..err end
+    ok, err = lfs.mkdir(path)
+    if not ok then return nil, path..': '..err end
     return true
+  end --luacov:enable
+  return true
+end
+
+--[[
+Write string `content` into file `filename`, creating necessary directories as needed.
+Returns true on success, otherwise nil plus and error message.
+]]
+function fs.makefile(filename, content)
+  local outdir = fs.dirname(filename)
+  if #outdir > 0 then
+    local ok, err = fs.makepath(outdir)
+    if not ok then
+      return nil, 'failed to make path for file: '..err
+    end
   end
-end
-
---[[
-Ensure directory exists for a file.
-Raises an exception in case of an error.
-]]
-function fs.eensurefilepath(file)
-  local outdir = fs.dirname(file)
-  local ok, err = fs.makepath(outdir)
-  except.assertraisef(ok, 'failed to create path for file "%s": %s', file, err)
-end
-
---[[
-Return the contents of a file as a string.
-Raises an exception in case of an error.
-]]
-function fs.ereadfile(file)
-  local content, err = fs.readfile(file)
-  return except.assertraisef(content, 'failed to read file "%s": %s', file, err)
-end
-
---[[
-Write a string to a file.
-Raises an exception in case of an error.
-]]
-function fs.ewritefile(file, content)
-  local ok, err = fs.writefile(file, content)
-  except.assertraisef(ok, 'failed to create file "%s": %s', file, err)
+  return fs.writefile(filename, content)
 end
 
 -- Choose file path inside a cache directory for an input file path.

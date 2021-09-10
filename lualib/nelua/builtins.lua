@@ -67,7 +67,11 @@ function builtins.require(context, node, argnodes)
       return
     end
 
-    local input = fs.ereadfile(filepath)
+    local input
+    input, err = fs.readfile(filepath)
+    if not input then
+      node:raisef("in require: while loading module '%s': %s", reqname, err)
+    end
     local ast = aster.parse(input, filepath)
     attr.loadedast = ast
     ast.attr.filename = filepath
