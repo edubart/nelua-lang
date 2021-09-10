@@ -97,8 +97,26 @@ function os.execute(command: facultative(string)): (boolean, string, integer)
       if status ~= 0 and errno ~= 0 then -- error with an errno?
         return false, (@string)(strerror(errno)), errno
       end
-      --TODO: translate status codes for POSIX system
-      return status == 0, 'exit', status
+      local signaled: boolean
+##[==[
+  cinclude [[
+/* Include POSIX APIs. */
+#if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
+  #include <unistd.h>
+#endif
+]]
+  cemit [[
+#if _POSIX_VERSION >= 200112L && defined(WEXITSTATUS)
+  if(WIFEXITED(status)) {
+    status = WEXITSTATUS(status);
+  } else if(WIFSIGNALED(status)) {
+    status = WTERMSIG(status);
+    signaled = true;
+  }
+#endif
+]]
+]==]
+      return status == 0, signaled and 'signal' or 'exit', status
     ## else
       local status: cint = system(nilptr)
       return status ~= 0, 'unsupported', 1
@@ -239,7 +257,6 @@ function os.time(desc: facultative(os.timedesc)): integer
   local t: ctime_t
   ## if desc.type.is_niltype then
     t = time(nilptr)
-    assert(t > 0, 'time result cannot be represented in this installation')
   ## else
     --TODO: change desc to table and update fields with normalize values
     --TODO: make default hour 12
@@ -255,7 +272,9 @@ function os.time(desc: facultative(os.timedesc)): integer
     end
     t = mktime(&ts)
   ## end
-  return t
+  local ret: integer = (@integer)(t)
+  assert(ret == t and t >= 0, 'time result cannot be represented in this installation')
+  return ret
 end
 
 --[[

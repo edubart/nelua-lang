@@ -8,7 +8,7 @@ This is evolution of DSL example part 1, with the following additions:
 ]]
 
 
-## require 'dsl2'
+## require 'examples.dsl2'
 
 require 'string'
 
