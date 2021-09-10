@@ -2736,7 +2736,7 @@ it("call pragmas", function()
   expect.generate_c([[## cinclude 'myfile.h'; cfile 'myfile.h']], [[#include <myfile.h>]])
   expect.generate_c("## cemit '#define SOMETHING'", "#define SOMETHING")
   expect.generate_c("## cemitdecl('#define SOMETHING')", "#define SOMETHING")
-  expect.generate_c("## cemitdef('#define SOMETHING')", "#define SOMETHING")
+  expect.generate_c("## cemitdefn('#define SOMETHING')", "#define SOMETHING")
   expect.generate_c("## cdefine 'SOMETHING'", "#define SOMETHING")
   expect.generate_c([==[
     do ##[[cemit(function(e) e:add_ln('#define SOMETHING') end)]] end
@@ -2745,7 +2745,7 @@ it("call pragmas", function()
     do ##[[cemitdecl(function(e) e:add_ln('#define SOMETHING') end)]] end
   ]==], "#define SOMETHING")
   expect.generate_c([==[
-    do ##[[cemitdef(function(e) e:add_ln('#define SOMETHING') end)]] end
+    do ##[[cemitdefn(function(e) e:add_ln('#define SOMETHING') end)]] end
   ]==], "#define SOMETHING")
 end)
 

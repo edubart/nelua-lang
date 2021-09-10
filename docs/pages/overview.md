@@ -2516,24 +2516,34 @@ you may want to emit raw C code:
 
 ```nelua
 local function do_stuff()
+  -- make sure `<stdio.h>` is included
+  ## cinclude '<stdio.h>'
+
+  -- emits in the directives section of the generated C file
+  ## cinclude [[#define HELLO_MESSAGE "hello from C"]]
+
   -- emits in the declarations section of the generated C file
-  ## cemitdecl '#include <stdio.h>'
+  ## cemitdecl [[static const char* get_hello_message();]]
+
+  -- emits in the definitions section of the generated C file
+  ## cemitdefn [[const char* get_hello_message() { return HELLO_MESSAGE; }]]
 
   -- emits inside this function in the generated C file
-  ##[==[ cemit([[
-    printf("hello from C\n");
-  ]])]==]
+  ##[==[ cemit [[
+    printf("%s\n", get_hello_message());
+  ]] ]==]
 end
 
 do_stuff()
 ```
 
-Nelua can emit C code in 3 different sections, in the global **declarations**
-section using `cemitdecl`, in the global **definitions** section using `cemitdef`
-or the **current scope** section using `cemit`. Usually, you
-want to use `cemit`.
+Nelua can emit C code in 4 different sections:
+* In the **directives** section with `cinclude`, this is where C include and defines are emitted.
+* In the **declarations** section with `cemitdecl`, this is  where functions and variables names are declared.
+* In the **definitions** section with `cemitdefn`, this is where functions are defined.
+* In the current scope with `cemit`, this emits in the current scope context, and
+local variables should be accessible.
 {:.alert.alert-info}
-
 
 ### Exporting named C functions
 

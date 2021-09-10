@@ -352,9 +352,9 @@ List of preprocessor directives.
 They inject the AST node 'Directive' when called from the preprocessor.
 ]]
 typedefs.pp_directives = {
-  cinclude = shaper.shape{n=shaper.number, shaper.string},
+  cinclude = shaper.shape{n=shaper.number, shaper.string + shaper.func},
   cemitdecl = shaper.shape{n=shaper.number, shaper.string + shaper.func},
-  cemitdef = shaper.shape{n=shaper.number, shaper.string + shaper.func},
+  cemitdefn = shaper.shape{n=shaper.number, shaper.string + shaper.func},
   cemit = shaper.shape{n=shaper.number, shaper.string + shaper.func},
   cdefine = shaper.shape{n=shaper.number, shaper.string},
   cflags = shaper.shape{n=shaper.number, shaper.string},

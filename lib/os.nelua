@@ -73,8 +73,7 @@ because of its reliance on C function `gmtime` and C function `localtime`.
 ]]
 function os.date(format: facultative(string), formattime: facultative(integer)): string
   -- TODO: handle '*t' format
-  -- TODO: use gmtime_r and localtime_r instead
-  -- TODO: check invalid for invalid formats (Lua does)
+  -- TODO: check for invalid formats (Lua performs checks)
   ## if formattime.type.is_niltype then
   local t: ctime_t = time(nilptr)
   ## else
@@ -428,7 +427,7 @@ function os.now(): number
   #include <windows.h>
 #endif
 ]]
-  cemitdecl [[
+  cinclude [[
 /* Determine supported high resolution time API. */
 #if __STDC_VERSION__ >= 201112L && defined(TIME_UTC) && !defined(__ANDROID__)
   #define NELUA_HAVE_C11_TIMESPEC_GET

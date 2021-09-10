@@ -422,7 +422,15 @@ end
 function visitors.Directive(context, node, emitter)
   local name, args = node[1], node[2]
   if name == 'cinclude' then
-    context:ensure_include(args[1])
+    local code = args[1]
+    if traits.is_function(code) then
+      local decemitter = CEmitter(context)
+      code(decemitter)
+      code = decemitter:generate()
+      context:add_directive(code)
+    else
+      context:ensure_include(code)
+    end
   elseif name == 'cfile' then
     context:ensure_cfile(args[1])
   elseif name == 'cemit' then
@@ -441,9 +449,8 @@ function visitors.Directive(context, node, emitter)
       code(decemitter)
       code = decemitter:generate()
     end
-    -- actually add in the directives section (just above declarations section)
-    context:add_directive(code)
-  elseif name == 'cemitdef' then
+    context:add_declaration(code)
+  elseif name == 'cemitdefn' then
     local code = args[1]
     if traits.is_string(code) then
       code = stringer.ensurenewline(code)

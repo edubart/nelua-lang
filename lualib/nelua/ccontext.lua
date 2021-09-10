@@ -187,13 +187,16 @@ function CContext:ensure_include(name)
   local inccode = name
   local searchinc = false
   if not inccode:find('[#\n]') then
-    if not name:match('^["<].*[>"]$') then
+    if not name:match('^".*"$') and not name:match('^<.*>$') then
       inccode = '<'..name..'>'
       searchinc = true
     end
-    inccode = '#include '..inccode..'\n'
-    if directives[inccode] then return end
+    inccode = '#include '..inccode
   end
+  if not inccode:find('\n$') then
+    inccode = inccode..'\n'
+  end
+  if directives[inccode] then return end
   -- add include directive
   directives[inccode] = true
   directives[name] = true

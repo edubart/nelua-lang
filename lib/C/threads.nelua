@@ -16,7 +16,7 @@ if not (ccinfo.is_apple or ccinfo.is_windows) and
        not ccinfo.stdc_no_threads then -- C11 threads is supported
   cinclude 'threads.h'
 else -- implement C11 threads using POSIX threads
-  cemitdecl(function(emitter) emitter:add(c11thread_code) end)
+  cinclude(function(emitter) emitter:add(c11thread_code) end)
 end
 cflags '-pthread' -- all implementations we support is using pthread
 ]]

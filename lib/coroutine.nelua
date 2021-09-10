@@ -30,7 +30,7 @@ require 'allocators.gc'
 ## end
 
 -- Emit the minicoro code.
-## cemitdecl(function(emitter) emitter:add(minicoro_code) end)
+## cinclude(function(emitter) emitter:add(minicoro_code) end)
 
 -- Import minicoro functions.
 local mco_state: type <cimport,nodecl,using> = @enum(cint){

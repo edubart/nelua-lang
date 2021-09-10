@@ -40,7 +40,7 @@ end
 The GC may scan uninitialized values generating warnings when some sanitizers are active,
 The following is to disable these warnings.
 ]=]
-cemitdecl[=[
+cinclude[=[
 /* Macro used suppress sanitizer errors when the GC is scanning. */
 #if defined(__has_feature)
   #if __has_feature(address_sanitizer)
