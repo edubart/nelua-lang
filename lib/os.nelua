@@ -38,6 +38,7 @@ local function time(tloc: *ctime_t): ctime_t <cimport,cinclude'<time.h>'> end
 local function mktime(tp: *tm): ctime_t <cimport,cinclude'<time.h>'> end
 local function localtime(timer: *ctime_t): *tm <cimport,cinclude'<time.h>'> end
 local function strftime(s: cstring, maxsize: csize, format: cstring, tp: *tm): csize <cimport,cinclude'<time.h>'> end
+local function difftime(time1: ctime_t, time0: ctime_t): cdouble <cimport,cinclude'<time.h>'> end
 
 local errno: cint <cimport,cinclude'<errno.h>'>
 local function strerror(errnum: cint): cstring <cimport,cinclude'<string.h>'> end
@@ -68,8 +69,11 @@ Returns the difference, in seconds, from time `t1` to time `t2`
 
 In POSIX, Windows, and some other systems, this value is exactly `t2 - t1`.
 ]]
-function os.difftime(t1: integer, t2: integer): integer
-  return t2 - t1
+function os.difftime(t2: integer, t1: integer): number
+  local ct2: ctime_t = (@ctime_t)(t2)
+  local ct1: ctime_t = (@ctime_t)(t1)
+  assert(ct2 == t2 and ct1 == t1, 'time out of bounds')
+  return difftime(ct2, ct1)
 end
 
 --[[

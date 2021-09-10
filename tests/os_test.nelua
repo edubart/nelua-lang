@@ -6,7 +6,7 @@ do -- os.clock
 end
 
 do -- os.difftime
-  assert(os.difftime(0,0) == 0 and os.difftime(0,1) == 1)
+  assert(os.difftime(0,0) == 0 and os.difftime(1,0) == 1)
 end
 
 do -- os.getenv
