@@ -36,7 +36,6 @@ local CLOCKS_PER_SEC: cclock_t <cimport,cinclude'<time.h>'>
 local function clock(): cclock_t <cimport,cinclude'<time.h>'> end
 local function time(tloc: *ctime_t): ctime_t <cimport,cinclude'<time.h>'> end
 local function mktime(tp: *tm): ctime_t <cimport,cinclude'<time.h>'> end
-local function localtime(timer: *ctime_t): *tm <cimport,cinclude'<time.h>'> end
 local function strftime(s: cstring, maxsize: csize, format: cstring, tp: *tm): csize <cimport,cinclude'<time.h>'> end
 local function difftime(time1: ctime_t, time0: ctime_t): cdouble <cimport,cinclude'<time.h>'> end
 
@@ -54,13 +53,67 @@ function os.clock(): number
   return clock() / CLOCKS_PER_SEC
 end
 
--- Returns a human-readable date and time representation using the current locale.
-function os.date(): string
+--[[
+Returns a string or a table containing date and time,
+formatted according to the given string `format`.
+
+If the `formattime` argument is present, this is the time to be formatted
+(see the `os.time` function for a description of this value).
+Otherwise, `date` formats the current time.
+
+If `format` starts with '!', then the date is formatted in UTC (Coordinated Universal Time).
+After this optional character, the date is
+formatted according to the same rules as the ISO C function `strftime`.
+
+If `format` is absent, it defaults to "%c",
+which gives a human-readable date and time representation using the current locale.
+
+On non-POSIX systems, this function may be not thread safe
+because of its reliance on C function `gmtime` and C function `localtime`.
+]]
+function os.date(format: facultative(string), formattime: facultative(integer)): string
+  -- TODO: handle '*t' format
+  -- TODO: use gmtime_r and localtime_r instead
+  -- TODO: check invalid for invalid formats (Lua does)
+  ## if formattime.type.is_niltype then
   local t: ctime_t = time(nilptr)
-  local buf: [250]cchar
-  --TODO: all the other options from Lua
-  local size: csize = strftime(&buf[0], 250, "%c", localtime(&t))
-  return string.copy(&buf[0])
+  ## else
+  local t: ctime_t = (@ctime_t)(formattime)
+  assert(t == formattime, 'time out of bounds')
+  ## end
+##[==[
+  cinclude '<time.h>'
+  cinclude [[
+/* Use thread safe gmtime/localtime on POSIX. */
+#if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
+  #define nelua_gmtime(t, r) gmtime_r(t, r)
+  #define nelua_localtime(t, r) localtime_r(t, r)
+#else
+  #define nelua_gmtime(t, r) gmtime(t)
+  #define nelua_localtime(t, r) localtime(t)
+#endif
+]]
+]==]
+  local function nelua_gmtime(timep: *ctime_t, result: *tm): *tm <cimport,nodecl> end
+  local function nelua_localtime(timep: *ctime_t, result: *tm): *tm <cimport,nodecl> end
+  local stm: *tm, tmr: tm
+  local fmt: cstring
+  local buf: [256]cchar <noinit>
+  ## if format.type.is_niltype then
+  stm = nelua_localtime(&t, &tmr)
+  fmt = "%c"
+  ## else
+  if format.size > 0 and format.data[0] == '!'_b then -- UTC?
+    stm = nelua_gmtime(&t, &tmr)
+    fmt = &format.data[1]
+  else
+    stm = nelua_localtime(&t, &tmr)
+    fmt = &format.data[0]
+  end
+  ## end
+  assert(stm ~= nilptr, "date result cannot be represented in this installation")
+  local size: csize = strftime(&buf, #buf, fmt, stm)
+  return string{data=&buf[0],size=size}:copy()
 end
 
 --[[

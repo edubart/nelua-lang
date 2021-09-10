@@ -143,11 +143,11 @@ cdefs.target_info_code = [[
 #if defined(__gnu_linux__)
   is_gnu_linux = true;
 #endif
-#if defined(__WIN32__) || defined(__WIN32) || defined(_WIN32)
+#if defined(_WIN32)
   is_win32 = true;
   is_windows = true;
 #endif
-#if defined(__WIN64__) || defined(__WIN64) || defined(_WIN64)
+#if defined(_WIN64)
   is_win64 = true;
 #endif
 #if defined(__WINNT__) || defined(__WINNT)
@@ -156,7 +156,7 @@ cdefs.target_info_code = [[
 #if defined(__DOS__) || defined(__DOS) || defined(_DOS)
   is_dos = true;
 #endif
-#if defined(__MS_DOS__) || defined(__MSDOS)
+#if defined(__MSDOS__) || defined(__MSDOS)
   is_msdos = true;
 #endif
 #if defined(__APPLE__)
@@ -178,7 +178,7 @@ cdefs.target_info_code = [[
 #if defined(__MACH__)
   is_mach = true;
 #endif
-#if defined(__HPUX__) || defined(__HPUX) || defined(__hpux__) || defined(__hpux)
+#if defined(__hpux)
   is_hpux = true;
 #endif
 #if defined(__sgi__) || defined(__sgi)
@@ -283,7 +283,7 @@ cdefs.target_info_code = [[
 #if defined(__MINGW64__) || defined(__MINGW32__)
   is_mingw = true;
 #endif
-#if defined(__CYGWIN__) || defined(__CYGWIN32__)
+#if defined(__CYGWIN__)
   is_cygwin = true;
 #endif
 #if defined(_MSC_VER)

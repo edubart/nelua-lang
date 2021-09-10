@@ -1,5 +1,4 @@
 require 'os'
-require 'traits'
 
 do -- os.clock
   assert(os.clock() >= 0)
@@ -10,14 +9,24 @@ do -- os.difftime
 end
 
 do -- os.getenv
-  local path = os.getenv('PATH')
-  assert(type(path) == 'string')
+  local path = os.getenv('SHELL')
   path:destroy()
 end
 
 do -- os.date
   local date = os.date()
-  assert(type(date) == 'string')
+  date:destroy()
+
+  date = os.date('%Y/%m/%d %H:%M:%S')
+  assert(date:find('^[0-9]+/[0-9]+/[0-9]+ [0-9]+:[0-9]+:[0-9]+$') > 0)
+  date:destroy()
+
+  date = os.date('!%c', 0)
+  assert(date:find('00:00:00') > 0)
+  date:destroy()
+
+  date = os.date('')
+  assert(date == '')
 end
 
 do -- os.execute
@@ -30,7 +39,6 @@ end
 
 do -- os.tmpname
   local tmpname = os.tmpname()
-  assert(type(tmpname) == 'string')
   os.remove(tmpname)
   tmpname:destroy()
 end

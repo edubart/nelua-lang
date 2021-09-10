@@ -1280,15 +1280,30 @@ as returned by the underlying ISO C function `clock`.
 ### os.date
 
 ```nelua
-function os.date(): string
+function os.date(format: facultative(string), formattime: facultative(integer)): string
 ```
 
-Returns a human-readable date and time representation using the current locale.
+Returns a string or a table containing date and time,
+formatted according to the given string `format`.
+
+If the `formattime` argument is present, this is the time to be formatted
+(see the `os.time` function for a description of this value).
+Otherwise, `date` formats the current time.
+
+If `format` starts with '!', then the date is formatted in UTC (Coordinated Universal Time).
+After this optional character, the date is
+formatted according to the same rules as the ISO C function `strftime`.
+
+If `format` is absent, it defaults to "%c",
+which gives a human-readable date and time representation using the current locale.
+
+On non-POSIX systems, this function may be not thread safe
+because of its reliance on C function `gmtime` and C function `localtime`.
 
 ### os.difftime
 
 ```nelua
-function os.difftime(t1: integer, t2: integer): integer
+function os.difftime(t2: integer, t1: integer): number
 ```
 
 Returns the difference, in seconds, from time `t1` to time `t2`
