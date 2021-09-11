@@ -52,13 +52,16 @@ do -- os.remove
 end
 
 do -- os.locale
-  local locale: string = os.setlocale('C')
-  assert(locale:subview(1,1) == 'C')
+  local deflocale: string = os.setlocale()
+  local locale: string = os.setlocale(deflocale)
+  assert(locale == deflocale)
   locale:destroy()
 
-  locale = os.setlocale('C','all')
-  assert(locale:subview(1,1) == 'C')
+  locale = os.setlocale(deflocale, 'all')
+  assert(locale == deflocale)
   locale:destroy()
+
+  deflocale:destroy()
 end
 
 do -- os.time
@@ -67,9 +70,13 @@ do -- os.time
 end
 
 do -- os.now/os.sleep
-  assert(os.now() == 0.0)
-  os.sleep(0.02)
-  assert(os.now() >= 0.01)
+  local start = os.now()
+  if start >= 0 then -- os.now is supported
+    assert(start == 0.0)
+    if os.sleep(0.02) then -- os.sleep succeeded
+      assert(os.now() >= 0.01)
+    end
+  end
 end
 
 print 'os OK!'

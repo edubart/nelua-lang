@@ -262,9 +262,12 @@ If locale is the string `"C"`, the current locale is set to the standard C local
 The function returns the name of the new locale on success,
 or an empty string if the request cannot be honored.
 ]]
-function os.setlocale(locale: string, category: facultative(string)): string
-  ## if category.type.is_niltype then
-    return os.setlocale(locale, 'all')
+function os.setlocale(locale: facultative(string), category: facultative(string)): string
+  local s: cstring
+  ## if locale.type.is_niltype then
+    s = setlocale(LC_ALL, nilptr)
+  ## elseif category.type.is_niltype then
+    s = setlocale(LC_ALL, locale)
   ## else
     local cat: cint
     if category == 'all' then cat = LC_ALL
@@ -276,13 +279,13 @@ function os.setlocale(locale: string, category: facultative(string)): string
     else
       error("invalid category")
     end
-    local s: cstring = setlocale(cat, locale)
-    if s then
-      return string.copy(s)
-    else
-      return (@string){}
-    end
+    s = setlocale(cat, locale)
   ## end
+  if s then
+    return string.copy(s)
+  else
+    return (@string){}
+  end
 end
 
 -- Time description, used by function `os.time`.
@@ -555,7 +558,11 @@ function os.sleep(secs: number): boolean
     ok = res == 0;
   }
 #elif defined(_POSIX_VERSION)
-  usleep(us);
+  if(us > 0) {
+    ok = usleep(us) == 0;
+  } else {
+    ok = true;
+  }
 #endif
 ]]
 ]==]

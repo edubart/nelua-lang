@@ -5,7 +5,7 @@ if STATIC then
   linklib 'mylib_static'
 else
   linklib 'mylib'
-  if ccinfo.is_unix then
+  if ccinfo.is_unix or ccinfo.is_haiku then
     -- We expect that 'mylib' library is available in the current path.
     cflags "-Wl,-rpath,'$ORIGIN'"
   end

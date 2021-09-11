@@ -11,14 +11,19 @@ require 'C.time'
 if not pragmas.nogc then
   static_error "multithreading and GC is not supported, please enable pragma 'nogc'"
 end
-if not (ccinfo.is_apple or ccinfo.is_windows) and
+if not (ccinfo.is_apple or ccinfo.is_windows or ccinfo.is_haiku) and
        (ccinfo.is_c11 or ccinfo.is_cpp11) and
        not ccinfo.stdc_no_threads then -- C11 threads is supported
   cinclude 'threads.h'
 else -- implement C11 threads using POSIX threads
   cinclude(function(emitter) emitter:add(c11thread_code) end)
 end
-cflags '-pthread' -- all implementations we support is using pthread
+-- all implementations we support is using pthread
+if ccinfo.is_gcc and not ccinfo.is_haiku then
+  cflags '-pthread' -- this flag will link pthread, and also fix possible issues on Linux
+else -- must link pthread
+  linklib 'pthread'
+end
 ]]
 
 -- Types
@@ -98,7 +103,7 @@ global C.TSS_DTOR_ITERATIONS: cint <const,cimport,nodecl>
 #include <pthread.h>
 #include <sched.h>
 #include <stdint.h>
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__HAIKU__)
   #define C11THREADS_NO_TIMED_MUTEX
 #endif
 #ifdef C11THREADS_NO_TIMED_MUTEX
