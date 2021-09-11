@@ -102,13 +102,12 @@ optimized-nelua-lua:
 	$(RM_DIR) pgo
 
 ###############################################################################
-## Lua init script
+## Luac
 
 LUAC=./$(NELUALUAC)
 LUAC_DEFS=-DMAKE_LUAC
 LUAC_SRCS=src/lua/onelua.c
 LUAC_HDRS=$(wildcard src/lua/*.h) $(wildcard src/lua/*.c)
-XXD=xxd
 
 # Compile Nelua's Lua compiler.
 $(NELUALUAC): $(LUAC_SRCS) $(LUAC_HDRS)
@@ -120,10 +119,14 @@ $(NELUALUAC): $(LUAC_SRCS) $(LUAC_HDRS)
 		-o $(NELUALUAC) \
 		$(LDFLAGS) $(MYLDFLAGS) $(LIBS) $(MYLIBS)
 
+###############################################################################
+## Lua init script
+
+XXD=xxd
+
 # Generates src/luainit.c (requires xxd tool from Vim)
-gen-luainit: $(NELUALUAC) src/luainit.lua
-	$(LUAC) -o src/luainit.luabc src/luainit.lua
-	$(XXD) -i src/luainit.luabc > src/luainit.h
+gen-luainit: src/luainit.lua
+	$(XXD) -i src/luainit.lua > src/luainit.h
 
 ###############################################################################
 # Testing
