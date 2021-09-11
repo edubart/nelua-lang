@@ -57,7 +57,7 @@ function fs.basename(p)
 end
 
 -- Is this an absolute path?
-function fs.isabs(p)
+function fs.isabspath(p)
   if p:find('^/') then return true end
   if fs.winstyle and p:find('^\\') or p:find('^.:') then return true end
   return false
@@ -78,7 +78,7 @@ function fs.join(p1, p2, ...)
     end
     return p
   end
-  if fs.isabs(p2) then return p2 end
+  if fs.isabspath(p2) then return p2 end
   local endpos = #p1
   local endc = p1:sub(endpos,endpos)
   if endc ~= fs.sep and endc ~= fs.othersep and endc ~= "" then
@@ -141,15 +141,16 @@ end
 
 -- Return an absolute path.
 function fs.abspath(p, pwd)
-  local use_pwd = pwd ~= nil
+  if pwd and not fs.isabspath(pwd) then pwd = fs.abspath(pwd) end
   p = p:gsub('[\\/]$','')
-  if not fs.isabs(p) then
+  if not fs.isabspath(p) then
     pwd = pwd or lfs.currentdir()
     p = fs.join(pwd,p)
-  elseif fs.winstyle and not use_pwd and
-         p:find '^.[^:\\]' then --luacov:disable
-    pwd = pwd or lfs.currentdir()
-    p = pwd:sub(1,2)..p -- attach current drive to path like '\\fred.txt'
+  elseif fs.winstyle then --luacov:disable
+    if p:find '^.[^:\\]' then
+      pwd = pwd or lfs.currentdir()
+      p = pwd:sub(1,2)..p -- attach current drive to path like '\\fred.txt'
+    end
   end --luacov:enable
   return fs.normpath(p)
 end

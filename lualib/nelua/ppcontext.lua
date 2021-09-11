@@ -13,6 +13,7 @@ local memoize = require 'nelua.utils.memoize'
 local except = require 'nelua.utils.except'
 local errorer = require 'nelua.utils.errorer'
 local stringer = require 'nelua.utils.stringer'
+local fs = require 'nelua.utils.fs'
 local types = require 'nelua.types'
 local aster = require 'nelua.aster'
 local typedefs = require 'nelua.typedefs'
@@ -364,29 +365,61 @@ This is just like Lua's require but it will use the preprocessor
 context environment to load the module, so all preprocessor
 methods are available in the required filed.
 ]]
-function PPContext:require(modname)
+function PPContext:require(reqname)
+  local modname = reqname
+  local reqpath = fs.reqrelpath(reqname, 'lua')
+  if reqpath then
+    local scriptname = fs.scriptname(3)
+    if not scriptname then
+      error("module '"..reqname.."' not found:\n\tfailed to retrieve current script directory")
+    end
+    reqpath = fs.abspath(reqpath, fs.dirname(scriptname))
+    modname = reqpath
+  end
   local mod = package.loaded[modname] -- lookup for a loaded module
   if mod then return mod end -- module already loaded? return it
   local loader, loaderdata
   local loaderrs = {}
   local found = false
-  for _,searcher in ipairs(package.searchers) do
-    loader, loaderdata = searcher(modname)
-    local ty = type(loader)
-    if ty == 'function' then -- module found
+  if reqpath then
+    local contents, err = fs.readfile(reqpath)
+    if contents then
+      loader, err = load(contents, '@'..reqpath)
+    end
+    if err then
+      loaderrs[1] = err
+    elseif type(loader) == 'function' then -- module found
+      loaderdata = reqpath
       found = true
-      break
-    elseif ty == 'string' then -- append search error
-      loaderrs[#loaderrs+1] = loader
+    end
+  else
+    for _,searcher in ipairs(package.searchers) do
+      loader, loaderdata = searcher(modname)
+      local ty = type(loader)
+      if ty == 'function' then -- module found
+        found = true
+        break
+      elseif ty == 'string' then -- append search error
+        loaderrs[#loaderrs+1] = loader
+      end
     end
   end
   if not found then -- module not found
-    error("module '"..modname.."' not found:\n\t"..table.concat(loaderrs, '\n\t'), 2)
+    error("module '"..reqname.."' not found:\n\t"..table.concat(loaderrs, '\n\t'), 2)
   end
+  -- check if module was already loaded by full path
+  local modpath = type(loaderdata) == 'string' and fs.abspath(loaderdata)
+  mod = package.loaded[modpath]
+  if mod then -- already loaded under a different name
+    package.loaded[modname] = mod
+    return mod
+  end
+  -- load the module
   debug.setupvalue(loader, 1, self.env) -- patch _ENV
   mod = loader(modname, loaderdata) -- load the module
   if mod == nil then mod = true end -- module set no value? use true as result
-  package.loaded[modname] = mod -- cache module
+  package.loaded[modname] = mod -- cache module by name
+  if modpath then package.loaded[modpath] = mod end -- cache module by path
   return mod, loaderdata
 end
 

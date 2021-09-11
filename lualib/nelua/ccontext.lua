@@ -202,7 +202,7 @@ function CContext:ensure_include(name)
   directives[name] = true
   directives[#directives+1] = inccode
   -- make sure to add the include directory for that file
-  if searchinc and not fs.isabs(name) then
+  if searchinc and not fs.isabspath(name) then
     local dirpath = self:get_visiting_directory()
     if dirpath then
       local filepath = fs.join(dirpath, name)
@@ -234,7 +234,7 @@ If the file name is not an absolute path, then looks for files in the current so
 ]]
 function CContext:ensure_cfile(filename)
   -- search the file relative to the current source file
-  if not fs.isabs(filename) then
+  if not fs.isabspath(filename) then
     local dirpath = self:get_visiting_directory()
     if dirpath then
       local filepath = fs.join(dirpath, filename)

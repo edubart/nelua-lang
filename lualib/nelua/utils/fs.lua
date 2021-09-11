@@ -83,7 +83,7 @@ function fs.basename(p)
 end
 
 -- Is this an absolute path?
-function fs.isabs(p)
+function fs.isabspath(p)
   if p:find('^/') then return true end
   if fs.winstyle and p:find('^\\') or p:find('^.:') then return true end
   return false
@@ -104,7 +104,7 @@ function fs.join(p1, p2, ...)
     end
     return p
   end
-  if fs.isabs(p2) then return p2 end
+  if fs.isabspath(p2) then return p2 end
   local endpos = #p1
   local endc = p1:sub(endpos,endpos)
   if endc ~= fs.sep and endc ~= fs.othersep and endc ~= "" then
@@ -167,15 +167,16 @@ end
 
 -- Return an absolute path.
 function fs.abspath(p, pwd)
-  local use_pwd = pwd ~= nil
+  if pwd and not fs.isabspath(pwd) then pwd = fs.abspath(pwd) end
   p = p:gsub('[\\/]$','')
-  if not fs.isabs(p) then
+  if not fs.isabspath(p) then
     pwd = pwd or lfs.currentdir()
     p = fs.join(pwd,p)
-  elseif fs.winstyle and not use_pwd and
-         p:find '^.[^:\\]' then --luacov:disable
-    pwd = pwd or lfs.currentdir()
-    p = pwd:sub(1,2)..p -- attach current drive to path like '\\fred.txt'
+  elseif fs.winstyle then --luacov:disable
+    if p:find '^.[^:\\]' then
+      pwd = pwd or lfs.currentdir()
+      p = pwd:sub(1,2)..p -- attach current drive to path like '\\fred.txt'
+    end
   end --luacov:enable
   return fs.normpath(p)
 end
@@ -385,10 +386,18 @@ function fs.tmpfile()
   return f, name
 end
 
--- Return the relative path for the calling script.
+-- Returns the path for the calling script at level `level`.
 function fs.scriptname(level)
   level = level or 2
-  return debug.getinfo(level, 'S').source:sub(2)
+  local info = debug.getinfo(level, 'S')
+  local path
+  if info and info.source then
+    path = info.source:match('^@([^\n\r]+)')
+    if path then
+      path = path:gsub(':@%w+$', '') -- remove :@ppcode (used by the preprocessor)
+    end
+  end
+  return path
 end
 
 -- Iterate entries of a directory that matches the given pattern.
@@ -400,6 +409,32 @@ function fs.dirmatch(path, patt)
     until not entry or entry:match(patt)
     return entry
   end, state
+end
+
+--[[
+Translate a relative 'require' made into a relative path.
+If `name` is not a relative require path, then returns `nil`.
+If the `name` does not contain a file extension then `ext` is appended.
+]]
+function fs.reqrelpath(name, ext)
+  local path
+  if fs.isabspath(name) then -- absolute path
+    path = name
+  elseif name:find('^%.%.?[/\\]') then -- relative with '../'
+    path = name
+  elseif name:find('^%.+') then -- relative with '.'
+    local dots, rest = name:match('^(%.+)(.*)')
+    rest = rest:gsub('%.', fs.sep)
+    if #dots == 1 then
+      path = rest
+    else
+      path = fs.join(string.rep('..'..fs.sep, #dots-1), rest)
+    end
+    if path and ext and not path:find('%.([%w_-]+)$') then
+      path = path..'.'..ext
+    end
+  end
+  return path
 end
 
 -- Helper for `fs.findmodule`, found modules are cached.
@@ -425,41 +460,14 @@ Search for a module using a path string or relative path.
 The path string must be a string like './?.nelua;./?/init.nelua'.
 ]]
 function fs.findmodule(name, searchpath, relpath, ext)
-  local fullpath
-  if relpath then
-    if fs.isabs(name) then -- absolute path
-      fullpath = fs.abspath(name)
-    elseif name:find('^%.%.?[/\\]') then -- relative with '../'
-      fullpath = fs.abspath(fs.join(relpath, name))
-    elseif name:find('^%.+') then -- relative with '.'
-      local dots, rest = name:match('^(%.+)(.*)')
-      rest = rest:gsub('%.', fs.sep)
-      if #dots == 1 then
-        fullpath = fs.abspath(fs.join(relpath, rest))
-      else
-        fullpath = fs.abspath(fs.join(relpath, string.rep('..'..fs.sep, #dots-1), rest))
-      end
-    end
-  end
-  local triedpaths
-  local modpath
-  if fullpath then -- full path of the file is known
-    local paths
-    if not fullpath:find('%.%w+$') then
-      paths = {
-        fullpath..'.'..ext,
-        fs.join(fullpath,'init.'..ext)
-      }
+  local triedpaths, modpath
+  local reqpath = fs.reqrelpath(name, ext)
+  if reqpath  then -- relative require path
+    reqpath = fs.abspath(reqpath, relpath)
+    if fs.isfile(reqpath) then
+      modpath = reqpath
     else
-      paths = {fullpath}
-    end
-    triedpaths = {}
-    for _,trypath in ipairs(paths) do
-      if fs.isfile(trypath) then
-        modpath = fs.abspath(trypath)
-        break
-      end
-      triedpaths[#triedpaths+1] = trypath
+      triedpaths = {reqpath}
     end
   else -- search for a file in searchpath
     if name:find('^~') then -- revert the path search order

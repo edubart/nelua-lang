@@ -761,6 +761,9 @@ it("require override", function()
   expect.analyze_error([=[##[[
     require 'nelua.utils.invalid'
   ]]]=], 'not found:')
+  expect.analyze_error([=[##[[
+    require './invalid_directory/invalid_file.lua'
+  ]]]=], 'not found:')
 end)
 
 it("run brainfuck", function()
