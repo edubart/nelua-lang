@@ -85,7 +85,11 @@ local function get_compiler_cflags(compileopts)
     end
   end
   if config.shared_lib then
-    cflags:add(' '..ccflags.cflags_shared_lib)
+    if ccinfo.is_windows and ccflags.cflags_shared_lib_windows then
+      cflags:add(' '..ccflags.cflags_shared_lib_windows)
+    else
+      cflags:add(' '..ccflags.cflags_shared_lib)
+    end
   elseif config.static_lib or config.object then
     cflags:add(' '..ccflags.cflags_object)
   elseif config.assembly then

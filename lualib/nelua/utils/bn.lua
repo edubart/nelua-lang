@@ -168,6 +168,7 @@ function bn.todecsci(v, decimaldigits, forcefract)
       else
         s = string.format('%.'..decimaldigits..'g', v)
       end
+      s = s:gsub('([Ee][+-])0+', '%1') -- '1e-08' -> '1e-8'
       forcefract = true
     end
   end

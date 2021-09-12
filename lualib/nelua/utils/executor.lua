@@ -60,19 +60,17 @@ local function execute(cmd)
 end
 
 -- Quote and escape an argument for a command.
-local function quote_arg(argument, exe)
+local function quote_arg(argument)
   -- only a single argument
   if platform.is_windows then
+    -- os.execute() uses system() C function, which on Windows passes command
+    -- to cmd.exe. Escape its special characters.
+    argument = argument:gsub('["^<>!|&%%]', "^%0")
     if argument == "" or argument:find('[ \f\t\v]') then
       -- need to quote the argument, quotes need to be escaped with backslashes
       -- additionally, backslashes before a quote, escaped or not, need to be doubled
       -- see documentation for CommandLineToArgvW Windows function
       argument = '"' .. argument:gsub([[(\*)"]], [[%1%1\"]]):gsub([[\+$]], "%0%0") .. '"'
-    end
-    -- os.execute() uses system() C function, which on Windows passes command
-    -- to cmd.exe. Escape its special characters.
-    if not exe then
-      argument = argument:gsub('["^<>!|&%%]', "^%0")
     end
     return argument
   else

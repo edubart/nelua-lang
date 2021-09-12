@@ -160,7 +160,7 @@ function os.execute(command: facultative(string)): (boolean, string, integer)
       end
       local reason: string = 'exit'
       ## cinclude '@unistd.h'
-      ## cemit '#if _POSIX_VERSION >= 200112L && defined(WEXITSTATUS)'
+      ## cemit '#if defined(_POSIX_VERSION) && defined(WEXITSTATUS)'
         local function WEXITSTATUS(stat: cint): cint <cimport,cinclude'<stdlib.h>'> end
         local function WIFEXITED(stat: cint): cint <cimport,cinclude'<stdlib.h>'> end
         local function WIFSIGNALED(stat: cint): cint <cimport,cinclude'<stdlib.h>'> end
@@ -484,7 +484,7 @@ function os.sleep(secs: number): boolean
   local ok: boolean
   ## cinclude '@unistd.h'
   ## cinclude '@windows.h'
-  ## cemit '#if _POSIX_VERSION >= 200112L'
+  ## cemit '#if defined(_POSIX_TIMERS)'
     local function nanosleep(requested_time: *timespec, remaining: *timespec): cint <cimport,cinclude'<time.h>'> end
     local EINTR: cint <cimport,cinclude'<errno.h>'>
     local res: cint

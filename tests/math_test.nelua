@@ -384,13 +384,11 @@ do -- math.frexp
     local x: number, exp: int32
     x, exp = math.frexp(1024.0)  asserteq(x,  0.5)  asserteq(exp, 11)
     x, exp = math.frexp(3)       asserteq(x, 0.75)  asserteq(exp,  2)
-    x, exp = math.frexp(0)       asserteq(x,    0)  asserteq(exp,  0)
   end
   do -- float32
     local x: float32, exp: int32
     x, exp = math.frexp(1024.0_f32)  asserteq(x,  0.5_f32)  asserteq(exp, 11)
     x, exp = math.frexp(3_f32)       asserteq(x, 0.75_f32)  asserteq(exp,  2)
-    x, exp = math.frexp(0_f32)       asserteq(x,    0_f32)  asserteq(exp,  0)
   end
 end
 

@@ -57,16 +57,16 @@ function hash.hash(v: auto): usize
   ## elseif v.type.is_integral then
     return (@usize)(v)
   ## elseif v.type.is_float then
-    local ne: cint
     ## if v.type.is_cfloat then
     local function frexp(x: cfloat, exp: *cint): cfloat <cimport'frexpf',cinclude'<math.h>',nosideeffect> end
     ## else
     local function frexp(x: cdouble, exp: *cint): cdouble <cimport'frexp',cinclude'<math.h>',nosideeffect> end
     ## end
-    v = frexp(v, &ne) * -(#[primtypes.isize.min]#)
-    if v ~= v or v == #[math.huge]# or v == -#[math.huge]# then -- non finite
+    if v == 0 or v ~= v or v == #[math.huge]# or v == -#[math.huge]# then -- 0 or non finite
       return 0
     end
+    local ne: cint
+    v = frexp(v, &ne) * -(#[primtypes.isize.min]#)
     local u: usize = (@usize)(v) + (@usize)(ne)
     return u < (@usize)(#[primtypes.isize.max]#) and u or ~u
   ## elseif v.type.is_boolean then

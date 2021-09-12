@@ -101,6 +101,7 @@ global C.TSS_DTOR_ITERATIONS: cint <const,cimport,nodecl>
 #include <time.h>
 #include <errno.h>
 #include <pthread.h>
+#include <unistd.h>
 #include <sched.h>
 #include <stdint.h>
 #if defined(__APPLE__) || defined(__HAIKU__)
@@ -154,7 +155,15 @@ static inline thrd_t thrd_current(void) {
   return pthread_self();
 }
 static inline int thrd_sleep(const struct timespec *ts_in, struct timespec *rem_out) {
+#ifdef _POSIX_TIMERS
   return nanosleep(ts_in, rem_out) == 0 ? 0 : (errno == EINTR ? -1 : -2);
+#else
+  if(rem_out) {
+    rem_out.tv_sec = 0;
+    rem_out.tv_nsec = 0;
+  }
+  return usleep(ts_in.tv_sec*1000000 + ts_in.tv_nsec/1000) == 0 ? 0 : (errno == EINTR ? -1 : -2);
+#endif
 }
 static inline void thrd_exit(int res) {
   pthread_exit((void*)(uintptr_t)res);

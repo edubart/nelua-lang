@@ -1,6 +1,6 @@
 ##[[
 -- Add the current folder to the linker's library search path.
-cflags("-L "..config.output_dir)
+cflags('-L "'..config.output_dir..'"')
 if STATIC then
   linklib 'mylib_static'
 else

@@ -2,6 +2,7 @@ local lester = require 'nelua.thirdparty.lester'
 local describe, it = lester.describe, lester.it
 
 local expect = require 'spec.tools.expect'
+local fs = require 'nelua.utils.fs'
 local configer = require 'nelua.configer'
 local version = require 'nelua.version'
 local ccompiler = require 'nelua.ccompiler'
@@ -9,9 +10,11 @@ local ccompiler = require 'nelua.ccompiler'
 describe("runner", function()
 
 it("version numbers" , function()
-  expect.equal(#version.NELUA_GIT_HASH, 40)
-  assert(version.NELUA_GIT_BUILD > 0)
-  assert(version.NELUA_GIT_DATE ~= 'unknown')
+  if fs.isfile('.git/config') then
+    expect.equal(#version.NELUA_GIT_HASH, 40)
+    assert(version.NELUA_GIT_BUILD > 0)
+    assert(version.NELUA_GIT_DATE ~= 'unknown')
+  end
 end)
 
 it("compile simple programs" , function()

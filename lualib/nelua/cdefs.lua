@@ -94,6 +94,7 @@ compilers_flags.gcc = tabler.updatecopy(compilers_flags.cc, {
   cflags_debug = "-fsanitize-undefined-trap-on-error -ggdb",
   cflags_maximum_performance = "-Ofast -march=native -DNDEBUG -fno-plt -flto",
   cflags_shared_lib = "-shared -fPIC",
+  cflags_shared_lib_windows = '-shared -Wl,--out-implib,"$(binfile).a"',
   cflags_assembly = "-S -fverbose-asm -g0",
   cmd_compile = '$(cc) -x c "$(cfile)" -x none $(cflags) -o "$(binfile)"',
   cmd_info = '$(cc) -E -x c "$(cfile)" -x none $(cflags)',
@@ -101,13 +102,6 @@ compilers_flags.gcc = tabler.updatecopy(compilers_flags.cc, {
 })
 -- Clang
 compilers_flags.clang = tabler.copy(compilers_flags.gcc)
--- MinGW32 GCC
-compilers_flags['mingw32-gcc'] = tabler.updatecopy(compilers_flags.gcc, {
-  cflags_shared_lib = '-shared -Wl,--out-implib,"$(binfile).a"',
-  cflags_maximum_performance = "-Ofast -DNDEBUG -march=native -flto",
-})
--- MinGW32 Clang
-compilers_flags['mingw32-clang'] = tabler.copy(compilers_flags['mingw32-gcc'])
 -- TCC
 compilers_flags.tcc = tabler.updatecopy(compilers_flags.cc, {
   cflags_base = "-w",

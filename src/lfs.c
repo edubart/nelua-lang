@@ -31,7 +31,9 @@
 #endif
 
 #ifdef _WIN32
+#ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x600
+#endif
 #endif
 
 #ifndef LFS_DO_NOT_USE_LARGE_FILE
@@ -622,8 +624,11 @@ static int make_link(lua_State * L)
     return 2;
   }
 
-  int result = symbolic ? CreateSymbolicLink(newpath, oldpath, is_dir)
+  int result = 0;
+#if _WIN32_WINNT >= 0x600
+  result = symbolic ? CreateSymbolicLink(newpath, oldpath, is_dir)
       : CreateHardLink(newpath, oldpath, NULL);
+#endif
 
   if (result) {
     return pushresult(L, result, NULL);
@@ -1109,7 +1114,11 @@ static int push_link_target(lua_State * L)
     }
     target = target2;
 #ifdef _WIN32
+  #if _WIN32_WINNT >= 0x600
     tsize = GetFinalPathNameByHandle(h, target, size, FILE_NAME_OPENED);
+  #else
+    tsize = 0;
+  #endif
 #else
     tsize = readlink(file, target, size);
 #endif
@@ -1119,7 +1128,7 @@ static int push_link_target(lua_State * L)
     if (tsize < size) {
 #ifdef _WIN32
       if (tsize > 4 && strncmp(target, "\\\\?\\", 4) == 0) {
-        memmove_s(target, tsize - 3, target + 4, tsize - 3);
+        memmove(target, target + 4, tsize - 3);
         tsize -= 4;
       }
 #endif
