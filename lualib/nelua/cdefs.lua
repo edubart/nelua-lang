@@ -137,6 +137,11 @@ cdefs.target_info_code = [[
 #if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
   is_unix = true;
 #endif
+#if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || \
+                        (defined(__APPLE__) && defined(__MACH__)) || \
+                        defined(__HAIKU__))
+  is_posix = true;
+#endif
 #if defined(__linux__) || defined(__linux)
   is_linux = true;
 #endif
@@ -518,6 +523,28 @@ cdefs.target_info_code = [[
 #endif
 ]]
 
+cdefs.include_hooks = {
+  ["@unistd.h"] = [[
+/* Include basic POSIX constants and APIs */
+#if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || \
+                        (defined(__APPLE__) && defined(__MACH__)) || \
+                        defined(__HAIKU__))
+  #include <unistd.h>
+#endif
+]],
+  ["@windows.h"] = [[
+/* Include Windows APIs. */
+#ifdef _WIN32
+  #ifndef WIN32_LEAN_AND_MEAN
+    #define WIN32_LEAN_AND_MEAN
+  #endif
+  #ifndef _WIN32_WINNT
+    #define _WIN32_WINNT 0x600
+  #endif
+  #include <windows.h>
+#endif
+]],
+}
 cdefs.reserverd_keywords = {
   -- C syntax keywords
   ['auto'] = true,

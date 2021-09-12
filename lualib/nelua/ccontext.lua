@@ -183,20 +183,24 @@ then looks for files in the current source file directory.
 function CContext:ensure_include(name)
   local directives = self.directives
   if directives[name] then return end
-  -- normalize include code
-  local inccode = name
+  local inccode
   local searchinc = false
-  if not inccode:find('[#\n]') then
-    if not name:match('^".*"$') and not name:match('^<.*>$') then
-      inccode = '<'..name..'>'
-      searchinc = true
+  if cdefs.include_hooks[name] then
+    inccode = cdefs.include_hooks[name]
+  else -- normalize include code
+    inccode = name
+    if not inccode:find('[#\n]') then
+      if not name:match('^".*"$') and not name:match('^<.*>$') then
+        inccode = '<'..name..'>'
+        searchinc = true
+      end
+      inccode = '#include '..inccode
     end
-    inccode = '#include '..inccode
+    if not inccode:find('\n$') then
+      inccode = inccode..'\n'
+    end
+    if directives[inccode] then return end
   end
-  if not inccode:find('\n$') then
-    inccode = inccode..'\n'
-  end
-  if directives[inccode] then return end
   -- add include directive
   directives[inccode] = true
   directives[name] = true

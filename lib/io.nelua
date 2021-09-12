@@ -83,27 +83,19 @@ function io.popen(prog: string, mode: facultative(string)) : (filestream, string
   local progcs: cstring <nodce> = prog
   local fp: *FILE
   local closef: function(fp: *FILE): cint
-##[==[
-  -- C code is used so that the generated C is portable across platforms.
-  cinclude '<stdio.h>' -- for popen/pclose
-  cinclude '<stddef.h>' -- for NULL
-  cinclude [[
-/* Include POSIX APIs. */
-#if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
-  #include <unistd.h>
-#endif
-]]
-  cemit[[
-#ifdef _WIN32
-  fp = _popen(progcs, modecs);
-  closef = _pclose;
-#elif _POSIX_VERSION >= 200112L
-  fflush(NULL);
-  fp = popen(progcs, modecs);
-  closef = pclose;
-#endif
-]]
-]==]
+  ## cinclude '@unistd.h'
+  ## cemit '#if _POSIX_VERSION >= 200112L'
+  local function popen(command: cstring, type: cstring): *FILE <cimport,cinclude'<stdio.h>'> end
+  local function pclose(stream: *FILE): cint <cimport,cinclude'<stdio.h>'> end
+  fflush(nilptr)
+  fp = popen(progcs, modecs)
+  closef = pclose
+  ## cemit '#elif defined(_WIN32)'
+  local function _popen(command: cstring, type: cstring): *FILE <cimport,cinclude'<stdio.h>'> end
+  local function _pclose(stream: *FILE): cint <cimport,cinclude'<stdio.h>'> end
+  fp = _popen(progcs, modecs)
+  closef = _pclose
+  ## cemit '#endif'
   if not fp and not closef then
     return filestream{}, 'unsupported', 1
   elseif not fp then

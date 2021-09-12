@@ -32,6 +32,10 @@ local tm: type <cimport,cinclude'<time.h>',ctypedef> = @record{
   tm_sec: cint,
   tm_isdst: cint
 }
+local timespec: type <cimport,cinclude'<time.h>',ctypedef> = @record{
+  tv_sec: ctime_t,
+  tv_nsec: clong
+}
 local CLOCKS_PER_SEC: cclock_t <cimport,cinclude'<time.h>'>
 local function clock(): cclock_t <cimport,cinclude'<time.h>'> end
 local function time(tloc: *ctime_t): ctime_t <cimport,cinclude'<time.h>'> end
@@ -80,36 +84,37 @@ function os.date(format: facultative(string), formattime: facultative(integer)):
   local t: ctime_t = (@ctime_t)(formattime)
   assert(t == formattime, 'time out of bounds')
   ## end
-##[==[
-  cinclude '<time.h>'
-  cinclude [[
-/* Use thread safe gmtime/localtime on POSIX. */
-#if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
-  #define nelua_gmtime(t, r) gmtime_r(t, r)
-  #define nelua_localtime(t, r) localtime_r(t, r)
-#else
-  #define nelua_gmtime(t, r) gmtime(t)
-  #define nelua_localtime(t, r) localtime(t)
-#endif
-]]
-]==]
-  local function nelua_gmtime(timep: *ctime_t, result: *tm): *tm <cimport,nodecl> end
-  local function nelua_localtime(timep: *ctime_t, result: *tm): *tm <cimport,nodecl> end
-  local stm: *tm, tmr: tm
-  local fmt: cstring
+  local fmt: cstring, stm: *tm, tmr: tm
   local buf: [256]cchar <noinit>
+  local utc: boolean
   ## if format.type.is_niltype then
-  stm = nelua_localtime(&t, &tmr)
-  fmt = "%c"
+    fmt = "%c"
   ## else
-  if format.size > 0 and format.data[0] == '!'_b then -- UTC?
-    stm = nelua_gmtime(&t, &tmr)
-    fmt = &format.data[1]
-  else
-    stm = nelua_localtime(&t, &tmr)
-    fmt = &format.data[0]
-  end
+    if format.size > 0 and format.data[0] == '!'_b then -- UTC?
+      utc = true
+      fmt = &format.data[1]
+    else
+      fmt = &format.data[0]
+    end
   ## end
+  ## cinclude '@unistd.h'
+  local function gmtime_r(timep: *ctime_t, result: *tm): *tm <cimport,cinclude'<time.h>'> end
+  local function gmtime(timep: *ctime_t): *tm <cimport,cinclude'<time.h>'> end
+  local function localtime_r(timep: *ctime_t, result: *tm): *tm <cimport,cinclude'<time.h>'> end
+  local function localtime(timep: *ctime_t): *tm <cimport,cinclude'<time.h>'> end
+  ## cemit '#if _POSIX_VERSION'
+    if utc then
+      stm = gmtime_r(&t, &tmr)
+    else
+      stm = localtime_r(&t, &tmr)
+    end
+  ## cemit '#else'
+    if utc then
+      stm = gmtime(&t)
+    else
+      stm = localtime(&t)
+    end
+  ## cemit '#endif'
   assert(stm ~= nilptr, "date result cannot be represented in this installation")
   local size: csize = strftime(&buf, #buf, fmt, stm)
   return string{data=&buf[0],size=size}:copy()
@@ -149,30 +154,25 @@ function os.execute(command: facultative(string)): (boolean, string, integer)
     local function system(command: cstring): cint <cimport,cinclude'<stdlib.h>'> end
     ## if command.type.is_string then
       errno = 0
-      local status: integer = system(command)
+      local status: cint = system(command)
       if status ~= 0 and errno ~= 0 then -- error with an errno?
         return false, (@string)(strerror(errno)), errno
       end
-      local signaled: boolean
-##[==[
-  cinclude [[
-/* Include POSIX APIs. */
-#if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
-  #include <unistd.h>
-#endif
-]]
-  cemit [[
-#if _POSIX_VERSION >= 200112L && defined(WEXITSTATUS)
-  if(WIFEXITED(status)) {
-    status = WEXITSTATUS(status);
-  } else if(WIFSIGNALED(status)) {
-    status = WTERMSIG(status);
-    signaled = true;
-  }
-#endif
-]]
-]==]
-      return status == 0, signaled and 'signal' or 'exit', status
+      local reason: string = 'exit'
+      ## cinclude '@unistd.h'
+      ## cemit '#if _POSIX_VERSION >= 200112L && defined(WEXITSTATUS)'
+        local function WEXITSTATUS(stat: cint): cint <cimport,cinclude'<stdlib.h>'> end
+        local function WIFEXITED(stat: cint): cint <cimport,cinclude'<stdlib.h>'> end
+        local function WIFSIGNALED(stat: cint): cint <cimport,cinclude'<stdlib.h>'> end
+        local function WTERMSIG(stat: cint): cint <cimport,cinclude'<stdlib.h>'> end
+        if WIFEXITED(status) ~= 0 then
+          status = WEXITSTATUS(status)
+        elseif WIFSIGNALED(status) ~= 0 then
+          status = WTERMSIG(status)
+          reason = 'signal'
+        end
+      ## cemit '#endif'
+      return status == 0, reason, status
     ## else
       local status: cint = system(nilptr)
       return status ~= 0, 'unsupported', 1
@@ -346,48 +346,32 @@ You still have to open the file to use it and to remove it (even if you do not u
 When possible, you may prefer to use `io.tmpfile`, which automatically removes the file when the program ends.
 ]]
 function os.tmpname(): string
+  local name: string
+  ## cinclude '@unistd.h'
+  ## cemit '#if _POSIX_VERSION >= 200112L'
+    local function mkstemp(template: cstring): cint <cimport,cinclude'<stdlib.h>'> end
+    local function close(fd: cint): cint <cimport,cinclude'@unistd.h'> end
+    local tmpdir: cstring = getenv('TMPDIR')
+    if tmpdir ~= nilptr then
+      name = tmpdir.."/nelua_XXXXXX"
+    else
+      name = string.copy("/tmp/nelua_XXXXXX")
+    end
+    local fd: cint = mkstemp(name)
+    if fd == -1 then
+      name:destroy()
+    else
+      close(fd)
+    end
+  ## cemit '#else'
+  local function tmpnam(s: cstring): cstring <cimport,cinclude'<stdio.h>'> end
   local buf: [260]cchar
   local bufcs: cstring = &buf[0]
-  local success: boolean
-##[==[
-  -- C code is used so that the generated C is portable across platforms.
-  cinclude '<stddef.h>' -- for NULL
-  cinclude '<string.h>' -- for strncpy/strncat
-  cinclude '<stdlib.h>' -- for getenv
-  cinclude '<stdio.h>' -- for tmpnam
-  cinclude '<stdbool.h>' -- for true/false
-  cinclude [[
-/* Include POSIX APIs. */
-#if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
-  #include <unistd.h>
-#endif
-]]
-  cemit [[
-#if _POSIX_VERSION >= 200112L
-  char* tmpdir = getenv("TMPDIR");
-  if(tmpdir != NULL) {
-    strncpy(bufcs, tmpdir, 260);
-    strncat(bufcs, "/nelua_XXXXXX", 260 - (strlen(tmpdir) + 1));
-  } else {
-    strncpy(bufcs, "/tmp/nelua_XXXXXX", 260);
-  }
-  int fd = mkstemp(bufcs);
-  if(fd == -1) {
-    success = false;
-    close(fd);
-  } else {
-    success = true;
-  }
-#else
-  success = tmpnam(bufcs) != NULL;
-#endif
-]]
-]==]
-  if success then
-    return string.copy(bufcs)
-  else
-    return (@string){}
+  if tmpnam(bufcs) ~= nilptr then
+    name = string.copy(bufcs)
   end
+  ## cemit '#endif'
+  return name
 end
 
 --[[
@@ -408,28 +392,12 @@ function os.now(): number
   local ok: boolean = false
   local ns: int64 = 0
 ##[==[
-  cinclude '<time.h>' -- for timespec_get/TIME_UTC
   cinclude '<stdbool.h>' -- for bool
   cinclude '<stdint.h>' -- for int64_t
+  cinclude '<time.h>' -- for timespec_get/TIME_UTC
   cinclude '<errno.h>' -- for errno
-  cinclude [[
-/* Include POSIX APIs. */
-#if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
-  #include <unistd.h>
-#endif
-]]
-  cinclude [[
-/* Include Windows APIs. */
-#ifdef _WIN32
-  #ifndef WIN32_LEAN_AND_MEAN
-    #define WIN32_LEAN_AND_MEAN
-  #endif
-  #ifndef _WIN32_WINNT
-    #define _WIN32_WINNT 0x600
-  #endif
-  #include <windows.h>
-#endif
-]]
+  cinclude '@unistd.h'
+  cinclude '@windows.h'
   cinclude [[
 /* Determine supported high resolution time API. */
 #if __STDC_VERSION__ >= 201112L && defined(TIME_UTC) && !defined(__ANDROID__)
@@ -439,11 +407,10 @@ function os.now(): number
 #elif defined(_POSIX_VERSION)
   #include <sys/time.h>
   #define NELUA_HAVE_POSIX_GETTIMEOFDAY
-#
 #endif
 ]]
   cemit [[
-#ifdef _WIN32
+#if defined(_WIN32)
   static bool initialized = false;
   static LARGE_INTEGER freq;
   static LARGE_INTEGER start;
@@ -514,57 +481,38 @@ in that case false is returned.
 ]]
 function os.sleep(secs: number): boolean
   local us: uint64 <nodce> = (@uint64)(secs * 1000000)
-  local ok: boolean = false
-##[==[
-  -- C code is used so that the generated C is portable across platforms.
-  cinclude '<time.h>' -- for nanosleep
-  cinclude '<stdbool.h>' -- for true
-  cinclude '<errno.h>' -- for errno
-  cinclude [[
-/* Include POSIX APIs. */
-#if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
-  #include <unistd.h>
-#endif
-]]
-  cinclude [[
-/* Include Windows APIs. */
-#ifdef _WIN32
-  #ifndef WIN32_LEAN_AND_MEAN
-    #define WIN32_LEAN_AND_MEAN
-  #endif
-  #ifndef _WIN32_WINNT
-    #define _WIN32_WINNT 0x600
-  #endif
-  #include <windows.h>
-#endif
-]]
-  cemit [[
-#ifdef _WIN32
-  unsigned int ms = (us + 999) / 1000;
-  if(ms > 0) {
-    Sleep(ms);
-  }
-  ok = true;
-#elif _POSIX_VERSION >= 200112L
-  if(us > 0) {
-    struct timespec ts;
-    ts.tv_sec = us / 1000000;
-    ts.tv_nsec = (us % 1000000) * 1000;
-    int res;
-    do {
-      errno = 0;
-      res = nanosleep(&ts, &ts);
-    } while(res != 0 && errno == EINTR);
-    ok = res == 0;
-  }
-#elif defined(_POSIX_VERSION)
-  if(us > 0) {
-    ok = usleep(us) == 0;
-  } else {
-    ok = true;
-  }
-#endif
-]]
-]==]
+  local ok: boolean
+  ## cinclude '@unistd.h'
+  ## cinclude '@windows.h'
+  ## cemit '#if _POSIX_VERSION >= 200112L'
+    local function nanosleep(requested_time: *timespec, remaining: *timespec): cint <cimport,cinclude'<time.h>'> end
+    local EINTR: cint <cimport,cinclude'<errno.h>'>
+    local res: cint
+    if us > 0 then
+      local ts: timespec = {
+        tv_sec = (@ctime_t)(us // 1000000),
+        tv_nsec = (@clong)((us % 1000000) * 1000)
+      }
+      repeat
+        errno = 0
+        res = nanosleep(&ts, &ts)
+      until res == 0 or errno ~= EINTR
+      ok = res == 0
+    end
+  ## cemit '#elif defined(_POSIX_VERSION)'
+    local function usleep(usec: cuint): cint <cimport,cinclude'@unistd.h'> end
+    if us > 0 then
+      ok = usleep(us) == 0
+    else
+      ok = true
+    end
+  ## cemit '#elif defined(_WIN32)'
+    local function Sleep(ms: culong): void <cimport,cinclude'@windows.h'> end
+    local ms: cuint = (@cuint)((us + 999) // 1000)
+    if ms > 0 then
+      Sleep(ms)
+    end
+    ok = true
+  ## cemit '#endif'
   return ok
 end

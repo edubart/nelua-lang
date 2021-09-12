@@ -276,8 +276,8 @@ local function go()
   until quit
 
   -- cleanup and finish
-  SDL_DestroyWindow(window)
   SDL_DestroyRenderer(renderer)
+  SDL_DestroyWindow(window)
   SDL_Quit()
 end
 
