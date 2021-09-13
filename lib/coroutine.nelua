@@ -356,7 +356,7 @@ local minicoro_heading = [==[
 if pragmas.nochecks then
   minicoro_heading = minicoro_heading .. '#define MCO_NO_DEBUG\n'
 end
-if not ccinfo.is_gcc then
+if not (ccinfo.is_gcc or ccinfo.is_clang) then
   minicoro_heading = minicoro_heading .. '#define MCO_NO_MULTITHREAD\n'
 end
 minicoro_code = minicoro_heading..[==[

@@ -151,7 +151,8 @@ it("program arguments", function()
 end)
 
 it("shared libraries", function()
-  if ccompiler.get_cc_info().is_gcc then
+  local ccinfo = ccompiler.get_cc_info()
+  if ccinfo.is_gcc or ccinfo.is_clang then
     expect.run({'--shared-lib', 'tests/libmylib.nelua'})
     expect.run({'tests/mylib_test.nelua'},[[
 mylib - init
@@ -168,7 +169,8 @@ it("bundled C libraries", function()
 end)
 
 it("static libraries", function()
-  if ccompiler.get_cc_info().is_gcc then
+  local ccinfo = ccompiler.get_cc_info()
+  if ccinfo.is_gcc or ccinfo.is_clang then
     expect.run({'--static-lib', 'tests/libmylib_static.nelua'})
     expect.run({'tests/mylib_static_test.nelua'},[[
 mylib - init

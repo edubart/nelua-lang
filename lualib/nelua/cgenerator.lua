@@ -1497,7 +1497,7 @@ function cgenerator.emit_warning_pragmas(context)
   #else
     #pragma clang diagnostic ignored "-Wnarrowing"
   #endif
-#elif defined(__GNUC__)
+#elif defined(__GNUC__) && __GNUC__ >= 5
   #pragma GCC diagnostic ignored "-Wtype-limits"
   #pragma GCC diagnostic ignored "-Wwrite-strings"
   #pragma GCC diagnostic ignored "-Wunused-parameter"

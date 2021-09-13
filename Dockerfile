@@ -22,4 +22,4 @@ RUN sudo luarocks install luacheck
 RUN mkdir -p /home/docker/.config/nelua
 RUN echo "return {}" >> /home/docker/.config/nelua/neluacfg.lua
 
-WORKDIR /nelua
+WORKDIR /mnt

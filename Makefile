@@ -40,7 +40,7 @@ HDRS=$(wildcard src/*.h) \
 CFLAGS=-O2
 ifeq ($(SYS), Linux)
 	CC=gcc
-	CFLAGS=-O2 -fno-plt -flto
+	CFLAGS=-O2
 	DEFS+=-DLUA_USE_LINUX
 	LIBS+=-lm -ldl
 	LDFLAGS+=-Wl,-E
@@ -96,9 +96,9 @@ $(NELUALUA): $(SRCS) $(HDRS)
 # this can usually speed up compilation speed by ~6%.
 optimized-nelua-lua:
 	$(RM_DIR) pgo
-	$(MAKE) --no-print-directory MYCFLAGS="-O3 -march=native -fprofile-generate=pgo" clean-nelualua default
+	$(MAKE) --no-print-directory MYCFLAGS="-O3 -march=native -flto -fno-plt -fprofile-generate=pgo" clean-nelualua default
 	$(NELUA_RUN) -qb tests/all_test.nelua
-	$(MAKE) --no-print-directory MYCFLAGS="-O3 -march=native -fprofile-use=pgo" clean-nelualua default
+	$(MAKE) --no-print-directory MYCFLAGS="-O3 -march=native -flto -fno-plt -fprofile-use=pgo" clean-nelualua default
 	$(RM_DIR) pgo
 
 ###############################################################################
@@ -186,8 +186,10 @@ _live-dev:
 # Variables for Docker
 DOCKER_UID=$(shell id -u $(USER))
 DOCKER_GID=$(shell id -g $(USER))
+DOCKER_IMAGE=nelua
+DOCKER_SHELL=/bin/bash
 DOCKER=docker
-DOCKER_RUN=$(DOCKER) run -u $(DOCKER_UID):$(DOCKER_GID) --rm -it -v "$(shell pwd):/nelua" nelua
+DOCKER_RUN=$(DOCKER) run -u $(DOCKER_UID):$(DOCKER_GID) --rm -it -v "$(shell pwd):/mnt" $(DOCKER_IMAGE)
 
 # Make the docker image used to test inside docker containers.
 docker-image:
@@ -203,8 +205,8 @@ docker-test-full:
 	$(DOCKER_RUN) make coverage-test check compile-examples
 
 # Get a shell inside a new docker container.
-docker-term:
-	$(DOCKER_RUN) /bin/bash
+docker-shell:
+	$(DOCKER_RUN) $(DOCKER_SHELL)
 
 ###############################################################################
 # Documentation

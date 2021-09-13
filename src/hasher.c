@@ -170,8 +170,6 @@ static void blake2b_update(blake2b_ctx *ctx,
 
 static void blake2b_final(blake2b_ctx *ctx, uint8_t *hash);
 
-#define FOR(i, start, end) for (size_t (i) = (start); (i) < (end); (i)++)
-
 static uint64_t load64_le(const uint8_t s[8])
 {
   return (uint64_t)s[0]
@@ -245,7 +243,8 @@ static void blake2b_compress(blake2b_ctx *ctx, int is_last_block)
 
   /* init work vector */
   uint64_t v[16];
-  FOR (i, 0, 8) {
+  size_t i;
+  for (i = 0; i < 8; i++) {
     v[i  ] = ctx->hash[i];
     v[i+8] = iv[i];
   }
@@ -257,7 +256,7 @@ static void blake2b_compress(blake2b_ctx *ctx, int is_last_block)
 
   /* mangle work vector */
   uint64_t *input = ctx->input;
-  FOR (i, 0, 12) {
+  for (i = 0; i < 12; i++) {
 #define BLAKE2_G(v, a, b, c, d, x, y)                       \
     v[a] += v[b] + x;  v[d] = rotr64(v[d] ^ v[a], 32);  \
     v[c] += v[d];      v[b] = rotr64(v[b] ^ v[c], 24);  \
@@ -274,14 +273,15 @@ static void blake2b_compress(blake2b_ctx *ctx, int is_last_block)
     BLAKE2_G(v, 3, 4,  9, 14, input[sigma[i][14]], input[sigma[i][15]]);
   }
   /* update hash */
-  FOR (i, 0, 8) {
+  for (i = 0; i < 8; i++) {
     ctx->hash[i] ^= v[i] ^ v[i+8];
   }
 }
 
 static void blake2b_reset_input(blake2b_ctx *ctx)
 {
-  FOR(i, 0, 16) {
+  size_t i;
+  for(i = 0; i < 16; i++) {
     ctx->input[i] = 0;
   }
   ctx->input_idx = 0;
@@ -299,8 +299,9 @@ static void blake2b_end_block(blake2b_ctx *ctx)
 void blake2b_init(blake2b_ctx *ctx, size_t hash_size,
           const uint8_t           *key, size_t key_size)
 {
+  size_t i;
   /* initial hash */
-  FOR (i, 0, 8) {
+  for (i = 0; i < 8; i++) {
     ctx->hash[i] = iv[i];
   }
   ctx->hash[0] ^= 0x01010000 ^ (key_size << 8) ^ hash_size;
@@ -331,7 +332,8 @@ void blake2b_update(blake2b_ctx *ctx,
   /* Process the input 8 bytes at a time */
   size_t nb_words  = message_size / 8;
   size_t remainder = message_size % 8;
-  FOR (i, 0, nb_words) {
+  size_t i;
+  for (i = 0; i < nb_words; i++) {
     blake2b_end_block(ctx);
     ctx->input[ctx->input_idx / 8] = load64_le(message);
     message        += 8;
@@ -342,7 +344,7 @@ void blake2b_update(blake2b_ctx *ctx,
   if (remainder != 0) {
     blake2b_end_block(ctx);
   }
-  FOR (i, 0, remainder) {
+  for (i = 0; i < remainder; i++) {
     blake2b_set_input(ctx, message[i]);
   }
 }
@@ -352,10 +354,11 @@ void blake2b_final(blake2b_ctx *ctx, uint8_t *hash)
   blake2b_incr(ctx);        /* update the input offset */
   blake2b_compress(ctx, 1); /* compress the last block */
   size_t nb_words  = ctx->hash_size / 8;
-  FOR (i, 0, nb_words) {
+  size_t i;
+  for (i = 0; i < nb_words; i++) {
     store64_le(hash + i*8, ctx->hash[i]);
   }
-  FOR (i, nb_words * 8, ctx->hash_size) {
+  for (i = nb_words * 8; i < ctx->hash_size; i++) {
     hash[i] = (ctx->hash[i / 8] >> (8 * (i % 8))) & 0xff;
   }
 }
