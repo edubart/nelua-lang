@@ -181,9 +181,20 @@ local function GC_markstackinner(self: *GC): void <noinline>
   local function setjmp(env: jmp_buf): void <cimport,cinclude'<setjmp.h>'> end
   local RegsBuf = @union{regs: jmp_buf, firstreg: pointer} -- use a union to force pointer alignment
   local regsbuf: RegsBuf <noinit>
-  setjmp(regsbuf.regs)
+  setjmp(regsbuf.regs) -- save registers
+  --[[
+  must get stack frame pointer register, because 'setjmp' may mangle it
+  to protect against stack overwrite attacks,
+  without this the code would have to be compiled with `-fno-omit-frame-pointer` in GCC/Clang
+  ]]
+  ## cemit '#if defined(__GNUC__) || defined(__clang__)'
+  local function __builtin_frame_address(level: cint): pointer <cimport,nodecl> end
+  local sp: pointer <volatile> = __builtin_frame_address(0)
+  ## cemit '#endif'
   local low: usize, high: usize = (@usize)(&regsbuf), (@usize)(self.stackbottom)
-  if high < low then low, high = high, low + #jmp_buf end
+  if high < low then -- stack growing in inverse order?
+    low, high = high, low + (#jmp_buf + #@pointer)
+  end
   low = align_forward(low, #@pointer) -- make sure it's pointer aligned
   GC_markptrs(self, low, high)
 end

@@ -46,6 +46,9 @@ local function get_compiler_cflags(compileopts)
   for _,incdir in ipairs(compileopts.incdirs) do
     cflags:add(' -I "'..incdir..'"')
   end
+  if ccinfo.is_gcc and not ccinfo.is_clang and ccinfo.gnuc < 5 then
+    cflags:add(' -std=gnu99')  -- enable C99 in old GCC compilers
+  end
   cflags:add(' '..ccflags.cflags_base)
   if config.sanitize then
     if ccflags.cflags_sanitize and #ccflags.cflags_sanitize > 0 then
