@@ -2498,8 +2498,8 @@ It is possible to add custom C flags when compiling via the preprocessor:
 ```nelua
 ##[[
 if FAST then -- release build
-  cflags '-Ofast' -- C  compiler flags
-  ldflags '-s' -- linker flags
+  cflags '-Ofast' -- C compiler flags
+  ldflags '-s' -- link flags
 else -- debug build
   cflags '-Og'
 end

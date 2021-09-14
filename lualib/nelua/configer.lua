@@ -206,7 +206,8 @@ local function create_parser()
   argparser:option('-L --add-path', "Add module search path")
     :count("*"):convert(convert_add_path)
   argparser:option('--cc', "C compiler to use", defconfig.cc)
-  argparser:option('--cflags', "Additional C flags to use on compilation", defconfig.cflags)
+  argparser:option('--cflags', "Additional flags to pass to the C compiler", defconfig.cflags)
+  argparser:option('--ldflags', "Additional flags to pass when linking", defconfig.ldflags)
   argparser:option('--cache-dir', "Compilation cache directory", defconfig.cache_dir)
   argparser:option('--path', "Set module search path", defconfig.path)
   -- the following are used only to debug/optimize the compiler
@@ -293,6 +294,7 @@ local function init_default_configs()
   defconfig.path = fs.makesearchpath(libpath, 'nelua')
   defconfig.cc = fs.findcc() or 'cc'
   defconfig.cflags = os.getenv('CFLAGS') or ''
+  defconfig.ldflags = os.getenv('LDFLAGS') or ''
 
   -- load global user config
   load_config(fs.getuserconfpath(fs.join('nelua', 'neluacfg.lua')))

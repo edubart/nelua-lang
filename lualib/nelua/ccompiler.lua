@@ -104,9 +104,12 @@ local function get_compiler_cflags(compileopts)
     cflags:addlist(compileopts.cflags, ' ')
   end
   if not config.static_lib and not config.object and not config.assembly then
+    if #config.ldflags > 0 then
+      cflags:add(' '..config.ldflags)
+    end
     if #compileopts.ldflags > 0 then
-      cflags:add(' -Wl,')
-      cflags:addlist(compileopts.ldflags, ',')
+      cflags:add(' ')
+      cflags:addlist(compileopts.ldflags, ' ')
     end
     if #compileopts.linklibs > 0 then
       cflags:add(' -l')
