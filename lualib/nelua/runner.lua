@@ -209,7 +209,7 @@ local function run(args, redirect)
   end
   -- save the generated code
   local outprefix = fs.join(config.cache_dir, barename)
-  local sourcefile = config.compile_code and config.output or outprefix
+  local sourcefile = config.code and config.output or outprefix
   if not compiler.has_source_extension(sourcefile) then
     sourcefile = sourcefile..compiler.source_extension
   end
