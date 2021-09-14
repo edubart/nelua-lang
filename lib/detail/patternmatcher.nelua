@@ -257,9 +257,9 @@ function PatternMatcher._match(ms: *PatternMatcher, s: isize, p: isize): isize
     return res
   end
 
-  local function match_capture(ms: *PatternMatcher, s: isize, l: byte): isize
+  local function match_capture(ms: *PatternMatcher, s: isize, l: isize): isize
     l = l - '1'_byte
-    assert(l >= 0 and (@isize)(l) < ms.numcaptures and ms.capture[l].len ~= CAP_UNFINISHED, "invalid capture index")
+    assert(l >= 0 and l < ms.numcaptures and ms.capture[l].len ~= CAP_UNFINISHED, "invalid capture index")
     -- the explicit cast here is necessary because len can be negative (CAP_UNFINISHED/CAP_POSITION)
     local len: usize = (@usize)(ms.capture[l].len)
     if (@usize)(#ms.source-s) >= len and memory.compare(&ms.source.data[ms.capture[l].init], &ms.source.data[s], len) == 0 then

@@ -176,21 +176,21 @@ end
 
 -- Get the stack top address and mark pointers in the stack.
 local function GC_markstackinner(self: *GC): void <noinline>
-  local stacktop: pointer <volatile> -- don't optimize away
-  local low: usize, high: usize = (@usize)(self.stackbottom), (@usize)(&stacktop)
-  if high < low then low, high = high, low end
+  -- dump CPU registers into the stack, to scan them
+  local jmp_buf: type <cimport,cinclude'<setjmp.h>',cincomplete> = @record{}
+  local function setjmp(env: jmp_buf): void <cimport,cinclude'<setjmp.h>'> end
+  local RegsBuf = @union{regs: jmp_buf, firstreg: pointer} -- use a union to force pointer alignment
+  local regsbuf: RegsBuf <noinit>
+  setjmp(regsbuf.regs)
+  local low: usize, high: usize = (@usize)(&regsbuf), (@usize)(self.stackbottom)
+  if high < low then low, high = high, low + #jmp_buf end
+  low = align_forward(low, #@pointer) -- make sure it's pointer aligned
   GC_markptrs(self, low, high)
 end
 
 -- Mark pointers in the stack.
 local function GC_markstack(self: *GC): void <noinline>
 ## if not ccinfo.is_wasm then
-  -- dump CPU registers into the stack, to scan them
-  local jmp_buf: type <cimport,cinclude'<setjmp.h>',cincomplete> = @record{}
-  local function setjmp(env: jmp_buf): void <cimport,cinclude'<setjmp.h>'> end
-  local regs: jmp_buf
-  setjmp(regs)
-  -- scan stack
   local markstackinner: auto <volatile> = GC_markstackinner -- avoid inline
   markstackinner(self)
 ## end
@@ -521,6 +521,7 @@ function GCAllocator:alloc(size: usize,
                            flags: facultative(usize),
                            finalizer: facultative(function(pointer, pointer): void),
                            userdata: facultative(pointer)): pointer <noinline>
+  if unlikely(size == 0) then return nilptr end
   ## if flags.type.is_niltype then
   local flags: usize = 0
   ## end
@@ -540,6 +541,7 @@ function GCAllocator:alloc0(size: usize,
                             flags: facultative(usize),
                             finalizer: facultative(function(pointer, pointer): void),
                             userdata: facultative(pointer)): pointer <noinline>
+  if unlikely(size == 0) then return nilptr end
   ## if flags.type.is_niltype then
   local flags: usize = 0
   ## end

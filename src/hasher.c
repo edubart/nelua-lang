@@ -29,12 +29,12 @@ static bool base58_encode(char *b58, size_t *b58sz, const char *data, size_t bin
   int carry;
   int32_t i, j, high, zcount = 0;
   size_t size;
+  uint8_t buf[BASE58_DECODE_MAXLEN];
 
   while (zcount < (int32_t)binsz && !bin[zcount])
     ++zcount;
 
   size = (binsz - zcount) * 138 / 100 + 1;
-  uint8_t buf[BASE58_DECODE_MAXLEN];
   memset(buf, 0, size);
 
   for (i = zcount, high = (int32_t)size - 1; i < (int32_t)binsz; ++i, high = j)
@@ -244,6 +244,8 @@ static void blake2b_compress(blake2b_ctx *ctx, int is_last_block)
   /* init work vector */
   uint64_t v[16];
   size_t i;
+  uint64_t *input;
+
   for (i = 0; i < 8; i++) {
     v[i  ] = ctx->hash[i];
     v[i+8] = iv[i];
@@ -255,7 +257,7 @@ static void blake2b_compress(blake2b_ctx *ctx, int is_last_block)
   }
 
   /* mangle work vector */
-  uint64_t *input = ctx->input;
+  input = ctx->input;
   for (i = 0; i < 12; i++) {
 #define BLAKE2_G(v, a, b, c, d, x, y)                       \
     v[a] += v[b] + x;  v[d] = rotr64(v[d] ^ v[a], 32);  \
@@ -322,6 +324,10 @@ void blake2b_init(blake2b_ctx *ctx, size_t hash_size,
 void blake2b_update(blake2b_ctx *ctx,
                const uint8_t *message, size_t message_size)
 {
+  size_t nb_words;
+  size_t remainder;
+  size_t i;
+
   /* Align ourselves with 8 byte words */
   while (ctx->input_idx % 8 != 0 && message_size > 0) {
     blake2b_set_input(ctx, *message);
@@ -330,9 +336,9 @@ void blake2b_update(blake2b_ctx *ctx,
   }
 
   /* Process the input 8 bytes at a time */
-  size_t nb_words  = message_size / 8;
-  size_t remainder = message_size % 8;
-  size_t i;
+  nb_words  = message_size / 8;
+  remainder = message_size % 8;
+
   for (i = 0; i < nb_words; i++) {
     blake2b_end_block(ctx);
     ctx->input[ctx->input_idx / 8] = load64_le(message);
@@ -351,10 +357,10 @@ void blake2b_update(blake2b_ctx *ctx,
 
 void blake2b_final(blake2b_ctx *ctx, uint8_t *hash)
 {
+  size_t nb_words, i;
   blake2b_incr(ctx);        /* update the input offset */
   blake2b_compress(ctx, 1); /* compress the last block */
-  size_t nb_words  = ctx->hash_size / 8;
-  size_t i;
+  nb_words = ctx->hash_size / 8;
   for (i = 0; i < nb_words; i++) {
     store64_le(hash + i*8, ctx->hash[i]);
   }
@@ -395,14 +401,17 @@ static int lblake2b(lua_State *L) {
   /* so default hash is a 64-byte string) */
   size_t mln;
   size_t keyln = 0;
-  const char *m = luaL_checklstring(L, 1, &mln);
-  int digln = luaL_optinteger(L, 2, 64);
-  const char *key = luaL_optlstring(L, 3, NULL, &keyln);
+  int digln;
+  const char *m, *key;
+  char digest[64];
+
+  m = luaL_checklstring(L, 1, &mln);
+  digln = luaL_optinteger(L, 2, 64);
+  key = luaL_optlstring(L, 3, NULL, &keyln);
   if(keyln > 64)
   luaL_error(L, "bad key size");
   if(digln < 1 || digln > 64)
   luaL_error(L, "bad digest size");
-  char digest[64];
   blake2b(
   (uint8_t*)digest, digln,
   (const uint8_t*)key, keyln,
@@ -424,8 +433,7 @@ static int lbase58_encode(lua_State *L) {
     luaL_error(L, "string too long");
   }
   eln = BASE58_DECODE_MAXLEN; /* eln must be set to buffer size before calling b58enc */
-  bool r = base58_encode(buf, &eln, b, bln);
-  if(!r)
+  if(!base58_encode(buf, &eln, b, bln))
     luaL_error(L, "base58 encode error");
   eln = eln - 1;  /* b58enc add \0 at the end of the encode string */
   lua_pushlstring(L, buf, eln);
@@ -446,8 +454,7 @@ static int lbase58_decode(lua_State *L) {
     return 2;
   }
   bln = BASE58_DECODE_MAXLEN;
-  bool r = base58_decode(buf, &bln, e, eln);
-  if (!r) {
+  if (!base58_decode(buf, &bln, e, eln)) {
     lua_pushnil(L);
     lua_pushfstring(L, "b58decode error");
     return 2;
