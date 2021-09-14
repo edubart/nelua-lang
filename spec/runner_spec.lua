@@ -8,6 +8,7 @@ local version = require 'nelua.version'
 local ccompiler = require 'nelua.ccompiler'
 
 describe("runner", function()
+  local ccinfo = ccompiler.get_cc_info()
 
 it("version numbers" , function()
   if fs.isfile('.git/config') then
@@ -19,7 +20,9 @@ end)
 
 it("compile simple programs" , function()
   expect.run('--no-cache --object examples/helloworld.nelua')
-  expect.run('--no-cache --assembly examples/helloworld.nelua')
+  if ccinfo.is_gcc or ccinfo.is_clang then
+    expect.run('--no-cache --assembly examples/helloworld.nelua')
+  end
   expect.run('--no-cache --code examples/helloworld.nelua')
   expect.run('--no-cache --binary --strip examples/helloworld.nelua')
   expect.run('--code examples/helloworld.nelua')
@@ -35,7 +38,6 @@ it("run simple programs", function()
   expect.run({'--lint', '--eval', ""})
   expect.run({'--generator', 'lua', '--eval', "print(_G.arg[1])", "hello"}, 'hello')
   expect.run({'--eval', ""})
-  local ccinfo = ccompiler.get_cc_info()
   if ccinfo.is_gcc and not ccinfo.is_clang and ccinfo.is_linux then
     expect.run({'--eval', "## cflags '-w -g' linklib 'm' ldflags '-s'"})
   end
@@ -151,7 +153,6 @@ it("program arguments", function()
 end)
 
 it("shared libraries", function()
-  local ccinfo = ccompiler.get_cc_info()
   if ccinfo.is_gcc or ccinfo.is_clang then
     expect.run({'--shared-lib', 'tests/libmylib.nelua'})
     expect.run({'tests/mylib_test.nelua'},[[
@@ -169,7 +170,6 @@ it("bundled C libraries", function()
 end)
 
 it("static libraries", function()
-  local ccinfo = ccompiler.get_cc_info()
   if ccinfo.is_gcc or ccinfo.is_clang then
     expect.run({'--static-lib', 'tests/libmylib_static.nelua'})
     expect.run({'tests/mylib_static_test.nelua'},[[

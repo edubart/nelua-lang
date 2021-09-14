@@ -76,9 +76,13 @@ cdefs.compilers_flags = compilers_flags
 -- Generic CC
 compilers_flags.cc = {
   cflags_base = "",
+  cflags_sanitize = "",
+  cflags_devel = "",
+  cflags_debug = "",
   cflags_release = "-O2 -DNDEBUG",
   cflags_maximum_performance = "-O3 -DNDEBUG",
   cflags_shared_lib = "-shared",
+  cflags_shared_lib_windows = "",
   cflags_assembly = "-S",
   cflags_object = "-c",
   cmd_compile = '$(cc) "$(cfile)" $(cflags) -o "$(binfile)"',
@@ -92,6 +96,7 @@ compilers_flags.gcc = tabler.updatecopy(compilers_flags.cc, {
   cflags_sanitize = "-Wall -Wextra -fsanitize=address,undefined",
   cflags_devel = "-g",
   cflags_debug = "-fsanitize-undefined-trap-on-error -ggdb",
+  cflags_release = "-O2 -DNDEBUG",
   cflags_maximum_performance = "-Ofast -march=native -DNDEBUG -fno-plt -flto",
   cflags_shared_lib = "-shared -fPIC",
   cflags_shared_lib_windows = '-shared -Wl,--out-implib,"$(binfile).a"',

@@ -64,6 +64,10 @@ typevisitors[types.ArrayType] = function(context, type)
   decemitter:add_type_qualifiers(type)
   local len = math.max(type.length, typedefs.emptysize)
   decemitter:add_ln(' ', type.codename, ' {', type.subtype, ' v[', len, '];} ', type.codename, ';')
+  decemitter:add_ln('typedef union ', type.codename, '_cast {',
+    type.codename, ' a; ',
+    type.subtype, ' p[', len, '];',
+    '} ', type.codename, '_cast;')
   if type.size and type.size > 0 and not context.pragmas.nocstaticassert then
     context:ensure_builtins('NELUA_STATIC_ASSERT', 'NELUA_ALIGNOF')
     decemitter:add_ln('NELUA_STATIC_ASSERT(sizeof(',type.codename,') == ', type.size, ' && ',
@@ -369,7 +373,7 @@ function visitors.InitList(_, node, emitter, untypedinit)
           assert(field)
           local childvaltype = childvalnode.attr.type
           if childvaltype.is_array then
-            emitter:add_indent('(*(', childvaltype, '*)_tmp.', field.name, ') = ')
+            emitter:add_indent('((', childvaltype, '_cast*)_tmp.', field.name, ')->a = ')
           else
             emitter:add_indent('_tmp.', field.name, ' = ')
           end
@@ -685,7 +689,7 @@ function visitors.DotIndex(context, node, emitter, untypedinit)
     local type = attr.type
     local castarray = type.is_array and not attr.arrayindex
     if castarray then
-      emitter:add('(*(', type, '*)')
+      emitter:add('(((', type, '_cast*)')
     end
     local name = attr.dotfieldname or node[1]
     if objtype.is_pointer then
@@ -694,7 +698,7 @@ function visitors.DotIndex(context, node, emitter, untypedinit)
       emitter:add(objnode, '.', cdefs.quotename(name))
     end
     if castarray then
-      emitter:add(')')
+      emitter:add(')->a)')
     end
   end
 end
