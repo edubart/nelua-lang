@@ -13,12 +13,15 @@ jobs:
         include:
         - os: ubuntu-latest
           cc: musl-gcc
+          cflags: -O2 -flto -fno-plt
           pkgext: .tar.xz
         - os: macos-latest
           cc: clang
+          cflags: -O2 -flto -fno-plt
           pkgext: .tar.xz
         - os: windows-latest
           cc: gcc
+          cflags: -O2
           pkgext: .zip
     runs-on: ${{matrix.os}}
     steps:
@@ -30,7 +33,7 @@ jobs:
       run: sudo apt-get install musl-tools
     - name: Package
       shell: bash
-      run: make package CC=${{matrix.cc}}
+      run: make package CC=${{matrix.cc}} CFLAGS="${{matrix.cflags}}"
     - name: Adjust variables
       shell: bash
       id: pkgvars

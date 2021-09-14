@@ -40,7 +40,6 @@ HDRS=$(wildcard src/*.h) \
 CFLAGS=-O2
 ifeq ($(SYS), Linux)
 	CC=gcc
-	CFLAGS=-O2
 	DEFS+=-DLUA_USE_LINUX
 	LIBS+=-lm -ldl
 	LDFLAGS+=-Wl,-E
