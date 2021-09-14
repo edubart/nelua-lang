@@ -8,7 +8,7 @@ see [C11 threads documentation](https://en.cppreference.com/w/c/atomic).
 require 'C'
 
 ##[[
-if not (ccinfo.is_c11 or ccinfo.is_cpp20) or ccinfo.stdc_no_atomics then
+if not ccinfo.has_c11_atomics then
   static_error 'C11 atomics is not supported on the target'
 end
 cinclude '<stdatomic.h>'

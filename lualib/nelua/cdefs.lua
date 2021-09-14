@@ -389,6 +389,15 @@ cdefs.target_info_code = [[
 #if __cplusplus >= 202002L
   is_cpp20 = true;
 #endif
+#if __STDC_VERSION__ >= 201112L && !(defined(__STDC_NO_THREADS__) || \
+                                     defined(__APPLE__) || \
+                                     defined(__WIN32) || \
+                                     defined(__HAIKU__))
+  has_c11_threads = true;
+#endif
+#if (__STDC_VERSION__ >= 201112L || __cplusplus >= 202002L) && !defined(__STDC_NO_ATOMICS__)
+  has_c11_atomics = true;
+#endif
 
 /* Primitive sizes */
 #if defined(__CHAR_BIT__)

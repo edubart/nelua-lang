@@ -11,9 +11,7 @@ require 'C.time'
 if not pragmas.nogc then
   static_error "multithreading and GC is not supported, please enable pragma 'nogc'"
 end
-if not (ccinfo.is_apple or ccinfo.is_windows or ccinfo.is_haiku) and
-       (ccinfo.is_c11 or ccinfo.is_cpp11) and
-       not ccinfo.stdc_no_threads then -- C11 threads is supported
+if ccinfo.has_c11_threads then -- C11 threads is supported
   cinclude 'threads.h'
 else -- implement C11 threads using POSIX threads
   cinclude(function(emitter) emitter:add(c11thread_code) end)

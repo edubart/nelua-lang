@@ -1,9 +1,12 @@
 ## pragmas.nogc = true
 
-require 'C.stdatomic'
 require 'C.threads'
 
-local counter: integer <atomic> = 0
+## if ccinfo.has_c11_atomics then
+require 'C.stdatomic'
+local atomic_counter: integer <atomic> = 0
+## end
+local counter: integer = 0
 local mutex: C.mtx_t
 
 local function thread_safe_print(...: varargs)
@@ -16,7 +19,12 @@ local function add_thread(arg: pointer): cint
   local tid: isize = (@isize)(arg)
   thread_safe_print('started thread', tid)
   for i=1,1000 do
-    C.atomic_fetch_add(&counter, 1)
+    assert(C.mtx_lock(&mutex) == C.thrd_success)
+    counter = counter + 1
+    assert(C.mtx_unlock(&mutex) == C.thrd_success)
+    ## if ccinfo.has_c11_atomics then
+    C.atomic_fetch_add(&atomic_counter, 1)
+    ## end
   end
   return tid
 end
@@ -43,3 +51,6 @@ C.mtx_destroy(&mutex)
 
 print('counter', counter)
 assert(counter == 10000)
+## if ccinfo.has_c11_atomics then
+assert(atomic_counter == 10000)
+## end
