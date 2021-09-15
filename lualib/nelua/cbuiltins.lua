@@ -250,6 +250,18 @@ function cbuiltins.NELUA_ALIGNOF(context)
 ]], 'directives')
 end
 
+-- Used to do type punning without issues on GCC when strict aliasing is enabled.
+function cbuiltins.NELUA_MAYALIAS(context)
+  context:define_builtin_macro('NELUA_MAYALIAS', [[
+/* Macro used sign that a type punning cast may alias (related to strict aliasing). */
+#ifdef __GNUC__
+  #define NELUA_MAYALIAS __attribute__((may_alias))
+#else
+  #define NELUA_MAYALIAS
+#endif
+]], 'directives')
+end
+
 --[[
 Called before aborting when sanitizing.
 Its purpose is to generate traceback before aborting.
