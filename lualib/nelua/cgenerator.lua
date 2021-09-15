@@ -1486,13 +1486,14 @@ function cgenerator.emit_warning_pragmas(context)
   local emitter = CEmitter(context)
   emitter:add[[
 /* Disable some warnings that the generated code can trigger. */
-#if defined(__clang__)
+#if defined(__clang__) && __clang_major__ >= 3
   #pragma clang diagnostic ignored "-Wtype-limits"
   #pragma clang diagnostic ignored "-Wwrite-strings"
   #pragma clang diagnostic ignored "-Wunused"
   #pragma clang diagnostic ignored "-Wunused-parameter"
   #pragma clang diagnostic ignored "-Wmissing-field-initializers"
   #pragma clang diagnostic ignored "-Wparentheses-equality"
+  #pragma clang diagnostic ignored "-Wtautological-compare"
   #ifndef __cplusplus
     #pragma clang diagnostic ignored "-Wmissing-braces"
     #pragma clang diagnostic ignored "-Wincompatible-pointer-types"
