@@ -643,7 +643,7 @@ static int pmain (lua_State *L) {
 
 #ifdef LUA_USE_RPMALLOC
 
-#include "../rpmalloc/rpmalloc.h"
+#include "../srpmalloc/srpmalloc.h"
 
 static void *L_alloc (void *ud, void *ptr, size_t osize, size_t nsize) {
   (void)ud;  /* not used */

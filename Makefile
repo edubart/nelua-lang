@@ -39,6 +39,7 @@ HDRS=$(wildcard src/*.h) \
 	 $(wildcard src/lpeglabel/*.h)
 CFLAGS=-O2
 ifeq ($(SYS), Linux)
+	CFLAGS=-std=gnu99 -O2
 	CC=gcc
 	DEFS+=-DLUA_USE_LINUX
 	LIBS+=-lm -ldl
@@ -57,7 +58,7 @@ else ifeq ($(SYS), Windows)
 		CC=gcc
 	endif
 	LDFLAGS+=-static
-	DEFS+=-D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_WARNINGS # disable some warnings
+	DEFS+=-D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_WARNINGS
 else ifeq ($(SYS), Darwin)
 	CC=clang
 	DEFS+=-DLUA_USE_MACOSX
@@ -70,12 +71,9 @@ else # probably POSIX
 	NO_RPMALLOC=1
 endif
 ifndef NO_RPMALLOC
-	ifeq ($(SYS), Windows)
-		LIBS+=-ladvapi32
-	endif
-	SRCS+=src/rpmalloc/rpmalloc.c
-	HDRS+=src/rpmalloc/rpmalloc.h
-	LUA_DEFS+=-DLUA_USE_RPMALLOC -DENABLE_GLOBAL_CACHE=0 -DBUILD_DYNAMIC_LINK
+	SRCS+=src/srpmalloc/srpmalloc.c
+	HDRS+=src/srpmalloc/srpmalloc.h
+	LUA_DEFS+=-DLUA_USE_RPMALLOC
 endif
 
 # The default target.
