@@ -13,6 +13,9 @@ if not pragmas.nogc then
 end
 if ccinfo.has_c11_threads then -- C11 threads is supported
   cinclude 'threads.h'
+  if ccinfo.is_bsd then
+    linklib 'stdthreads'
+  end
 else -- implement C11 threads using POSIX threads
   cinclude(function(emitter) emitter:add(c11thread_code) end)
 end
@@ -102,7 +105,7 @@ global C.TSS_DTOR_ITERATIONS: cint <const,cimport,nodecl>
 #include <unistd.h>
 #include <sched.h>
 #include <stdint.h>
-#if defined(__APPLE__) || defined(__HAIKU__)
+#if !(defined(__linux__) || defined(_WIN32) || defined(__CYGWIN__))
   #define C11THREADS_NO_TIMED_MUTEX
 #endif
 #ifdef C11THREADS_NO_TIMED_MUTEX

@@ -252,16 +252,16 @@ cdefs.target_info_code = [[
 #if defined(__HAIKU__) || defined(__HAIKU) || defined(_HAIKU)
   is_haiku = true;
 #endif
-#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__DragonFly__)
+#if defined(__FreeBSD__) || defined(__DragonFly__)
   is_freebsd = true;
-#endif
-#if defined(__NetBSD__)
+  is_bsd = true;
+#elif defined(__NetBSD__)
   is_netbsd = true;
-#endif
-#if defined(__OpenBSD__)
+  is_bsd = true;
+#elif defined(__OpenBSD__)
   is_openbsd = true;
-#endif
-#if defined(__bsdi__) || defined(__bsdi)
+  is_bsd = true;
+#elif defined(__bsdi__)
   is_bsd = true;
 #endif
 #if defined(__sun) && defined(__SVR4)
