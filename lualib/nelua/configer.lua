@@ -91,7 +91,7 @@ local function build_configs(conf)
       conf.object = true
     elseif output:find('%.so$') or output:find('%.dll$') or output:find('%.dylib$') then
       conf.shared_lib = true
-    elseif output:find('%.a$') then
+    elseif output:find('%.a$') or output:find('%.lib$') then
       conf.static_lib = true
     else
       conf.binary = true

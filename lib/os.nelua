@@ -484,7 +484,14 @@ function os.sleep(secs: number): boolean
   local ok: boolean
   ## cinclude '@unistd.h'
   ## cinclude '@windows.h'
-  ## cemit '#if defined(_POSIX_TIMERS)'
+  ## cemit '#if defined(_WIN32)'
+    local function Sleep(ms: culong): void <cimport,cinclude'@windows.h'> end
+    local ms: cuint = (@cuint)((us + 999) // 1000)
+    if ms > 0 then
+      Sleep(ms)
+    end
+    ok = true
+  ## cemit '#elif defined(_POSIX_TIMERS)'
     local function nanosleep(requested_time: *timespec, remaining: *timespec): cint <cimport,cinclude'<time.h>'> end
     local EINTR: cint <cimport,cinclude'<errno.h>'>
     local res: cint
@@ -506,13 +513,6 @@ function os.sleep(secs: number): boolean
     else
       ok = true
     end
-  ## cemit '#elif defined(_WIN32)'
-    local function Sleep(ms: culong): void <cimport,cinclude'@windows.h'> end
-    local ms: cuint = (@cuint)((us + 999) // 1000)
-    if ms > 0 then
-      Sleep(ms)
-    end
-    ok = true
   ## cemit '#endif'
   return ok
 end

@@ -116,7 +116,7 @@ end
 
 -- Execute a command capturing the stdour/stderr output if required.
 local function pexec(exe, args, capture)
-  local command = quote_arg(exe, true)
+  local command = quote_arg(exe)
   if args and #args > 0 then
     local strargs = table.concat(tabler.imap(args, quote_arg), ' ')
     command = command .. ' ' .. strargs

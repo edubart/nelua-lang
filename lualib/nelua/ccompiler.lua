@@ -88,11 +88,15 @@ local function get_compiler_cflags(compileopts)
     end
   end
   if config.shared_lib then
-    if ccinfo.is_windows and ccflags.cflags_shared_lib_windows then
-      cflags:add(' '..ccflags.cflags_shared_lib_windows)
-    else
-      cflags:add(' '..ccflags.cflags_shared_lib)
+    local shared_cflags = ccflags.cflags_shared_lib
+    if ccinfo.is_windows then
+      if ccinfo.is_msc and ccflags.cflags_shared_lib_windows_msc then
+        shared_cflags = ccflags.cflags_shared_lib_windows_msc
+      elseif ccflags.cflags_shared_lib_windows_gcc then
+        shared_cflags = ccflags.cflags_shared_lib_windows_gcc
+      end
     end
+    cflags:add(' '..shared_cflags)
   elseif config.static_lib or config.object then
     cflags:add(' '..ccflags.cflags_object)
   elseif config.assembly then
@@ -290,7 +294,11 @@ local function detect_output_extension(outfile, ccinfo)
       return '.s'
     end
   elseif config.static_lib then
-    return '.a'
+    if ccinfo.is_msc and ccinfo.is_clang then
+      return '.lib'
+    else
+      return '.a'
+    end
   elseif config.shared_lib then
     if ccinfo.is_windows or ccinfo.is_cygwin then
       return '.dll'
@@ -317,8 +325,27 @@ local function detect_output_extension(outfile, ccinfo)
   --luacov:enable
 end
 
+--[[
+Find C compiler binary utilities in system's path for the given C compiler.
+For example, this function can be used to find 'ar', 'strip', 'objdump', etc..
+]]
+function compiler.find_binutil(binname) --luacov:disable
+  local cc = config.cc
+  local ccinfo = compiler.get_cc_info()
+  local bin = cc..'-'..binname
+  if fs.findbinfile(bin) then return bin end
+  if ccinfo.is_msc and ccinfo.is_clang then -- try llvm tools for MSC clang on windows
+    bin = 'llvm-'..binname
+    if fs.findbinfile(bin) then return bin end
+  end
+  -- transform for example 'x86_64-pc-linux-gnu-gcc-11.1.0' -> 'x86_64-pc-linux-gnu-ar'
+  bin = cc:gsub('%-[0-9.]+$',''):gsub('[%w+_.]+$', binname)
+  if bin:find(binname..'$') and fs.findbinfile(bin) then return bin end
+  return binname
+end --luacov:enable
+
 function compiler.compile_static_lib(objfile, outfile)
-  local ar = fs.findccbinutil(config.cc, 'ar')
+  local ar = compiler.find_binutil('ar')
   local arcmd = string.format('%s rcs "%s" "%s"', ar, outfile, objfile)
   if config.verbose then console.info(arcmd) end
   -- compile the file
@@ -328,7 +355,7 @@ function compiler.compile_static_lib(objfile, outfile)
 end
 
 function compiler.strip_binary(binfile)
-  local strip = fs.findccbinutil(config.cc, 'strip')
+  local strip = compiler.find_binutil('strip')
   local stripcmd = string.format('%s -x "%s"', strip, binfile)
   if config.verbose then console.info(stripcmd) end
   if not executor.rexec(stripcmd, nil, config.redirect_exec) then --luacov:disable

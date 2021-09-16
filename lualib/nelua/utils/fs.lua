@@ -537,25 +537,4 @@ function fs.findcc()
   return nil
 end
 
---[[
-Find C compiler binary utilities in system's path for the given C compiler.
-For example, this function can be used to find 'ar', 'strip', 'objdump', etc..
-]]
-function fs.findccbinutil(cc, binname)
-  local bin = cc..'-'..binname
-  --luacov:disable
-  if not fs.findbinfile(binname) then
-    -- transform for example 'x86_64-pc-linux-gnu-gcc-11.1.0' -> 'x86_64-pc-linux-gnu-ar'
-    local possiblebin = cc:gsub('%-[0-9.]+$',''):gsub('[%w+_.]+$', binname)
-    if possiblebin:find(binname..'$') then
-      bin = possiblebin
-    end
-  end
-  if not fs.findbinfile(bin) then
-    bin = binname
-  end
-  --luacov:enable
-  return bin
-end
-
 return fs

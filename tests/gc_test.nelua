@@ -41,19 +41,22 @@ end
 
 local gc_count = 0
 do -- finalizers
-  local function finalizer_test() <noinline>
-    local Foo = @record{id: integer}
+  local function finalizer_test(count: boolean) <noinline>
+    local Foo = @record{count: boolean}
 
     function Foo:__gc()
-      gc_count = gc_count + 1
+      if self.count then
+        gc_count = gc_count + 1
+      end
     end
 
-    local foos: span(Foo) = gc_allocator:new(@Foo, 2)
-    local foo: *Foo = gc_allocator:new(@Foo)
+    local foo: *Foo = gc_allocator:new(Foo{count=count})
+    local foos: span(Foo) = gc_allocator:new(Foo{count=count}, 2)
     foos = (@span(Foo)){}
     foo = nilptr
   end
-  finalizer_test()
+  finalizer_test(true)
+  finalizer_test(false)
   alloc_test()
   clear_stack()
   collectgarbage()
