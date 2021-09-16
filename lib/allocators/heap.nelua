@@ -84,7 +84,7 @@ end
 -- Efficient clz (compute leading zeros) from C, used to compute the bin.
 local function clz(x: uint32): uint32 <inline,nosideeffect>
 ##[==[ cemit([[
-#ifdef __GNUC__
+#if defined(__GNUC__) && (__GNUC__ >= 4)
   x = __builtin_clz(x);
 #else
   static const int MultiplyDeBruijnBitPosition[32] = {
