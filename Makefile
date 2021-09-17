@@ -38,6 +38,7 @@ HDRS=$(wildcard src/*.h) \
 	 $(wildcard src/lua/*.c) \
 	 $(wildcard src/lpeglabel/*.h)
 CFLAGS=-O2
+OPT_CFLAGS=-O3 -flto -fno-plt -fno-stack-protector
 ifeq ($(SYS), Linux)
 	CFLAGS=-std=gnu99 -O2
 	CC=gcc
@@ -93,9 +94,9 @@ $(NELUALUA): $(SRCS) $(HDRS)
 # this can usually speed up compilation speed by ~6%.
 optimized-nelua-lua:
 	$(RM_DIR) pgo
-	$(MAKE) --no-print-directory MYCFLAGS="-O3 -march=native -flto -fno-plt -fprofile-generate=pgo" clean-nelualua default
+	$(MAKE) --no-print-directory CFLAGS="-march=native $(OPT_CFLAGS) -fprofile-generate=pgo" clean-nelualua default
 	$(NELUA_RUN) -qb tests/all_test.nelua
-	$(MAKE) --no-print-directory MYCFLAGS="-O3 -march=native -flto -fno-plt -fprofile-use=pgo" clean-nelualua default
+	$(MAKE) --no-print-directory CFLAGS="-march=native $(OPT_CFLAGS) -fprofile-use=pgo" clean-nelualua default
 	$(RM_DIR) pgo
 
 ###############################################################################
