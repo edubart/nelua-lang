@@ -2654,6 +2654,9 @@ local function visitor_function_returns(context, node, retnodes, ispolyparent)
       end
       if retnode then
         context:traverse_node(retnode)
+        if not retnode.attr.value then
+          retnode:raisef('in function return %d: invalid type for function return', i)
+        end
         if retnode.attr.value.is_auto then
           hasauto = true
         end

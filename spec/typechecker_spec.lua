@@ -682,6 +682,9 @@ it("function definition", function()
   expect.analyze_error([[
     local function f(): type end
   ]], "return #1 cannot be of")
+  expect.analyze_error([[
+    local function f(): f end
+  ]], "invalid type for function return")
 end)
 
 it("closures", function()
