@@ -1343,6 +1343,18 @@ If `code` is `false`, the returned status is `EXIT_FAILURE`.
 If `code` is a number, the returned status is this number.
 The default value for code is `true`.
 
+### os.setenv
+
+```nelua
+function os.setenv(varname: string, value: facultative(string)): (boolean, string, integer)
+```
+
+Sets the value of the process environment variable `varname` to `value`.
+In case the variable already exists, then it is overwritten, otherwise it is added.
+If `value` is not present, then the variable is removed.
+
+Returns `true` on success, otherwise `false` plus an error message and a system-dependent error code.
+
 ### os.getenv
 
 ```nelua
@@ -1375,7 +1387,7 @@ Returns `true` on success, otherwise `false` plus an error message and a system-
 ### os.setlocale
 
 ```nelua
-function os.setlocale(locale: string, category: facultative(string)): string
+function os.setlocale(locale: facultative(string), category: facultative(string)): string
 ```
 
 Sets the current locale of the program.

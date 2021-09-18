@@ -149,7 +149,7 @@ This function is system dependent and is not available on all platforms.
 ]]
 function os.execute(command: facultative(string)): (boolean, string, integer)
   ## if ccinfo.is_wasm then
-    return false, 'unsupported', 1
+    return false, 'unsupported', -1
   ## else
     local function system(command: cstring): cint <cimport,cinclude'<stdlib.h>'> end
     ## if command.type.is_string then
@@ -175,7 +175,7 @@ function os.execute(command: facultative(string)): (boolean, string, integer)
       return status == 0, reason, status
     ## else
       local status: cint = system(nilptr)
-      return status ~= 0, 'unsupported', 1
+      return status ~= 0, 'unsupported', -1
     ## end
   ## end
 end
@@ -203,6 +203,47 @@ function os.exit(code: overload(integer,boolean,niltype)): void <noreturn>
 end
 
 --[[
+Sets the value of the process environment variable `varname` to `value`.
+In case the variable already exists, then it is overwritten, otherwise it is added.
+If `value` is not present, then the variable is removed.
+
+Returns `true` on success, otherwise `false` plus an error message and a system-dependent error code.
+]]
+function os.setenv(varname: string, value: facultative(string)): (boolean, string, integer)
+  local ret: cint
+  ## cinclude '@unistd.h'
+  ## cemit '#ifdef _WIN32'
+    if memory.scan(varname.data, '='_b, varname.size) then
+      return false, 'invalid variable name', -1
+    end
+    local nameq: string = varname..'='
+    local function _putenv(envstr: cstring): cint <cimport,cinclude'<stdlib.h>'> end
+    ## if value.type.is_niltype then
+    ret = _putenv(nameq)
+    ## else
+    local envstr: string = nameq..value
+    ret = _putenv(envstr)
+    envstr:destroy()
+    ## end
+    nameq:destroy()
+  ## cemit '#elif _POSIX_VERSION >= 200112L'
+    ## if value.type.is_niltype then
+    local function unsetenv(name: cstring): cint <cimport,cinclude'<stdlib.h>'> end
+    ret = unsetenv(varname)
+    ## else
+    local function setenv(name: cstring, value: cstring, overwrite: cint): cint <cimport,cinclude'<stdlib.h>'> end
+    ret = setenv(varname, value, 1)
+    ## end
+  ## cemit '#else'
+    return false, 'unsupported', -1
+  ## cemit '#endif'
+  if ret ~= 0 then -- error with an errno?
+    return false, (@string)(strerror(errno)), errno
+  end
+  return true, (@string){}, 0
+end
+
+--[[
 Returns the value of the process environment variable `varname`.
 In case the variable is not defined, an empty string is returned.
 ]]
@@ -222,7 +263,7 @@ Returns `true` on success, otherwise `false` plus an error message and a system-
 ]]
 function os.remove(filename: string): (boolean, string, integer)
   ## if ccinfo.is_wasm then
-    return false, 'unsupported', 1
+    return false, 'unsupported', -1
   ## else
     if remove(filename) == -1 then
       return false, strerror(errno), errno
@@ -238,7 +279,7 @@ Returns `true` on success, otherwise `false` plus an error message and a system-
 ]]
 function os.rename(oldname: string, newname: string): (boolean, string, integer)
   ## if ccinfo.is_wasm then
-    return false, 'unsupported', 1
+    return false, 'unsupported', -1
   ## else
     local function rename(old: cstring, new: cstring): cint <cimport,cinclude'<stdio.h>'> end
     if rename(oldname, newname) == -1 then

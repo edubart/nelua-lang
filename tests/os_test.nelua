@@ -8,9 +8,13 @@ do -- os.difftime
   assert(os.difftime(0,0) == 0 and os.difftime(1,0) == 1)
 end
 
-do -- os.getenv
-  local path = os.getenv('SHELL')
-  path:destroy()
+do -- os.getenv/os.setenv
+  os.setenv('TESTVAR')
+  assert(os.setenv('TESTVAR', 'TEST'))
+  local value: string <close> = os.getenv('TESTVAR')
+  assert(value == 'TEST')
+  assert(os.setenv('TESTVAR'))
+  assert(os.getenv('TESTVAR') == '')
 end
 
 do -- os.date
