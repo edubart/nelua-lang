@@ -950,7 +950,7 @@ end
 -- Helper to create an comparison operation functions for scalar type.
 local function make_arith_cmpop(cmpfunc)
   return function(ltype, rtype, lattr, rattr)
-    if rtype.is_scalar then
+    if ltype.is_scalar and rtype.is_scalar then
       -- we can optimize away the operation when the attr is the same and not a float
       -- float are ignored because x <= x is false when x is NaN
       local same = lattr == rattr and not ltype.is_float

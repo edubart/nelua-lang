@@ -410,6 +410,11 @@ it("binary operator ne", function()
   expect.ast_type_equals("local a = 1 ~= 'a'", "local a: boolean = 1 ~= 'a'")
 end)
 
+it("binary operator lt", function()
+  expect.ast_type_equals("local a = 1 < 2", "local a: boolean = 1 < 2")
+  expect.analyze_error("local i: integer = 1; if not i < 0 then end", "invalid operation between")
+end)
+
 it("binary operator bor", function()
   expect.ast_type_equals("local a = 1 | 2", "local a: integer = 1 | 2")
   expect.analyze_error("local a = 1 | 's'", "attempt to perform a bitwise operation")

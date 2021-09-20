@@ -193,7 +193,7 @@ local function GC_markstackinner(self: *GC): void <noinline>
   ## cemit '#endif'
   local low: usize, high: usize = (@usize)(&regsbuf), (@usize)(self.stackbottom)
   if high < low then -- stack growing in inverse order?
-    low, high = high, low + (#jmp_buf + #@pointer)
+    low, high = high, low + (@usize)(#jmp_buf + #@pointer)
   end
   low = align_forward(low, #@pointer) -- make sure it's pointer aligned
   GC_markptrs(self, low, high)
