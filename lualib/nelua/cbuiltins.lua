@@ -349,20 +349,26 @@ end
 -- Used to abort the application.
 function cbuiltins.nelua_abort(context)
   local abortcall
-  if context.pragmas.noabort then
+  if context.pragmas.abort == 'exit' then
     context:ensure_builtin('exit')
-    abortcall = 'exit(-1)'
+    abortcall = 'exit(-1);'
+  elseif context.pragmas.abort == 'trap' then
+    abortcall = [[
+#if defined(__clang__) || defined(__GNUC__)
+  __builtin_trap();
+#else
+  *((volatile int*)0x0) = 0;
+#endif
+]]
   else
     context:ensure_builtin('abort')
-    abortcall = 'abort()'
+    abortcall = 'abort();'
   end
   context:ensure_builtins('fflush', 'stderr', 'NELUA_UBSAN_UNREACHABLE')
   context:define_function_builtin('nelua_abort',
     'NELUA_NORETURN', primtypes.void, {}, {[[{
-  fflush(stderr);
   NELUA_UBSAN_UNREACHABLE();
-  ]],abortcall,[[;
-}]]})
+  ]],abortcall,"\n}"})
 end
 
 -- Used with check functions.
@@ -372,6 +378,7 @@ function cbuiltins.nelua_panic_cstring(context)
     'NELUA_NORETURN', primtypes.void, {{'const char*', 's'}}, [[{
   fputs(s, stderr);
   fputc('\n', stderr);
+  fflush(stderr);
   nelua_abort();
 }]])
 end
@@ -384,6 +391,7 @@ function cbuiltins.nelua_panic_string(context)
   if(s.size > 0) {
     fwrite(s.data, 1, s.size, stderr);
     fputc('\n', stderr);
+    fflush(stderr);
   }
   nelua_abort();
 }]])
@@ -772,6 +780,7 @@ function cbuiltins.calls.assert(context, node)
     fwrite(]],emsg1,[[, 1, ]],#msg1,[[, stderr);
     fwrite(msg.data, msg.size, 1, stderr);
     fwrite(]],emsg2,[[, 1, ]],#msg2,[[, stderr);
+    fflush(stderr);
     nelua_abort();
   }
 ]])
@@ -780,6 +789,7 @@ function cbuiltins.calls.assert(context, node)
     emitter:add([[
   if(NELUA_UNLIKELY(!]]) emitter:add_val2boolean('cond', condtype) emitter:add([[)) {
     fwrite(]],msg,[[, 1, ]],#where,[[, stderr);
+    fflush(stderr);
     nelua_abort();
   }
 ]])
@@ -788,6 +798,7 @@ function cbuiltins.calls.assert(context, node)
     qualifier = 'NELUA_NORETURN'
     emitter:add([[
   fwrite(]],msg,[[, 1, ]],#where,[[, stderr);
+  fflush(stderr);
   nelua_abort();
 ]])
   end

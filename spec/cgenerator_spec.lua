@@ -2952,8 +2952,8 @@ it("sizeof builtin", function()
 end)
 
 it("assert builtin", function()
-  local noabort = config.pragmas.noabort
-  config.pragmas.noabort = false
+  local abort = config.pragmas.abort
+  config.pragmas.abort = nil
   expect.generate_c(
     "assert(true)",
     "nelua_assert_line_1(true)")
@@ -2982,7 +2982,11 @@ it("assert builtin", function()
     end
     g()
   ]])
-  config.pragmas.noabort = noabort
+  config.pragmas.abort = 'trap'
+  expect.generate_c(
+    "assert(true)",
+    "__builtin_trap")
+  config.pragmas.abort = abort
   expect.run_error_c([[
     assert()
   ]], "assertion failed!")

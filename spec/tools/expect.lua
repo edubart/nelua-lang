@@ -20,7 +20,7 @@ config.check_ast_shape = true
 config.check_type_shape = true
 config.quiet = true
 config.lua_version = '5.4'
-config.pragmas.noabort = true
+config.pragmas.abort = 'exit'
 config.redirect_exec = true
 
 -- use cache subfolder while testing
