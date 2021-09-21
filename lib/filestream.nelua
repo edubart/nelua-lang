@@ -45,14 +45,6 @@ global filestream: type = @record{
 }
 ## filestream.value.is_filestream = true
 
--- Helper to get file operation errors.
-local function fileresult(success: boolean): (boolean, string, integer)
-  if not success then
-    return false, strerror(errno), errno
-  end
-  return true, '', 0
-end
-
 --[[
 Initialize a new `filestream` from a given C `FILE` pointer.
 `closef` is a callback to call when closing the file handle.
@@ -126,7 +118,10 @@ function filestream:flush(): (boolean, string, integer)
   if not fp then
     return false, 'attempt to use a closed file', -1
   end
-  return fileresult(fflush(fp) == 0)
+  if fflush(fp) ~= 0 then
+    return false, strerror(errno), errno
+  end
+  return true, (@string){}, 0
 end
 
 --[[
@@ -149,7 +144,10 @@ function filestream:close(): (boolean, string, integer)
   end
   self.fs.fp = nilptr
   self.fs.closef = nilptr
-  return fileresult(res == 0)
+  if res ~= 0 then
+    return false, strerror(errno), errno
+  end
+  return true, (@string){}, 0
 end
 
 --[[
@@ -213,8 +211,8 @@ function filestream:seek(whence: facultative(string), offset: facultative(intege
       len = ftell(fp)
     else
       len = -1
-      local success: boolean
-      success, errmsg, status = fileresult(false)
+      errmsg = strerror(errno)
+      status = errno
     end
     return len, errmsg, status
   ## end
@@ -248,7 +246,10 @@ function filestream:setvbuf(mode: string, size: facultative(integer)): (boolean,
   elseif mode == 'full' then op = _IOFBF
   elseif mode == 'line' then op = _IOLBF
   else return false, 'invalid mode', -1 end
-  return fileresult(setvbuf(fp, nilptr, op, size) == 0)
+  if setvbuf(fp, nilptr, op, size) ~= 0 then
+    return false, strerror(errno), errno
+  end
+  return true, (@string){}, 0
 end
 
 -- Chunk size to use in read operations
@@ -352,14 +353,15 @@ function filestream:read(fmt: overload(integer,string,niltype)): (string, string
   ## end
   local status: integer = 0
   if ferror(fp) ~= 0 then
-    success, errmsg, status = fileresult(false)
+    success = false
+    errmsg = strerror(errno)
+    status = errno
   end
   local s: string
   if success then
     s = sb:promote()
   else
-    if #errmsg == 0 then
-      -- should be eof
+    if #errmsg == 0 then -- should be eof
       errmsg = 'eof'
       status = EOF
     elseif status == 0 then
@@ -395,7 +397,7 @@ function filestream:write(...: varargs): (boolean, string, integer)
     if s.size > 0 then
       local ok: boolean = fwrite(s.data, 1, s.size, fp) == s.size
       if not ok then
-        return fileresult(false)
+        return false, strerror(errno), errno
       end
     end
   ## end
@@ -422,7 +424,7 @@ function filestream:writef(fmt: string, ...: varargs): (boolean, string, integer
   if s.size > 0 then
     local res: csize = fwrite(s.data, 1, s.size, fp)
     if res ~= s.size then
-      return fileresult(false)
+      return false, strerror(errno), errno
     end
   end
   return true, '', 0
