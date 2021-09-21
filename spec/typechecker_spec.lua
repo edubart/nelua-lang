@@ -1020,6 +1020,14 @@ it("callbacks", function()
   ]],[[
     local f: function(): void
   ]])
+  expect.analyze_error([[
+    local F: type = @function()
+    local f: F = function(x: integer) end
+  ]], "is also known as")
+  expect.analyze_error([[
+    local F: type = @function()
+    local g: function(x: integer) = (@F)()
+  ]], "is also known as")
   expect.analyze_error([[local r: record{f: function(x: integer)} r.f(true)]], "no viable type conversion")
 end)
 

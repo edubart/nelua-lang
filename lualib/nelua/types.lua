@@ -331,7 +331,14 @@ function Type:get_convertible_from_type(type)
     -- anything can be converted to and from `any`
     return self
   end
-  return false, string.format("no viable type conversion from `%s` to `%s`", type, self)
+  local msg = string.format("no viable type conversion from '%s' to '%s'", type, self)
+  if type.nickname and type.is_procedure then
+    msg = msg..'\n\t'..string.format("where '%s' is also known as '%s'", type.nickname, type:typedesc())
+  end
+  if self.nickname and self.is_procedure then
+    msg = msg..'\n\t'..string.format("where '%s' is also known as '%s'", self.nickname, self:typedesc())
+  end
+  return false, msg
 end
 
 -- Get the desired type when converting this type from an attr.
