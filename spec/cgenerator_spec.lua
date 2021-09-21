@@ -902,7 +902,6 @@ it("function multiple returns", function()
     assert(a == 1 and b == 3)
     assert(f1() == 1)
   ]])
-
   expect.run_c([[
     local function getf()
       local function f(): (integer, integer)
@@ -919,6 +918,24 @@ it("function multiple returns", function()
       local a, b = f()
       assert(b == 1)
     end
+  ]])
+  expect.run_c([[
+    local function f(): integer return 1 end
+    local function g(): (integer, integer) return 1,2 end
+    local function h(): (integer, integer, integer) return 1,2,3 end
+    local function sum(...: varargs): integer
+      local n: integer = 0
+      ## for i=1,select('#', ...) do
+        n = n + #[select(i, ...)]#
+      ## end
+      return n
+    end
+    assert(sum(f()) == 1)
+    assert(sum(g()) == 3)
+    assert(sum(h()) == 6)
+    assert(sum((f())) == 1)
+    assert(sum((g())) == 1)
+    assert(sum((h())) == 1)
   ]])
 end)
 

@@ -1167,11 +1167,13 @@ local function izipargnodes(vars, argnodes)
   local lastargnode = argnodes[lastargindex]
   local lastcalleetype = lastargnode and lastargnode.attr.calleetype
   local niltype = primtypes.niltype
+  local lastvarnode = vars[#vars]
+  local multipleargs = lastvarnode and lastvarnode.type and lastvarnode.type.is_multipleargs
   if lastargnode and lastargnode.is_call and
      (not lastcalleetype or not lastcalleetype.is_type) then
     -- last arg is a runtime call
     return function()
-      local var, argnode
+      local previ, var, argnode = i
       i, var, argnode = iter(ts, i)
       if i then
         -- NOTE: the calletype may change while iterating
@@ -1202,6 +1204,17 @@ local function izipargnodes(vars, argnodes)
         else
           -- call type is now known yet, argtype will be nil
           return i, var, argnode, argnode and argnode.attr.type
+        end
+      elseif multipleargs then
+        local calleetype = argnodes[lastargindex].attr.calleetype
+        if calleetype and calleetype.is_procedure then
+          i = previ + 1
+          local callretindex = i - lastargindex + 1
+          local argtype = calleetype:get_return_type(callretindex)
+          if argtype and not argtype.is_niltype and callretindex > 1 then
+            lastargnode.attr.usemultirets = true
+            return i, primtypes.varargs, nil, argtype, callretindex
+          end
         end
       end
     end
@@ -1324,7 +1337,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
       end
       local polyargs = {}
       local knownallargs = true
-      for i,funcarg,argnode,argtype in izipargnodes(pseudoargattrs, argnodes) do
+      for i,funcarg,argnode,argtype,lastcallindex in izipargnodes(pseudoargattrs, argnodes) do
         local arg
         local funcargtype
         if traits.is_type(funcarg) then funcargtype = funcarg
@@ -1350,7 +1363,8 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
             arg = argnode.attr
           end
         else
-          if funcargtype.is_cvarargs or funcargtype.is_varargs then
+          if (funcargtype.is_cvarargs or funcargtype.is_varargs) and
+            not (argtype and funcargtype.is_varargs and lastcallindex and lastcallindex > 1) then
             break
           end
           arg = argtype

@@ -158,6 +158,9 @@ function builtins.print(context, node, argnodes)
     local metafields = objtype.metafields
     if metafields and metafields.__tostring then
       argtype = primtypes.string
+      if not argnodes[i] then
+        node:raisef('cannot forward multiple returns to print in this context')
+      end
       argnodes[i] = aster.CallMethod{'__tostring', {}, argnodes[i]}
     end
     argattrs[i] = {name='a'..i, type=argtype}

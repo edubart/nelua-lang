@@ -584,10 +584,11 @@ function types.argtypes_from_argnodes(argnodes, wantedlen)
     argtypes[i] = argtype
   end
   if nargs > 0 and (not wantedlen or nargs < wantedlen) then
-    local lastattr = argnodes[nargs].attr
+    local argnode = argnodes[nargs]
+    local lastattr = argnode.attr
     if not lastattr.type then return end -- cannot complete evaluation yet
     local calleetype = lastattr.calleetype
-    if calleetype then
+    if calleetype and not argnode.is_Paren then
       if calleetype.is_any then --luacov:disable
         if wantedlen then
           for i=nargs,wantedlen do
