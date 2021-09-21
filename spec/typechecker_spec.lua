@@ -1691,6 +1691,8 @@ it("annotations", function()
     local function main1() <entrypoint> end
     local function main2() <entrypoint> end
   ]], "cannot have more than one function entrypoint")
+  expect.analyze_error([[local function f(...: varargs) <codename'f'> end]], "polymorphic functions")
+  expect.analyze_error([[local function f(...: varargs) <entrypoint> end]],  "polymorphic functions")
   expect.analyze_error("local a <nodecl(1)>", "takes no arguments")
   expect.analyze_error("local a <entrypoint>", "is undefined for variables")
   expect.analyze_error("local a <codename(1)>", "arguments are invalid")

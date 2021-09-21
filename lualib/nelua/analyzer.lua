@@ -602,6 +602,9 @@ function visitors.Annotation(context, node, opts)
   elseif name == 'codename' then
     objattr.fixedcodename = params
     objattr.nodce = true
+    if objattr.type and objattr.type.is_polyfunction then
+      node:raisef("polymorphic functions cannot use codename annotation")
+    end
   elseif istypedecl and (name == 'cincomplete' or name =='forwarddecl') then
     objattr.size = nil
     objattr.bitsize = nil
@@ -2716,6 +2719,9 @@ local function visitor_function_annotations(context, node, annotnodes, blocknode
     if attr.entrypoint then
       if context.entrypoint and context.entrypoint ~= node then
         node:raisef("cannot have more than one function entrypoint")
+      end
+      if type and type.is_polyfunction then
+        node:raisef('polymorphic functions cannot be an entrypoint')
       end
       if not attr.fixedcodename then
         attr.codename = attr.name
