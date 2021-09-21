@@ -500,7 +500,13 @@ global function collectgarbage(opt: overload(string,number,niltype) <comptime>,
   ## else static_error('invalid collect garbage argument %s', opt.value) end
 end
 
-## if not pragmas.nogcentry then
+--[[
+We only care to emit GC code if it's really used,
+so only define the GC entrypoint if the `gc` symbol is used after all code is analyzed,
+otherwise all the GC code will go through dead code elimination.
+]]
+## after_analyze(hygienize(function()
+  ## if not pragmas.nogcentry and gc:is_used() then
   -- Application main hook, needed to call `GC:init` and `GC:destroy`.
   local function main(argc: cint, argv: *cstring): cint <entrypoint>
     local function nelua_main(argc: cint, argv: *cstring): cint <cimport,nodecl> end
@@ -510,7 +516,8 @@ end
     gc:destroy()
     return ret
   end
-## end
+  ## end
+## end))
 
 -- GC allocator record.
 global GCAllocator = @record{}
