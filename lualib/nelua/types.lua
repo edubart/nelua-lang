@@ -386,7 +386,7 @@ end
 
 -- Checks if this type can initialize from the attr (succeeds only for compile time attrs).
 function Type:is_initializable_from_attr(attr)
-  return attr.comptime and self == attr.type
+  return (attr.comptime and self == attr.type) or attr.ctopinit
 end
 
 -- Checks if this type equals to another type.

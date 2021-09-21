@@ -308,6 +308,9 @@ typedefs.variable_annots = {
   close = true,
   -- Whether the variable is immutable.
   const = true,
+  -- Force a variable to be initialized in the C top scope, even if it contains runtime expressions.
+  -- This is only useful when making some low level OS specific code.
+  ctopinit = true,
 }
 
 -- List of possible annotations for types.

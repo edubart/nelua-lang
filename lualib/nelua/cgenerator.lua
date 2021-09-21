@@ -1105,7 +1105,7 @@ function visitors.VarDecl(context, node, emitter)
       local declared, defined
       if varattr.staticstorage then -- declare variables in the top scope
         local decemitter = CEmitter(context)
-        local custominit = valnode and vartype:is_initializable_from_attr(valnode.attr)
+        local custominit = (valnode and vartype:is_initializable_from_attr(valnode.attr)) or varattr.ctopinit
         declared = true
         defined = custominit or (not valnode and not lastcallindex)
         varnode.attr.ignoreconst = not defined

@@ -158,7 +158,7 @@ function Symbol:is_used(cache, checkedsyms)
   local used = self.used
   if used ~= nil then return used end
   used = false
-  if self.cexport or self.entrypoint or self.volatile or self.nodce then
+  if self.cexport or self.entrypoint or self.volatile or self.nodce or self.ctopinit then
     used = true
   else
     local usedby = self.usedby
