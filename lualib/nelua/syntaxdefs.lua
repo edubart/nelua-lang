@@ -171,7 +171,7 @@ typeopptr : PointerType   <== `*`
 typeopopt : OptionalType  <== `?`
 typeoparr : ArrayType     <== `[` expr? @`]`
 typeopvar : VariantType   <== typevaris
-typeopgen : GenericType   <== `(` @typeargs @`)`
+typeopgen : GenericType   <== `(` @typeargs @`)` / &`{` {| InitList |}
 typevaris : VariantType   <== `|` @typeexprunary (`|` @typeexprunary)*
 
 typeopunary     <-- typeopptr / typeopopt / typeoparr
