@@ -3183,7 +3183,8 @@ function visitors.UnaryOp(context, node, opts)
   end
   if opname == 'ref' then
     if argtype then
-      if not argattr.lvalue then
+      if not argattr.lvalue and
+        not (argtype.is_aggregate and argnode.attr.calleetype == primtypes.type) then
         node:raisef("in unary operation `%s`: cannot reference rvalues", opname)
       end
       argattr.refed = true

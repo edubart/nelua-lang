@@ -1359,7 +1359,7 @@ end
 
 -- Implementation of reference operator (`&`).
 function cbuiltins.operators.ref(_, _, emitter, argattr, argname)
-  assert(argattr.lvalue)
+  assert(argattr.lvalue or argattr.type.is_aggregate)
   emitter:add('(&', argname, ')')
 end
 

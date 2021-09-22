@@ -461,6 +461,9 @@ Type.unary_operators.ref = function(ltype, lattr)
       return nil, nil, string.format('cannot reference not addressable type "%s"', ltype)
     end
   else
+    if ltype.is_aggregate then
+      return types.PointerType(ltype)
+    end
     return nil, nil, string.format('cannot reference compile time value of type "%s"', ltype)
   end
 end

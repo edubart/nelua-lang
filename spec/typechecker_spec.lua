@@ -268,6 +268,7 @@ it("unary operators", function()
   expect.ast_type_equals("local a = not 1", "local a: boolean = not 1")
   expect.ast_type_equals("local a = -1", "local a: integer = -1")
   expect.ast_type_equals("local a = -1.0", "local a: number = -1.0")
+  expect.ast_type_equals("local a = &(@[2]integer){1,2}", "local a: *[2]integer = &(@[2]integer){1,2}")
   expect.analyze_error("local x = &1", "cannot reference compile time value")
   expect.analyze_error([[
     local function f(): integer return 1 end
