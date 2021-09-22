@@ -41,18 +41,37 @@ local errno: cint <cimport,cinclude'<errno.h>'>
 global io: type = @record{}
 
 local FStream: type = #[filestream.value.fields.fs.type.subtype]#
-local stderrfs: FStream = {fp = stderr}
-local stdoutfs: FStream = {fp = stdout}
-local stdinfs: FStream = {fp = stdin}
 
--- Default error output file handle.
-global io.stderr: filestream = {fs = &stderrfs}
+--[[
+The following is a trick to define `io.stdout`, `io.stderr` and `io.stdin` on first usage,
+so we can avoid generating C code for them when they are not used.
+]]
+##[[
+local infieldindex = false
+setmetatable(symbols.io.value.metafields, {__index = hygienize(function(metafields, key)
+  if infieldindex then return end
+  infieldindex = true
+]]
+  ## if key == 'stderr' then
+  local stderrfs: FStream = {fp = stderr}
 
--- Default output file handle.
-global io.stdout: filestream = {fs = &stdoutfs}
+  -- Default error output file handle.
+  global io.stderr: filestream = {fs = &stderrfs}
+  ## elseif key == 'stdout' then
+  local stdoutfs: FStream = {fp = stdout}
 
--- Default input file handle.
-global io.stdin: filestream = {fs = &stdinfs}
+  -- Default output file handle.
+  global io.stdout: filestream = {fs = &stdoutfs}
+  ## elseif key == 'stdin' then
+  local stdinfs: FStream = {fp = stdin}
+
+  -- Default input file handle.
+  global io.stdin: filestream = {fs = &stdinfs}
+  ## end
+##[[
+  infieldindex = false return rawget(metafields, key)
+end)})
+]]
 
 --[[
 Opens a file, in the mode specified in the string `mode`.
@@ -124,7 +143,7 @@ Save any written data to the default output file.
 
 Equivalent to `io.output():flush()`.
 ]]
-function io.flush(): (boolean, string, integer)
+function io.flush(): (boolean, string, integer) <polymorphic>
   return io.stdout:flush()
 end
 
