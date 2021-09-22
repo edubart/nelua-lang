@@ -6,10 +6,6 @@ which is filled with command line arguments on initialization.
 require 'sequence'
 require 'allocators.general'
 
--- Import argc and argv from C 'nelua_main'
-local nelua_argc: cint <cimport,nodecl>
-local nelua_argv: *[0]cstring <cimport,nodecl>
-
 --[[
 Sequence of command line arguments.
 
@@ -18,13 +14,22 @@ The values starting from index `1` up to `#arg` contains each command line argum
 ]]
 global arg: sequence(string, GeneralAllocator)
 
--- setup args
-if nelua_argc > 0 then
-  local narg: usize = (@usize)(nelua_argc-1)
-  arg:reserve(narg)
-  for i:usize=0,narg do
-    arg[i] = nelua_argv[i]
+-- We only want to initialize 'arg' if it is really used somewhere else.
+## after_analyze(hygienize(function()
+  ## if symbols.arg:is_used() then
+  -- Import argc and argv from C 'nelua_main'
+  local nelua_argc: cint <cimport,nodecl>
+  local nelua_argv: *[0]cstring <cimport,nodecl>
+
+  -- setup args
+  if nelua_argc > 0 then
+    local narg: usize = (@usize)(nelua_argc-1)
+    arg:reserve(narg)
+    for i:usize=0,narg do
+      arg[i] = nelua_argv[i]
+    end
   end
-end
+  ## end
+## end))
 
 -- NOTE: The memory of `arg` is never freed, but it's fine, it's not a leak for global variables.
