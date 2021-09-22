@@ -46,6 +46,7 @@ function CContext:_init(visitors, typevisitors)
     cflags = {},
     ldflags = {},
     linklibs = {},
+    linkdirs = {},
     cfiles = {},
     incdirs = {},
   }
@@ -215,6 +216,22 @@ function CContext:ensure_include(name)
         table.insert(incdirs, dirpath)
       end
     end
+  end
+end
+
+-- Ensures a C directory is added to include path when compiling.
+function CContext:ensure_cincdir(dirpath)
+  local incdirs = self.compileopts.incdirs
+  if not tabler.ifind(incdirs, dirpath) then
+    table.insert(incdirs, dirpath)
+  end
+end
+
+-- Ensures a library directory is added to library path when linking.
+function CContext:ensure_linkdir(dirpath)
+  local linkdirs = self.compileopts.linkdirs
+  if not tabler.ifind(linkdirs, dirpath) then
+    table.insert(linkdirs, dirpath)
   end
 end
 

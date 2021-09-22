@@ -362,6 +362,8 @@ typedefs.pp_directives = {
   cdefine = shaper.shape{n=shaper.number, shaper.string},
   cflags = shaper.shape{n=shaper.number, shaper.string},
   cfile = shaper.shape{n=shaper.number, shaper.string},
+  cincdir = shaper.shape{n=shaper.number, shaper.string},
+  linkdir = shaper.shape{n=shaper.number, shaper.string},
   ldflags = shaper.shape{n=shaper.number, shaper.string},
   linklib = shaper.shape{n=shaper.number, shaper.string},
   pragmapush = shaper.shape{n=shaper.number, shaper.table},

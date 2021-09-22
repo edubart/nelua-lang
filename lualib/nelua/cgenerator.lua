@@ -438,6 +438,8 @@ function visitors.Directive(context, node, emitter)
     end
   elseif name == 'cfile' then
     context:ensure_cfile(args[1])
+  elseif name == 'cincdir' then
+    context:ensure_cincdir(args[1])
   elseif name == 'cemit' then
     local code = args[1]
     if traits.is_string(code) then
@@ -473,6 +475,8 @@ function visitors.Directive(context, node, emitter)
     table.insert(context.compileopts.ldflags, args[1])
   elseif name == 'linklib' then
     context:ensure_linklib(args[1])
+  elseif name == 'linkdir' then
+    context:ensure_linkdir(args[1])
   elseif name == 'pragmapush' then
     context:push_forked_pragmas(args[1])
   elseif name == 'pragmapop' then
