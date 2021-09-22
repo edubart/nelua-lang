@@ -1500,6 +1500,16 @@ it("pointers", function()
     bb = bb
   ]])
   expect.analyze_ast([[
+    local pi: *integer
+    local pa: *[0]integer
+    local a: [4]integer
+    pa = &a
+    pi = &a
+    local i: integer
+    pa = &i
+    pi = &i
+  ]])
+  expect.analyze_ast([[
     local a: **cchar
     local b: **byte
     b = a

@@ -197,8 +197,10 @@ Type.shape = shaper.shape {
   is_cstring = shaper.optional_boolean,
   is_acstring = shaper.optional_boolean,
   is_byte_pointer = shaper.optional_boolean,
+  is_array_pointer = shaper.optional_boolean,
   is_bytearray_pointer = shaper.optional_boolean,
   is_unbounded_pointer = shaper.optional_boolean,
+  is_unbounded_array = shaper.optional_boolean,
   is_cvalist = shaper.optional_boolean,
 
   -- Booleans for checking the underlying type (lib types).
@@ -1524,6 +1526,7 @@ function ArrayType:_init(subtype, length, node)
   self.length = length
   self.align = subtype.align
   if length == 0 then
+    self.is_unbounded_array = true
     self.is_empty = true
   end
   -- validated subtype
@@ -2246,6 +2249,7 @@ function PointerType:_init(subtype)
     if subtype.length == 0 then
       self.is_unbounded_pointer = true
     end
+    self.is_array_pointer = true
   elseif subtype.is_integral and subtype.size == 1 then
     self.is_byte_pointer = true
   end
@@ -2295,20 +2299,17 @@ function PointerType:get_convertible_from_type(type, explicit, autoref)
     else
       local selfsubtype = self.subtype
       local typesubtype = type.subtype
-      if type.is_unbounded_pointer and
-         is_pointer_subtype_convertible(typesubtype.subtype, selfsubtype) then
-        -- implicit casting from unbounded arrays pointers to pointers
+      if type.is_array_pointer and
+         is_pointer_subtype_convertible(selfsubtype, typesubtype.subtype) then
+        -- implicit casting from arrays pointers to pointers
         return self
-      elseif self.is_unbounded_pointer and
+      elseif self.is_array_pointer and
              is_pointer_subtype_convertible(selfsubtype.subtype, typesubtype) then
-        -- implicit casting from pointers to unbounded arrays pointers
+        -- implicit casting from pointers to arrays pointers
         return self
       elseif self.is_unbounded_pointer and typesubtype.is_array and
              is_pointer_subtype_convertible(selfsubtype.subtype, typesubtype.subtype) then
-        -- implicit casting from checked arrays pointers to unbounded arrays pointers
-        return self
-      elseif self.is_byte_pointer and type.is_bytearray_pointer then
-        -- implicit casting from pointer to a byte array to cstring
+        -- implicit casting from bounded arrays pointers to unbounded arrays pointers
         return self
       elseif is_pointer_subtype_convertible(selfsubtype, typesubtype) then
         -- implicit casting between integral of same size and signess
@@ -2320,7 +2321,8 @@ function PointerType:get_convertible_from_type(type, explicit, autoref)
       end
     end
   elseif type.is_string then
-    if self.is_bytearray_pointer then
+    if self.is_array_pointer and
+      is_pointer_subtype_convertible(self.subtype.subtype, primtypes.byte) then
       -- implicit casting from string to a pointer to a byte array
       return self
     elseif is_pointer_subtype_convertible(self.subtype, primtypes.byte) then
