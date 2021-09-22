@@ -8,7 +8,7 @@ the global `embedded_general_allocator` is declared before this library is requi
 ]]
 
 -- General allocator record.
-global GeneralAllocator = @record{}
+global GeneralAllocator: type = @record{}
 
 -- General allocator instance, that must be used to perform allocations.
 global general_allocator: GeneralAllocator

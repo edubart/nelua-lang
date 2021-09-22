@@ -35,7 +35,7 @@ require 'iterators'
   ]]
 
   -- Concept matching contiguous containers of T.
-  local spanT_convertible_concept = #[concept(function(x)
+  local spanT_convertible_concept: type = #[concept(function(x)
     if x.type.is_pointer and x.type.subtype and x.type.subtype:is_contiguous_of(T) then
       return true
     elseif x.type.is_string and (T.is_integral and T.bitsize == 8) then

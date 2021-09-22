@@ -14,8 +14,8 @@ require 'memory'
 
 local function snprintf(s: cstring, maxlen: csize, format: cstring, ...: cvarargs): cint <cimport,cinclude'<stdio.h>'> end
 
-local MAX_FORMAT <comptime> = 32
-local MAX_ITEM <comptime> = 128
+local MAX_FORMAT: usize <comptime> = 32
+local MAX_ITEM: usize <comptime> = 128
 
 -- Helper to check if a character is a digit.
 local function isdigit(c: cint): boolean <inline>
@@ -60,7 +60,7 @@ end
   ## end
 
   local Allocator: type = #[Allocator]#
-  local INIT_CAPACITY <comptime> = 128
+  local INIT_CAPACITY: usize <comptime> = 128
 
   -- String builder record defined when instantiating the generic `stringbuilder`.
   local stringbuilderT: type = @record{

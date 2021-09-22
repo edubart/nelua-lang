@@ -179,7 +179,7 @@ local function GC_markstackinner(self: *GC): void <noinline>
   -- dump CPU registers into the stack, to scan them
   local jmp_buf: type <cimport,cinclude'<setjmp.h>',cincomplete> = @record{}
   local function setjmp(env: jmp_buf): void <cimport,cinclude'<setjmp.h>'> end
-  local RegsBuf = @union{regs: jmp_buf, firstreg: pointer} -- use a union to force pointer alignment
+  local RegsBuf: type = @union{regs: jmp_buf, firstreg: pointer} -- use a union to force pointer alignment
   local regsbuf: RegsBuf <noinit>
   setjmp(regsbuf.regs) -- save registers
   --[[
@@ -520,7 +520,7 @@ otherwise all the GC code will go through dead code elimination.
 ## end))
 
 -- GC allocator record.
-global GCAllocator = @record{}
+global GCAllocator: type = @record{}
 
 -- GC allocator instance, that must be used to perform allocations.
 global gc_allocator: GCAllocator

@@ -1989,7 +1989,7 @@ function visitors.ForNum(context, node)
       itsymbol:add_possible_type(btype, begvalnode)
       itsymbol:add_possible_type(etype, endvalnode)
       if btype and etype then
-        scope:resolve_symbol(itsymbol)
+        itsymbol:resolve_type()
         ittype = itsymbol.type
       end
     end
@@ -2850,6 +2850,9 @@ local function resolve_function_type(node, symbol, varnode, varsym, decl, argatt
       attr.comptime = true
     end
     attr.value = symbol
+  end
+  if symbol and symbol.type then
+    symbol.scope:finish_symbol_resolution(symbol)
   end
   return type
 end

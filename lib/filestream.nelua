@@ -8,7 +8,7 @@ require 'stringbuilder'
 require 'string'
 require 'allocators.default'
 
-local FILE <cimport,cinclude'<stdio.h>',forwarddecl> = @record{}
+local FILE: type <cimport,cinclude'<stdio.h>',forwarddecl> = @record{}
 local stdin: *FILE <cimport,cinclude'<stdio.h>'>
 local stdout: *FILE <cimport,cinclude'<stdio.h>'>
 local stderr: *FILE <cimport,cinclude'<stdio.h>'>
@@ -253,7 +253,7 @@ function filestream:setvbuf(mode: string, size: facultative(integer)): (boolean,
 end
 
 -- Chunk size to use in read operations
-local READ_CHUNK_SIZE <comptime> = 1024
+local READ_CHUNK_SIZE: usize <comptime> = 1024
 
 -- Read a line from file.
 local function readline(sb: *stringbuilder, fp: *FILE, chop: boolean): (boolean, string)

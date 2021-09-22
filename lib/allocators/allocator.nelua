@@ -25,7 +25,7 @@ require 'span'
   local span_concept: type = #[concept(function(x) return x.type.is_span end)]#
 
   -- Concept to checking whether an input type is a span or a pointer.
-  local deleteable_concept = #[concept(function(x)
+  local deleteable_concept: type = #[concept(function(x)
     if x.type.is_pointer or x.type.is_span then
       return true
     end

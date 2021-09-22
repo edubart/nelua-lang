@@ -14,11 +14,11 @@ end
 cinclude '<stdatomic.h>'
 ]]
 
-local is_atomicable_ptr = #[concept(function(x)
+local is_atomicable_ptr: type = #[concept(function(x)
   return x.type.is_pointer and x.type.subtype.is_atomicable
 end)]#
 
-local is_atomicable = #[concept(function(x)
+local is_atomicable: type = #[concept(function(x)
   return x.type.is_atomicable
 end)]#
 

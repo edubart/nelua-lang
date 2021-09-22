@@ -304,14 +304,12 @@ function Scope:delay_resolution(force)
   self.delay = true
 end
 
-function Scope:resolve_symbol(symbol)
-  if symbol:resolve_type() then
-    local unresolved_symbols = self.unresolved_symbols
-    if unresolved_symbols and unresolved_symbols[symbol] then
-      unresolved_symbols[symbol] = nil
-      local context = self.context
-      context.unresolvedcount = context.unresolvedcount - 1
-    end
+function Scope:finish_symbol_resolution(symbol)
+  local unresolved_symbols = self.unresolved_symbols
+  if unresolved_symbols and unresolved_symbols[symbol] then
+    unresolved_symbols[symbol] = nil
+    local context = self.context
+    context.unresolvedcount = context.unresolvedcount - 1
   end
 end
 
@@ -334,8 +332,7 @@ function Scope:resolve_symbols()
         end
       end
       if symbol.type then
-        unresolved_symbols[symbol] = nil
-        context.unresolvedcount = context.unresolvedcount - 1
+        self:finish_symbol_resolution(symbol)
       end
     end
     -- if nothing was resolved previously then try resolve symbol with unknown possible types
@@ -346,8 +343,7 @@ function Scope:resolve_symbols()
         local symbol = unknownlist[i]
         local force = context.state.anyphase and primtypes.any or not symbol:is_waiting_resolution()
         if symbol:resolve_type(force) then
-          unresolved_symbols[symbol] = nil
-          context.unresolvedcount = context.unresolvedcount - 1
+          self:finish_symbol_resolution(symbol)
           count = count + 1
         end
         --break

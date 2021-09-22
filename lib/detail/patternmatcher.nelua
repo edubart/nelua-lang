@@ -6,9 +6,9 @@ Used by string `find`, `match`, `gsub` and `gmatch` functions.
 
 require 'memory'
 
-local MAX_MATCH_CALLS <comptime> = 32
-local CAP_UNFINISHED <comptime> = -1
-local CAP_POSITION <comptime> = -2
+local MAX_MATCH_CALLS: isize <comptime> = 32
+local CAP_UNFINISHED: isize <comptime> = -1
+local CAP_POSITION: isize <comptime> = -2
 
 -- Record holding a matched capture.
 global PatternMatcherCapture: type = @record{
