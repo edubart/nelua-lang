@@ -168,8 +168,9 @@ end
 
 -- Traverses list of nodes `nodes`, arguments `...` are forwarded for each node visitor.
 function VisitorContext:traverse_nodes(nodes, ...)
-  for i=1,#nodes do
-    self:traverse_node(nodes[i], ...)
+  -- NOTE: must loop this way because nodes may be injected while traversing
+  for _,node in ipairs(nodes) do
+    self:traverse_node(node, ...)
   end
 end
 

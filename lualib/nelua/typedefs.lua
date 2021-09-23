@@ -402,6 +402,8 @@ typedefs.pp_variables = {
   scope = function(ppcontext) return ppcontext.context.scope end,
   -- Current pragmas.
   pragmas = function(ppcontext) return ppcontext.context.pragmas end,
+  -- Source node where the current polymorphic function was instantiated,
+  polysrcnode = function(ppcontext) return ppcontext.context.state.inpolyeval.srcnode end
 }
 
 -- List of exported preprocessor constants that cannot change while preprocessing.

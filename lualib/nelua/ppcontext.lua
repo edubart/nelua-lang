@@ -95,8 +95,8 @@ end
 
 -- Traverses list of nodes `nodes`.
 function PPContext:traverse_nodes(nodes, emitter)
-  for i=1,#nodes do
-    self:traverse_node(nodes[i], emitter, nodes, i)
+  for i,node in ipairs(nodes) do
+    self:traverse_node(node, emitter, nodes, i)
   end
 end
 
