@@ -8,6 +8,7 @@ local pegger = require 'nelua.utils.pegger'
 local cdefs = require 'nelua.cdefs'
 local CEmitter = require 'nelua.cemitter'
 local typedefs = require 'nelua.typedefs'
+local ccompiler = require 'nelua.ccompiler'
 local primtypes = typedefs.primtypes
 
 -- The cbuiltins table.
@@ -1358,8 +1359,14 @@ function cbuiltins.operators.bnot(_, _, emitter, argattr, argname)
 end
 
 -- Implementation of reference operator (`&`).
-function cbuiltins.operators.ref(_, _, emitter, argattr, argname)
-  assert(argattr.lvalue or argattr.type.is_aggregate)
+function cbuiltins.operators.ref(_, node, emitter, argattr, argname)
+  if argattr.type.is_aggregate then
+    if ccompiler.get_cc_info().is_cpp then --luacov:disable
+      node:raisef('taking reference of a compound literal is not allowed in the C++ backend')
+    end --luacov:enable
+  else
+    assert(argattr.lvalue)
+  end
   emitter:add('(&', argname, ')')
 end
 
