@@ -383,16 +383,16 @@ function filestream:write(...: varargs): (boolean, string, integer)
   if not fp then
     return false, 'attempt to use a closed file', -1
   end
-  local s: string
   ## for i=1,select('#', ...) do
+  do -- must create a scope for defer
     ## local argnode = select(i, ...)
     ## local argtype = argnode.attr.type
     ## if not argtype.is_stringy then
-      -- TODO: avoid extra string allocation here
-      s = tostring(#[argnode]#)
-      defer s:destroy() end
+    -- TODO: avoid extra string allocation here
+    local s: string = tostring(#[argnode]#)
+    defer s:destroy() end
     ## else
-      s = #[argnode]#
+    local s: string = #[argnode]#
     ## end
     if s.size > 0 then
       local ok: boolean = fwrite(s.data, 1, s.size, fp) == s.size
@@ -400,6 +400,7 @@ function filestream:write(...: varargs): (boolean, string, integer)
         return false, strerror(errno), errno
       end
     end
+  end
   ## end
   --TODO: return file itself
   return true, '', 0

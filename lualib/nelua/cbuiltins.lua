@@ -1360,11 +1360,11 @@ end
 
 -- Implementation of reference operator (`&`).
 function cbuiltins.operators.ref(_, node, emitter, argattr, argname)
-  if argattr.type.is_aggregate then
+  if not argattr.lvalue and argattr.type.is_aggregate then -- taking reference of a literal
     if ccompiler.get_cc_info().is_cpp then --luacov:disable
       node:raisef('taking reference of a compound literal is not allowed in the C++ backend')
     end --luacov:enable
-  else
+  else -- we expect an lvalue
     assert(argattr.lvalue)
   end
   emitter:add('(&', argname, ')')

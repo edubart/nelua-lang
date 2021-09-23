@@ -194,16 +194,17 @@ end
   function stringbuilderT:write(...: varargs): (boolean, usize)
     local written: usize = 0
     ## for i=1,select('#', ...) do
+    do -- must create a scope for defer
       ## local argnode = select(i, ...)
       ## local argtype = argnode.attr.type
       ## if argtype.is_span and argtype.subtype == primtypes.byte then
-        local s: span(byte) = #[argnode]#
+      local s: span(byte) = #[argnode]#
       ## elseif not argtype.is_stringy then
         -- TODO: avoid extra string allocation here
-        local s: string = tostring(#[argnode]#)
-        defer s:destroy() end
+      local s: string = tostring(#[argnode]#)
+      defer s:destroy() end
       ## else
-        local s: string = #[argnode]#
+      local s: string = #[argnode]#
       ## end
       if s.size > 0 then
         local p: span(byte) = self:prepare(s.size)
@@ -212,6 +213,7 @@ end
         written = written + s.size
         self.size = self.size + s.size
       end
+    end
     ## end
     return true, written
   end
