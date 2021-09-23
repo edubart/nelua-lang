@@ -168,7 +168,13 @@ function aster.parse(content, name, extension)
   end
   if not ast then
     local errmsg = syntax.errors[errlabel] or errlabel
-    local message = errorer.get_pretty_source_pos_errmsg(src, errpos, nil, errmsg, 'syntax error')
+    local loc = {
+      srcname=name,
+      srccode=content,
+      pos=errpos,
+    }
+    loc.lineno, loc.colno, loc.line, loc.linestart, loc.lineend = lpegrex.calcline(content, errpos)
+    local message = errorer.get_pretty_source_pos_errmsg(loc, errmsg, 'syntax error')
     except.raise({label = 'ParseError', message = message, errlabel = errlabel, errpos = errpos})
   end
   src = nil

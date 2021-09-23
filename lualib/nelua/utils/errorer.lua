@@ -6,7 +6,6 @@ The erroer module is used to format and print pretty error messages.
 
 local colors = require 'nelua.utils.console'.colors
 local stringer = require 'nelua.utils.stringer'
-local lpegrex = require 'nelua.thirdparty.lpegrex'
 
 local errorer = {}
 
@@ -23,11 +22,12 @@ function errorer.errorf(message, ...)
   error(stringer.pformat(message, ...), 2)
 end
 
--- Helper to generate pretty error messages associated with line and column from a source.
-local function get_pretty_source_pos_errmsg(srcname, lineno, colno, line, errmsg, errname, len)
+-- Generate a pretty error message associated with location from a source.
+function errorer.get_pretty_source_pos_errmsg(loc, errmsg, errname)
+  local srcname, lineno, colno, line, len = loc.srcname, loc.lineno, loc.colno, loc.line, loc.len
   local colbright, colreset = colors.bright, colors.reset
   local lineloc = ''
-  if line then
+  if line and colno then
     -- count number of tabs and spaces up to the text
     local ntabs = select(2, line:sub(1,colno-1):gsub('\t',''))
     local nspaces = colno-1-ntabs
@@ -56,25 +56,20 @@ local function get_pretty_source_pos_errmsg(srcname, lineno, colno, line, errmsg
     errcolor = colors.warn
   end
   -- generate the error message
-  return srcname..colbright..':'..lineno..':'..colno..': '..
-         errcolor..errname..': '..colreset..colbright..errmsg..colreset..
-         lineloc..errtraceback..'\n'
-end
-
--- Generate a pretty error message associated with a character position from a source.
-function errorer.get_pretty_source_pos_errmsg(src, pos, endpos, errmsg, errname)
-  local lineno, colno, line = lpegrex.calcline(src.content, pos)
-  local ncols = endpos and (endpos-pos)
-  local srcname = src and src.name or ''
-  return get_pretty_source_pos_errmsg(srcname, lineno, colno, line, errmsg, errname, ncols)
-end
-
--- Generate a pretty error message associated with line and column from a source.
-function errorer.get_pretty_source_line_errmsg(src, errline, errmsg, errname)
-  local lineno, colno = errline, 1
-  local line = stringer.getline(src.content, lineno)
-  local srcname = src and src.name or ''
-  return get_pretty_source_pos_errmsg(srcname, lineno, colno, line, errmsg, errname)
+  local msg = ''
+  if srcname then
+    msg = msg..srcname..colbright..':'
+    if lineno then
+      msg = msg..lineno..':'
+      if colno then
+        msg = msg..colno..':'
+      end
+    end
+    msg=msg..' '
+  end
+  msg = msg..errcolor..errname..': '..colreset..colbright..errmsg..colreset..
+        lineloc..errtraceback..'\n'
+  return msg
 end
 
 return errorer

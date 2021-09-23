@@ -355,8 +355,15 @@ function PPContext:raisef(msg, ...)
   local info = debug.getinfo(3)
   local lineno = info.currentline
   local code = self.codes[info.source]
-  local src = {content=code, name='preprocessor'}
-  msg = errorer.get_pretty_source_line_errmsg(src, lineno, msg, 'error')
+  local loc = {
+    srccode=code,
+    srcname='preprocessor',
+    lineno=lineno
+  }
+  if code and lineno then
+    loc.line, loc.linestart, loc.lineend = stringer.getline(code, lineno)
+  end
+  msg = errorer.get_pretty_source_pos_errmsg(loc, msg, 'error')
   except.raise(msg, 2)
 end
 

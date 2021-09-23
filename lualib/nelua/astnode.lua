@@ -17,6 +17,7 @@ local console = require 'nelua.utils.console'
 local tabler = require'nelua.utils.tabler'
 local shaper = require 'nelua.utils.shaper'
 local Attr = require 'nelua.attr'
+local lpegrex = require 'nelua.thirdparty.lpegrex'
 local config = require 'nelua.configer'.get()
 
 -- AST node class.
@@ -218,6 +219,37 @@ function ASTNode:copy_origin(node)
 end
 
 --[[
+Returns a table with source location information for this node.
+The following fields may be present:
+* `srccode`, complete source code for the file where the node is defined.
+* `srcname`, name of the source, usually a file name.
+* `pos`, node's position inside `srccode` (inclusive).
+* `endpos`, node's end position inside `srccode` (exclusive).
+* `line`, node's line content (the first line where the node begins).
+* `lineno`, node's line number.
+* `linestart`, position where the node's line begins.
+* `lineend`, position where the node's line ends.
+* `colno`, node's column line number.
+* `len`, length (it's `endpos - pos`)
+]]
+function ASTNode:location()
+  local src, pos, endpos = self.src, self.pos, self.endpos
+  local loc = {
+    srccode=src and src.content,
+    srcname=src and src.name,
+    pos=pos,
+    endpos=endpos
+  }
+  if src and pos then
+    loc.lineno, loc.colno, loc.line, loc.linestart, loc.lineend = lpegrex.calcline(src.content, pos)
+  end
+  if pos and endpos then
+    loc.len = endpos-pos
+  end
+  return loc
+end
+
+--[[
 Formats a message with node source information.
 Where `category` is the category name to prefix the message (e.g 'warning', 'error' or 'info'),
 `message` is the message to be formatted, `...` are arguments to format the message.
@@ -225,7 +257,7 @@ Where `category` is the category name to prefix the message (e.g 'warning', 'err
 function ASTNode:format_message(category, message, ...)
   message = stringer.pformat(message, ...)
   if self and self.src and self.pos then
-    return errorer.get_pretty_source_pos_errmsg(self.src, self.pos, self.endpos, message, category)
+    return errorer.get_pretty_source_pos_errmsg(self:location(), message, category)
   end
   return category .. ': ' .. message .. '\n'
 end
