@@ -1035,6 +1035,8 @@ global function tostring(x: auto): string
     return string.copy('(null)')
   ## elseif xtype.is_polyfunction then
     return string.copy('polyfunction')
+  ## elseif x.type.is_type then
+    return 'type: '..#[tostring(x.value)]#
   ## else static_error("tostring: cannot convert type '%s' to a string", xtype) end
 end
 

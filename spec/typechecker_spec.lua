@@ -2240,6 +2240,14 @@ it("polymorphic varargs", function()
     local function f(...: varargs) return g(...) end
     f()
   ]])
+  expect.analyze_ast([[
+    local function f(...: varargs)
+      ## static_assert(select(1, ...).attr.value == primtypes.string)
+    end
+
+    local a : type = @string
+    f(a)
+  ]])
   expect.analyze_error([[
     local function f(...: varargs)
       local a = 1 + ...

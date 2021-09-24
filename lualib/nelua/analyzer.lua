@@ -2780,16 +2780,24 @@ local function visitor_function_polyevals(context, node, symbol, varnode, type)
         end
         if invarargs then -- replace varargs arguments with IdDecl nodes
           nvarargs = nvarargs + 1
-          local polyevaltype = traits.is_attr(polyevalarg) and polyevalarg.value or polyevalarg
+          local polyargtype
+          local polyargval
+          if traits.is_attr(polyevalarg) then -- should be a type
+            assert(polyevalarg.type.is_type)
+            polyargtype = polyevalarg.type
+            polyargval = polyevalarg.value
+          else
+            polyargtype = polyevalarg
+          end
           local polyargtypesym = Symbol{
             type = primtypes.type,
-            value = polyevaltype,
+            value = polyargtype,
           }
           local argname = '__arg'..nvarargs
           polyargnode = aster.IdDecl{argname, aster.Id{'auto', pattr={forcesymbol=polyargtypesym}}}
           polyargnodes[j] = polyargnode
           if varargsnodes then
-            varargsnodes[nvarargs] = aster.Id{argname, attr=Attr{type=polyevaltype}}
+            varargsnodes[nvarargs] = aster.Id{argname, attr=Attr{type=polyargtype, value=polyargval}}
           end
         elseif polyargnode then
           local polyargattr = polyargnode.attr
