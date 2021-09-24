@@ -240,6 +240,7 @@ it("type declaration", function()
     "local int = @integer; local a: integer")
   expect.analyze_error("local int = 1; local a: int = 2", "invalid type")
   expect.analyze_error("local a: invalid = 2", "undeclared symbol")
+  expect.analyze_error("local v: string = @string", "attempt to assign a type to a symbol of type")
 end)
 
 it("for loop variables", function()
