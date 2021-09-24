@@ -158,9 +158,15 @@ function PPContext.inject_value(self, value, dest, destpos, orignode)
       dest[destpos+i-1] = aster.value(value[i], orignode)
     end
   else -- a single value
-    if valueluatype == 'function' and dest.is_Call then
+    if valueluatype == 'function' and (dest.is_Call or dest.origargs) then
+      -- the dest node will be transformed, thus it will be invalid in the next `inject_value`,
+      -- so we must save the argnodes and use it in the next time
+      local argnodes = dest.origargs
+      if not argnodes then -- first preprocessing for this node
+        argnodes = dest[1]
+        dest.origargs = argnodes
+      end
       -- parse arguments to compile-time values where possible
-      local argnodes = dest[1]
       self.context:traverse_nodes(argnodes)
       local args = {}
       for i=1,#argnodes do
@@ -169,6 +175,7 @@ function PPContext.inject_value(self, value, dest, destpos, orignode)
       -- evaluate replacement macro
       local ret = value(table.unpack(args))
       if ret == nil then -- no returns, probably a statement replacement
+        -- statements should be already by the value call, transform this node into a no operation
         local noop = aster.DoExpr{aster.Block{aster.Return{aster.Nil{}}}, pattr={noop=true}}
         dest:transform(noop)
       else -- expression replacement

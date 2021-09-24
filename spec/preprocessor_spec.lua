@@ -654,6 +654,22 @@ it("expression macros", function()
   end)
 ]=])
 
+  expect.run_c([=[
+    local res: integer = 0
+    ## local gen_expr = expr_macro(function(x)
+      return #[x]#+1
+    ## end)
+    ## local gen_stmt = function(x)
+      res = res + #[x]#
+    ## end
+    ## for i=1,10 do
+      local a, b = #[gen_expr]#(#[i]#), #[i]#+1
+      assert(a == b)
+      #[gen_stmt]#(#[i]#)
+    ## end
+    assert(res == 55)
+  ]=])
+
   expect.analyze_error("local a = #[function() end]#", "cannot convert preprocess value of type")
 end)
 
