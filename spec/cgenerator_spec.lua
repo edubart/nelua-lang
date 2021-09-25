@@ -3070,7 +3070,7 @@ it("context pragmas", function()
   })
 
   expect.generate_c([[
-    ## pragmapush{nostatic = true}
+    ## pragmapush{nocstatic = true}
     local a: integer
     local function f() end
     ## pragmapop()
@@ -3083,13 +3083,13 @@ it("context pragmas", function()
     "\nstatic void g(void)",
   })
 
-  config.pragmas.nofloatsuffix = true
+  config.pragmas.nocfloatsuffix = true
   expect.generate_c([[
     local a: float32 = 0
   ]], {
     "a = 0.0;",
   })
-  config.pragmas.nofloatsuffix = nil
+  config.pragmas.nocfloatsuffix = nil
 
   expect.generate_c([[
     ## context.pragmas.unitname = 'mylib'

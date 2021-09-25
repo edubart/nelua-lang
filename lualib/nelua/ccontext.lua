@@ -353,7 +353,7 @@ function CContext:define_function_builtin(name, qualifier, ret, args, body)
     heademitter:add_text('(void)')
   end
   -- build qualifier part
-  if not self.pragmas.nostatic then
+  if not self.pragmas.nocstatic then
     declemitter:add_text('static ')
   end
   if qualifier and qualifier ~= '' and

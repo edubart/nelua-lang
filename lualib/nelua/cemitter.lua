@@ -38,11 +38,11 @@ If `typed` is `true` then a type cast will precede its literal.
 ]]
 function CEmitter:add_zeroed_type_literal(type, typed)
   local s
-  if type.is_float128 and not self.context.pragmas.nofloatsuffix then
+  if type.is_float128 and not self.context.pragmas.nocfloatsuffix then
     s = '0.0q'
-  elseif type.is_clongdouble and not self.context.pragmas.nofloatsuffix then
+  elseif type.is_clongdouble and not self.context.pragmas.nocfloatsuffix then
     s = '0.0l'
-  elseif type.is_cfloat and not self.context.pragmas.nofloatsuffix then
+  elseif type.is_cfloat and not self.context.pragmas.nocfloatsuffix then
     s = '0.0f'
   elseif type.is_float then
     s = '0.0'
@@ -345,11 +345,11 @@ function CEmitter:add_scalar_literal(num, numtype, base)
     end
   end
   -- add suffixes
-  if numtype.is_float128 and not self.context.pragmas.nofloatsuffix then
+  if numtype.is_float128 and not self.context.pragmas.nocfloatsuffix then
     self:add_text('q')
-  elseif numtype.is_clongdouble and not self.context.pragmas.nofloatsuffix then
+  elseif numtype.is_clongdouble and not self.context.pragmas.nocfloatsuffix then
     self:add_text('l')
-  elseif numtype.is_cfloat and not self.context.pragmas.nofloatsuffix then
+  elseif numtype.is_cfloat and not self.context.pragmas.nocfloatsuffix then
     self:add_text('f')
   elseif numtype.is_unsigned then
     self:add_text('U')
@@ -444,7 +444,7 @@ function CEmitter:add_qualified_declaration(attr, type, name)
   elseif attr.cexport then
     self:add(context:ensure_builtin('NELUA_CEXPORT'), ' ')
   elseif attr.static or
-    (attr.staticstorage and not attr.entrypoint and not attr.nostatic and not pragmas.nostatic) then
+    (attr.staticstorage and not attr.entrypoint and not attr.nocstatic and not pragmas.nocstatic) then
     self:add('static ')
   elseif attr.register then
     self:add(context:ensure_builtin('NELUA_REGISTER'), ' ')
