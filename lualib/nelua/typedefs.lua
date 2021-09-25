@@ -254,8 +254,8 @@ typedefs.function_annots = {
   cexport = true,
   -- Force a function to be polymorphic so it can be declared on demand.
   polymorphic = true,
-  -- Force a polymorphic function to always be evaluated.
-  alwayseval = true,
+  -- Force a function to always be polymorphic (evaluate a new function for each call).
+  alwayspoly = true,
   -- Mark a function for forward declaration.
   -- This allows to call a function before defining it.
   forwarddecl = true,
@@ -364,8 +364,8 @@ typedefs.pp_directives = {
   cfile = shaper.shape{n=shaper.number, shaper.string},
   cincdir = shaper.shape{n=shaper.number, shaper.string},
   linkdir = shaper.shape{n=shaper.number, shaper.string},
-  ldflags = shaper.shape{n=shaper.number, shaper.string},
   linklib = shaper.shape{n=shaper.number, shaper.string},
+  ldflags = shaper.shape{n=shaper.number, shaper.string},
   pragmapush = shaper.shape{n=shaper.number, shaper.table},
   pragmapop = shaper.shape{n=shaper.number},
 }

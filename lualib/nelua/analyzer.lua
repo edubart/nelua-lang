@@ -2734,8 +2734,8 @@ local function visitor_function_annotations(context, node, annotnodes, blocknode
       context.entrypoint = node
     end
 
-    if type and type.is_polyfunction and attr.alwayseval then
-      type.alwayseval = true
+    if type and type.is_polyfunction and attr.alwayspoly then
+      type.alwayspoly = true
     end
   end
 end
@@ -2906,7 +2906,7 @@ function visitors.FuncDef(context, node, opts)
   if annotnodes then
     for i=1,#annotnodes do
       local annotname = annotnodes[i][1]
-      if annotname == 'polymorphic' then
+      if annotname == 'polymorphic' or annotname == 'alwayspoly' then
         attr.polymorphic = true
       elseif annotname == 'cimport' then
         attr.cimport = true

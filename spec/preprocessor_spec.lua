@@ -471,7 +471,7 @@ it("poly function", function()
   ]])
   expect.analyze_ast([[
     ## local counter = 0
-    local function f() <polymorphic,alwayseval>
+    local function f() <alwayspoly>
        ## counter = counter + 1
     end
     local x = 1
