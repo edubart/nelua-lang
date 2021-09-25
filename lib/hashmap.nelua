@@ -39,9 +39,9 @@ local function roundpow2(n: usize): usize <inline>
   n = n | (n >> 4)
   n = n | (n >> 8)
   n = n | (n >> 16)
-  if #@usize > 4 then -- usize has more than 32 bits
+  ## if primtypes.usize.size > 4 then -- usize has more than 32 bits
     n = n | (n >> 32)
-  end
+  ## end
   n = n + 1
   return n
 end
