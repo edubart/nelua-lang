@@ -139,7 +139,7 @@ function GC:unregister(ptr: pointer, finalize: facultative(boolean)): boolean
 end
 
 -- Scan and mark pointers between `low` and `high` addresses.
-local function GC_markptrs(self: *GC, low: usize, high: usize): void <cqualifier'NELUA_GC_NO_SANITIZE'>
+local function GC_markptrs(self: *GC, low: usize, high: usize): void <noinline,cqualifier'NELUA_GC_NO_SANITIZE'>
   local minaddr: usize, maxaddr: usize = self.minaddr, self.maxaddr
   local items: auto = &self.items
   for memaddr: usize=low,<high,#@pointer do
@@ -189,11 +189,12 @@ local function GC_markstackinner(self: *GC): void <noinline>
   ]]
   ## cemit '#if defined(__GNUC__) || defined(__clang__)'
   local function __builtin_frame_address(level: cint): pointer <cimport,nodecl> end
-  local sp: pointer <volatile> = __builtin_frame_address(0)
+  local sp: pointer = __builtin_frame_address(0)
+  GC_markptrs(self, (@usize)(&sp), #@pointer)
   ## cemit '#endif'
   local low: usize, high: usize = (@usize)(&regsbuf), (@usize)(self.stackbottom)
   if high < low then -- stack growing in inverse order?
-    low, high = high, low + (@usize)(#jmp_buf + #@pointer)
+    low, high = high, low + (@usize)(#jmp_buf)
   end
   low = align_forward(low, #@pointer) -- make sure it's pointer aligned
   GC_markptrs(self, low, high)
@@ -268,7 +269,7 @@ This halts the application until a the collection is finished.
 All collected items are finalized and deallocated.
 The finalization or deallocation order is random
 ]]
-function GC:collect(): void
+function GC:collect(): void <noinline>
   -- avoid collecting when already collecting, can happen while calling finalizers
   if self.collecting or self.membytes == 0 then return end
   self.collecting = true -- begin collect cycle
@@ -446,7 +447,7 @@ end
 Initializes the garbage collector.
 This is called automatically when the starting the application.
 ]]
-function GC:init(stack: pointer): void
+function GC:init(stack: pointer): void <noinline>
   self.stackbottom = stack
   self.minaddr = (@usize)(-1)
   self.pause = 200
@@ -460,7 +461,7 @@ All allocations are finalized and deallocated.
 This is called automatically when the application finishes with success.
 The GC is not expected to be used after calling this.
 ]]
-function GC:destroy(): void
+function GC:destroy(): void <noinline>
   GC_unmarkall(self)
   GC_sweep(self)
   self.items:destroy()
