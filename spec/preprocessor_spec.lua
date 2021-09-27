@@ -782,6 +782,24 @@ it("require override", function()
   ]]]=], 'not found:')
 end)
 
+it("source location", function()
+  expect.ast_type_equals([=[
+## local A = (srcloc.srcname or '<chunk>')..':'..srcloc.lineno
+local A = #[A]#
+local a = #[(srcloc.srcname or '<chunk>')..':'..srcloc.lineno]#
+]=],[=[
+## local A = (srcloc.srcname or '<chunk>')..':'..srcloc.lineno
+local A = '<chunk>:1'
+local a = '<chunk>:3'
+]=])
+  expect.generate_c([[
+local function f() <alwayspoly>
+  print(#[(polysrcloc.srcname or '<chunk>')..':'..polysrcloc.lineno]#)
+end
+f()
+]], [["<chunk>:4"]])
+end)
+
 it("run brainfuck", function()
   expect.run('--generator c examples/brainfuck.nelua', 'Hello World!')
 end)

@@ -17,6 +17,7 @@ local fs = require 'nelua.utils.fs'
 local types = require 'nelua.types'
 local aster = require 'nelua.aster'
 local typedefs = require 'nelua.typedefs'
+local lpegrex = require 'lpegrex'
 
 -- The preprocess context class.
 local PPContext = class()
@@ -84,8 +85,8 @@ function PPContext:_init(visitors, context)
   self.env = make_ppenv(self)
 end
 
-function PPContext:register_code(chunkname, ppcode)
-  self.codes[chunkname] = ppcode
+function PPContext:register_code(ppchunkname, ppcode)
+  self.codes[ppchunkname] = ppcode
 end
 
 -- Traverses the node `node`, arguments `...` are forwarded to its visitor.
@@ -129,6 +130,95 @@ function PPContext:get_registry_index(what)
     registry[what] = regindex
   end
   return regindex
+end
+
+--[[
+Retrieve preprocessor node in `ppchunkname` at line number `lineno`.
+If `ppchunkname` is omitted then returns the current preprocessor node in the
+current call stack.
+]]
+function PPContext:get_preprocess_node(ppchunkname, lineno)
+  if not ppchunkname and not lineno then -- get current preprocessing node
+    local level = 2
+    repeat
+      local info = debug.getinfo(level, 'Sl')
+      if info and info.source and info.currentline and info.source:find('@ppcode$') then
+        ppchunkname = info.source
+        lineno = info.currentline
+      end
+      level = level + 1
+    until ppchunkname or not info
+  end
+  if not ppchunkname or not lineno then return end
+  local ppcode = self.codes[ppchunkname]
+  if not ppcode then return end
+  local _, linepos = stringer.getline(ppcode, lineno)
+  if not linepos then return end
+  ppcode = ppcode:sub(1,linepos-1)
+  -- search last occurrence of 'ppsrcnoderegid'
+  local nextinit, init = 1, 1
+  while true do
+    local pos, endpos = ppcode:find('--ppsrcnoderegid=', nextinit, true)
+    if not pos then break end
+    init = pos
+    nextinit = endpos+1
+  end
+  local pos, endpos, noderegid = ppcode:find('^%-%-ppsrcnoderegid%=([0-9]+)', init)
+  if not pos then return end
+  -- calculate line offset relative to 'ppsrcnoderegid'
+  local lineoff = 0
+  local startlineno = lpegrex.calcline(ppcode, endpos)
+  if startlineno then
+    lineoff = lineno - startlineno - 1
+  end
+  -- return the preprocess node
+  noderegid = tonumber(noderegid)
+  return self.registry[noderegid], lineoff
+end
+
+--[[
+Retrieve source location for preprocessor chunk with name `ppchunkname` at line number `lineno`.
+If `ppchunkname` is omitted then returns location for the current preprocessor call in the
+current preprocess call stack.
+]]
+function PPContext:get_preprocess_location(ppchunkname, lineno)
+  local ppsrcnode, lineoff = self:get_preprocess_node(ppchunkname, lineno)
+  if not ppsrcnode then return end
+  local nodeloc = ppsrcnode:location()
+  if not nodeloc or not nodeloc.lineno then return end
+  return {
+    srcname = nodeloc.srcname,
+    lineno = nodeloc.lineno + lineoff
+  }
+end
+
+--[[
+Translate traceback errors using '@ppcode' to actual source file names.
+This improves readability of preprocess error messages.
+]]
+function PPContext:translate_error(errmsg)
+  errmsg = errmsg:gsub('([%w_.\\/ -]+:@ppcode):([0-9]+)', function(ppchunkname, lineno)
+    lineno = tonumber(lineno)
+    local ppcode = self.codes[ppchunkname]
+    if not ppcode and ppchunkname:find('^%.%.%.') then
+      local chunksuffix = ppchunkname:sub(4)
+      for name in pairs(self.codes) do
+        if stringer.endswith(name, chunksuffix) then
+          ppchunkname = name
+          break
+        end
+      end
+    end
+    if ppchunkname then
+      local loc = self:get_preprocess_location(ppchunkname, lineno)
+      if loc then
+        lineno = loc.lineno
+        ppchunkname = loc.srcname
+      end
+    end
+    return ppchunkname..':'..lineno..''
+  end)
+  return errmsg
 end
 
 --[[

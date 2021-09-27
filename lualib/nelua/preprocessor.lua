@@ -51,6 +51,7 @@ end})
 function visitors.PreprocessName(ppcontext, node, emitter, parent, parentindex)
   local luacode = node[1]
   local pregidx, nregidx = ppcontext:get_registry_index(parent), ppcontext:get_registry_index(node)
+  emitter:add_indent_ln('--ppsrcnoderegid=', nregidx)
   emitter:add_indent_ln('ppcontext:inject_name(',luacode,
     ',ppregistry[',pregidx,'],',parentindex,',ppregistry[',nregidx,'])')
 end
@@ -59,13 +60,16 @@ end
 function visitors.PreprocessExpr(ppcontext, node, emitter, parent, parentindex)
   local luacode = node[1]
   local pregidx, nregidx = ppcontext:get_registry_index(parent), ppcontext:get_registry_index(node)
+  emitter:add_indent_ln('--ppsrcnoderegid=', nregidx)
   emitter:add_indent_ln('ppcontext:inject_value(',luacode,
     ',ppregistry[',pregidx,'],',parentindex,',ppregistry[',nregidx,'])')
 end
 
 -- Visit a node that should execute a code.
-function visitors.Preprocess(_, node, emitter)
+function visitors.Preprocess(ppcontext, node, emitter)
   local luacode = node[1]
+  local nregidex =  ppcontext:get_registry_index(node)
+  emitter:add_indent_ln('--ppsrcnoderegid=', nregidex)
   emitter:add_ln(luacode)
 end
 
@@ -178,6 +182,7 @@ function preprocessor.preprocess(context, ast)
       end
       ppcontext.defined = true
     end
+    emitter:add_indent_ln('--ppsrcnoderegid=',ppcontext:get_registry_index(ast))
     ppcontext:traverse_node(ast, emitter)
     -- generate the preprocess function`
     ppcode = emitter:generate()
@@ -193,7 +198,7 @@ function preprocessor.preprocess(context, ast)
       ok, err = except.trycall(ppfunc)
     end
     if not ok then
-      ast:raisef('error while preprocessing: %s', err)
+      ast:raisef('error while preprocessing: %s', ppcontext:translate_error(err))
     end
   end
   -- finish time tracking

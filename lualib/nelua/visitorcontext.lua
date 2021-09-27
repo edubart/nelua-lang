@@ -219,6 +219,14 @@ function VisitorContext:get_visiting_traceback(level)
   return ss:tostring()
 end
 
+-- Get the first location where the current polymorphic function was evaluated.
+function VisitorContext:get_polyeval_location()
+  local polysrcnode = self.state.inpolyeval and self.state.inpolyeval.srcnode
+  if polysrcnode then
+    return polysrcnode:location()
+  end
+end
+
 -- DEPRECATED, use `get_visiting_node` instead.
 function VisitorContext:get_parent_node(level) --luacov:disable
   return self:get_visiting_node(level or 1)

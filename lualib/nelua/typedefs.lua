@@ -492,8 +492,13 @@ typedefs.pp_variables = {
   scope = function(ppcontext) return ppcontext.context.scope end,
   -- Current pragmas.
   pragmas = function(ppcontext) return ppcontext.context.pragmas end,
-  -- Source node where the current polymorphic function was instantiated,
-  polysrcnode = function(ppcontext) return ppcontext.context.state.inpolyeval.srcnode end
+  --[[
+  Source location where the current polymorphic function was instantiated.
+  It is a table source origin information (like fields  `srcname` and `lineno`).
+  ]]
+  polysrcloc = function(ppcontext) return ppcontext.context:get_polyeval_location() end,
+  --Source location for the current preprocess node (a table with `srcname` and `lineno` fields).
+  srcloc = function(ppcontext) return ppcontext:get_preprocess_location() end,
 }
 
 -- List of exported preprocessor constants that cannot change while preprocessing.

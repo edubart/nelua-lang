@@ -1841,7 +1841,7 @@ function visitors.Block(context, node)
       if except.isexception(err) then
         except.reraise(err)
       else
-        node:raisef('error while preprocessing block: %s', err)
+        node:raisef('error while preprocessing block: %s', context.ppcontext:translate_error(err))
       end
     end
     node.preprocess = nil
@@ -2666,7 +2666,8 @@ local function visitor_function_returns(context, node, retnodes, ispolyparent)
             if except.isexception(err) then
               except.reraise(err)
             else
-              retnode:raisef('error while preprocessing function return node: %s', err)
+              retnode:raisef('error while preprocessing function return node: %s',
+                context.ppcontext:translate_error(err))
             end
           end
           retnode = retnodes[i] -- the node may be overwritten
