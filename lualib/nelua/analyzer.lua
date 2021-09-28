@@ -606,6 +606,9 @@ function visitors.Annotation(context, node, opts)
       node:raisef("polymorphic functions cannot use codename annotation")
     end
   elseif istypedecl and (name == 'cincomplete' or name =='forwarddecl') then
+    if name =='forwarddecl' and objattr._type and objattr.fields and #objattr.fields > 0 then
+      node:raisef("defining fields in types marked with forward declaration is not allowed")
+    end
     objattr.size = nil
     objattr.bitsize = nil
     objattr.align = nil

@@ -2030,6 +2030,12 @@ it("forward type declaration", function()
     "cannot be of forward declared type")
   expect.analyze_error("local U <forwarddecl> = @union{}; local V = @union{u: U}",
     "cannot be of forward declared type")
+  expect.analyze_error("global R: type <forwarddecl> = @record{x: integer}",
+    "defining fields in types marked with forward declaration is not allowed")
+end)
+
+it("cincomplete declaration", function()
+  expect.analyze_ast("local R <cincomplete> = @record{x: integer};")
 end)
 
 it("forward function declaration", function()
