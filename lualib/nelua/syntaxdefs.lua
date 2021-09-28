@@ -224,7 +224,7 @@ COMMENT_SHRT    <-- (!LINEBREAK .)*
 
 -- Preprocess
 PREPROCESS      <-- '##' (PREPROCESS_LONG / PREPROCESS_SHRT)
-PREPROCESS_LONG <-- {:LONG_OPEN {LONG_CONTENT} @LONG_CLOSE:}
+PREPROCESS_LONG <-- {:'[' {:eq: '='*:} '[' {LONG_CONTENT} @LONG_CLOSE:}
 PREPROCESS_SHRT <-- {(!LINEBREAK .)*} LINEBREAK?
 
 -- Long (used by string, comment and preprocess)

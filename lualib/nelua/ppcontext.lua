@@ -17,7 +17,6 @@ local fs = require 'nelua.utils.fs'
 local types = require 'nelua.types'
 local aster = require 'nelua.aster'
 local typedefs = require 'nelua.typedefs'
-local lpegrex = require 'lpegrex'
 
 -- The preprocess context class.
 local PPContext = class()
@@ -154,23 +153,20 @@ function PPContext:get_preprocess_node(ppchunkname, lineno)
   if not ppcode then return end
   local _, linepos = stringer.getline(ppcode, lineno)
   if not linepos then return end
-  ppcode = ppcode:sub(1,linepos-1)
+  local topcode = ppcode:sub(1,linepos-1)
   -- search last occurrence of 'ppsrcnoderegid'
   local nextinit, init = 1, 1
   while true do
-    local pos, endpos = ppcode:find('--ppsrcnoderegid=', nextinit, true)
+    local pos, endpos = topcode:find('--ppsrcnoderegid=', nextinit, true)
     if not pos then break end
     init = pos
     nextinit = endpos+1
   end
-  local pos, endpos, noderegid = ppcode:find('^%-%-ppsrcnoderegid%=([0-9]+)', init)
+  local pos, endpos, noderegid = topcode:find('^%-%-ppsrcnoderegid%=([0-9]+)\n', init)
   if not pos then return end
   -- calculate line offset relative to 'ppsrcnoderegid'
-  local lineoff = 0
-  local startlineno = lpegrex.calcline(ppcode, endpos)
-  if startlineno then
-    lineoff = lineno - startlineno - 1
-  end
+  local _, nlcount = ppcode:sub(1, endpos):gsub('\n', '')
+  local lineoff = lineno - (nlcount + 1)
   -- return the preprocess node
   noderegid = tonumber(noderegid)
   return self.registry[noderegid], lineoff
@@ -188,6 +184,7 @@ function PPContext:get_preprocess_location(ppchunkname, lineno)
   if not nodeloc or not nodeloc.lineno then return end
   return {
     srcname = nodeloc.srcname,
+    srccode = nodeloc.srcode,
     lineno = nodeloc.lineno + lineoff
   }
 end
@@ -197,7 +194,7 @@ Translate traceback errors using '@ppcode' to actual source file names.
 This improves readability of preprocess error messages.
 ]]
 function PPContext:translate_error(errmsg)
-  errmsg = errmsg:gsub('([%w_.\\/ -]+:@ppcode):([0-9]+)', function(ppchunkname, lineno)
+  errmsg = tostring(errmsg):gsub('([%w_.\\/ -]+:@ppcode):([0-9]+)', function(ppchunkname, lineno)
     lineno = tonumber(lineno)
     local ppcode = self.codes[ppchunkname]
     if not ppcode and ppchunkname:find('^%.%.%.') then
@@ -449,16 +446,9 @@ The error message will have a pretty traceback of the error location.
 ]]
 function PPContext:raisef(msg, ...)
   msg = stringer.pformat(msg, ...)
-  local info = debug.getinfo(3)
-  local lineno = info.currentline
-  local code = self.codes[info.source]
-  local loc = {
-    srccode=code,
-    srcname='preprocessor',
-    lineno=lineno
-  }
-  if code and lineno then
-    loc.line, loc.linestart, loc.lineend = stringer.getline(code, lineno)
+  local loc = self:get_preprocess_location()
+  if loc.code and loc.lineno then
+    loc.line, loc.linestart, loc.lineend = stringer.getline(loc.srccode, loc.lineno)
   end
   msg = errorer.get_pretty_source_pos_errmsg(loc, msg, 'error')
   except.raise(msg, 2)
