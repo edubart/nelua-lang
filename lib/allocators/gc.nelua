@@ -40,7 +40,7 @@ end
 The GC may scan uninitialized values generating warnings when some sanitizers are active,
 The following is to disable these warnings.
 ]=]
-cinclude[=[
+require 'nelua.cdefs'.include_hooks['@NELUA_GC_NO_SANITIZE'] = [=[
 /* Macro used suppress sanitizer errors when the GC is scanning. */
 #if defined(__has_feature)
   #if __has_feature(address_sanitizer)
@@ -139,7 +139,7 @@ function GC:unregister(ptr: pointer, finalize: facultative(boolean)): boolean
 end
 
 -- Scan and mark pointers between `low` and `high` addresses.
-local function GC_markptrs(self: *GC, low: usize, high: usize): void <noinline,cqualifier'NELUA_GC_NO_SANITIZE'>
+local function GC_markptrs(self: *GC, low: usize, high: usize): void <noinline,cinclude'@NELUA_GC_NO_SANITIZE',cqualifier'NELUA_GC_NO_SANITIZE'>
   local minaddr: usize, maxaddr: usize = self.minaddr, self.maxaddr
   local items: auto = &self.items
   for memaddr: usize=low,<high,#@pointer do
