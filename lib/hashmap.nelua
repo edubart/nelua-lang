@@ -90,6 +90,8 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   local hashmapT = hashmapT.value
   hashmapT.is_hashmap = true
   hashmapT.is_container = true
+  hashmapT.K = K
+  hashmapT.V = V
   ]]
 
   ## if HashFunc then
