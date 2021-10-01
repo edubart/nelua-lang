@@ -1932,6 +1932,8 @@ RecordType.shape = shaper.fork_shape(Type.shape, {
   packed = shaper.optional_boolean,
   -- Use in the lib in generics like 'span', 'vector' to represent the subtype.
   subtype = shaper.type:is_optional(),
+  K = shaper.type:is_optional(),
+  V = shaper.type:is_optional(),
 })
 
 function RecordType:_init(fields, node)
