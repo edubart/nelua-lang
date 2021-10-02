@@ -413,7 +413,8 @@ end
 -- Retrieve pointer for the top of the stack.
 local function GC_getstacktop(): usize <noinline>
   local p: pointer <volatile>
-  return (@usize)(&p)
+  local addr: usize <volatile> = (@usize)(&p)
+  return addr
 end
 
 --[[
