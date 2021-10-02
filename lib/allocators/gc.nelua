@@ -99,11 +99,12 @@ global GC: type = @record{
   running: boolean,  -- Whether the collector is running.
   collecting: boolean, -- Whether a collecting cycle is actively running.
   pause: usize, -- The collector pause (default 200).
-  membytes: usize, -- Total memory currently being tracked by the GC (in bytes).
-  lastmembytes: usize, -- Total GC memory tracked just after the last collection cycle.
+  membytes: usize, -- Total allocated memory currently being tracked by the GC (in bytes).
+  lastmembytes: usize, -- Total allocated memory tracked just after the last collection cycle.
   minaddr: usize, -- Minimum pointer address tracked by the GC.
   maxaddr: usize, -- Maximum pointer address tracked by the GC.
-  stackbottom: pointer, -- Stack bottom address.
+  stacktop: usize, -- Stack top address.
+  stackbottom: usize, -- Stack bottom address.
   frees: vector(pointer, GeneralAllocator), -- List of pointers to be freed.
   items: hashmap(pointer, GCItem, nil, GeneralAllocator), -- Map of all tracked allocations.
 }
@@ -119,12 +120,14 @@ function GC:unregister(ptr: pointer, finalize: facultative(boolean)): boolean
   if unlikely(not ptr) then return false end
   local item: GCItem = self.items:remove(ptr)
   if unlikely(item.ptr ~= ptr) then return false end -- not found
-  self.membytes = self.membytes - item.size -- update memory
-  -- remove from to be free items
-  for i:usize=0,<self.frees.size do
-    if self.frees[i] == ptr then
-      self.frees[i] = nilptr
-      break
+  if not hasflag(item.flags, GCFlags.ROOT) then
+    self.membytes = self.membytes - item.size -- update memory
+    -- remove from to be free items
+    for i:usize=0,<self.frees.size do
+      if self.frees[i] == ptr then
+        self.frees[i] = nilptr
+        break
+      end
     end
   end
   -- finalize
@@ -174,9 +177,9 @@ local function GC_markroot(self: *GC): void <noinline>
   end
 end
 
--- Get the stack top address and mark pointers in the stack.
-local function GC_markstackinner(self: *GC): void <noinline>
-  -- dump CPU registers into the stack, to scan them
+-- Mark pointers in the stack.
+local function GC_markstack(self: *GC): void <noinline>
+  -- dump CPU registers
   local jmp_buf: type <cimport,cinclude'<setjmp.h>',cincomplete> = @record{}
   local function setjmp(env: jmp_buf): void <cimport,cinclude'<setjmp.h>'> end
   local RegsBuf: type = @union{regs: jmp_buf, firstreg: pointer} -- use a union to force pointer alignment
@@ -189,30 +192,30 @@ local function GC_markstackinner(self: *GC): void <noinline>
   ]]
   ## cemit '#if defined(__GNUC__) || defined(__clang__)'
   local function __builtin_frame_address(level: cint): pointer <cimport,nodecl> end
-  local sp: pointer = __builtin_frame_address(0)
+  local sp: pointer <volatile> = __builtin_frame_address(0)
+  ## cemit '#endif'
+  -- determine stack address
+  local low: usize = self.stacktop == 0 and (@usize)(&regsbuf) or self.stacktop
+  local high: usize = self.stackbottom
+  if high < low then -- stack growing in inverse order?
+    low, high = high, low
+  end
+  -- mark stack and registers
+  GC_markptrs(self, align_forward(low, #@pointer), high)
+  GC_markptrs(self, align_forward((@usize)(&regsbuf), #@pointer), (@usize)(&regsbuf) + #RegsBuf)
+  ## cemit '#if defined(__GNUC__) || defined(__clang__)'
   GC_markptrs(self, (@usize)(&sp), #@pointer)
   ## cemit '#endif'
-  local low: usize, high: usize = (@usize)(&regsbuf), (@usize)(self.stackbottom)
-  if high < low then -- stack growing in inverse order?
-    low, high = high, low + (@usize)(#jmp_buf)
-  end
-  low = align_forward(low, #@pointer) -- make sure it's pointer aligned
-  GC_markptrs(self, low, high)
-end
-
--- Mark pointers in the stack.
-local function GC_markstack(self: *GC): void <noinline>
-## if not ccinfo.is_wasm then
-  local markstackinner: auto <volatile> = GC_markstackinner -- avoid inline
-  markstackinner(self)
-## end
 end
 
 -- Mark phase, mark all reachable pointers.
 local function GC_mark(self: *GC): void
   GC_unmarkall(self)
   GC_markroot(self)
-  GC_markstack(self)
+## if not ccinfo.is_wasm then
+  local markstack: auto <volatile> = GC_markstack -- avoid inline
+  markstack(self)
+## end
 end
 
 -- Sweep phase, collect unmarked items.
@@ -355,16 +358,16 @@ function GC:register(ptr: pointer, size: usize, flags: usize,
     finalizer = finalizer,
     userdata = userdata,
   }
-  -- update collector address bounds
   if not hasflag(item.flags, GCFlags.ROOT) then -- skip root items, because they are always marked
+    -- update collector address bounds
     local addr: usize = (@usize)(ptr)
     local addrhigh: usize = addr + size
     if addrhigh > self.maxaddr then self.maxaddr = addrhigh end
     if addr < self.minaddr then self.minaddr = addr end
+    -- add memory
+    self.membytes = self.membytes + size
+    GC_maybecollect(self)
   end
-  -- add memory
-  self.membytes = self.membytes + size
-  GC_maybecollect(self)
 end
 
 --[[
@@ -379,30 +382,54 @@ function GC:reregister(oldptr: pointer, newptr: pointer, newsize: usize): boolea
     if unlikely(not item) then return false end -- not found
     oldsize = item.size
     item.size = newsize -- just update the size
-    if newsize > oldsize then -- memory growing
-      self.membytes = self.membytes + (newsize - oldsize)
-    elseif newsize < oldsize then -- memory shrinking
-      self.membytes = self.membytes - (oldsize - newsize)
+    if not hasflag(item.flags, GCFlags.ROOT) then
+      if newsize > oldsize then -- memory growing
+        self.membytes = self.membytes + (newsize - oldsize)
+        GC_maybecollect(self)
+      elseif newsize < oldsize then -- memory shrinking
+        self.membytes = self.membytes - (oldsize - newsize)
+      end
     end
   else -- moved, remove and insert item again
     local item: GCItem = self.items:remove(oldptr)
     if unlikely(item.ptr ~= oldptr) then return false end -- not found
     oldsize = item.size
-    self.membytes = self.membytes - oldsize -- update memory
-    -- update to be free items
-    for i:usize=0,<self.frees.size do
-      if self.frees[i] == oldptr then -- this is very unlikely (realloc on a finalized item)
-        self.frees[i] = newptr
-        break
+    if not hasflag(item.flags, GCFlags.ROOT) then
+      self.membytes = self.membytes - oldsize -- update memory
+      -- update to be free items
+      for i:usize=0,<self.frees.size do
+        if self.frees[i] == oldptr then -- this is very unlikely (realloc on a finalized item)
+          self.frees[i] = newptr
+          break
+        end
       end
     end
     -- register again
     self:register(newptr, newsize, item.flags, item.finalizer, item.userdata)
   end
-  if newsize > oldsize then
-    GC_maybecollect(self)
-  end
   return true
+end
+
+-- Retrieve pointer for the top of the stack.
+local function GC_getstacktop(): usize <noinline>
+  local p: pointer <volatile>
+  return (@usize)(&p)
+end
+
+--[[
+Set new stack top for the GC scanner and returns the previous stack top.
+This may be used to support scanning from coroutines.
+If `stacktop` is omitted then it will calculate it.
+]]
+function GC:setstacktop(stacktop: facultative(usize)): usize <inline>
+  local oldstacktop: usize = self.stacktop
+  ## if stacktop.type.is_niltype then
+    local getstacktop: auto <volatile> = GC_getstacktop -- avoid inline
+    self.stacktop = getstacktop()
+  ## else
+    self.stacktop = stacktop
+  ## end
+  return oldstacktop
 end
 
 --[[
@@ -448,7 +475,7 @@ Initializes the garbage collector.
 This is called automatically when the starting the application.
 ]]
 function GC:init(stack: pointer): void <noinline>
-  self.stackbottom = stack
+  self.stackbottom = (@usize)(stack)
   self.minaddr = (@usize)(-1)
   self.pause = 200
   GC_registerroots(self)

@@ -60,7 +60,7 @@ end
   ## end
 
   local Allocator: type = #[Allocator]#
-  local INIT_CAPACITY: usize <comptime> = 128
+  local INIT_CAPACITY: usize <comptime> = 16
 
   -- String builder record defined when instantiating the generic `stringbuilder`.
   local stringbuilderT: type = @record{

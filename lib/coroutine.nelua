@@ -102,12 +102,31 @@ local main_coro: mco_coro
 -- The coroutine handle.
 global coroutine: type = @*mco_coro
 
--- Called when the coroutine collected by the GC.
-local function coroutine_gc(co: pointer, userdata: pointer): void
-  local co: coroutine = (@coroutine)(co)
+--[[
+Destroy the coroutine `co`, freeing its stack memory and resources.
+
+Note that this is only needed to be called when the GC is disabled.
+
+*Remarks*: Destroying a coroutine before `"dead"` state will not execute its defer statements.
+]]
+function coroutine.destroy(co: coroutine): void
+  ## if not pragmas.nogc then
+  gc:unregister(co)
+  ## end
   if mco_destroy(co) ~= MCO_SUCCESS then
     error 'failed to destroy a coroutine'
   end
+end
+
+-- Effectively the same as `destroy`, called when a to-be-closed variable goes out of scope.
+function coroutine:__close(): void
+  self:destroy()
+end
+
+-- Called when the coroutine collected by the GC.
+local function coroutine_gc(co: pointer, userdata: pointer): void
+  local co: coroutine = (@coroutine)(co)
+  co:destroy()
 end
 
 --[[
@@ -158,25 +177,9 @@ function coroutine.create(f: auto): coroutine
   end
   -- Mark the coroutine stack memory to scan in the garbage collector
   ## if not pragmas.nogc then
-    gc:register(co, desc.coro_size, GCFlags.EXTERN, coroutine_gc, nilptr)
+  gc:register(co, desc.coro_size, 0, coroutine_gc, nilptr)
   ## end
   return co
-end
-
---[[
-Destroy the coroutine `co`, freeing its stack memory and resources.
-
-Note that this is only needed to be called when the GC is disabled.
-
-*Remarks*: Destroying a coroutine before `"dead"` state will not execute its defer statements.
-]]
-function coroutine.destroy(co: coroutine): void
-  ## if not pragmas.nogc then
-  gc:unregister(co)
-  ## end
-  if mco_destroy(co) ~= MCO_SUCCESS then
-    error 'failed to destroy a coroutine'
-  end
 end
 
 --[[
@@ -246,23 +249,21 @@ Starts or continues the execution of the coroutine `co`.
 - If there is any error, resume returns `false` plus the error message.
 - Values passed to the last yield should be retrieved with `coroutine.pop`.
 ]]
-function coroutine.resume(co: coroutine, ...: varargs): (boolean, string)
-  ## if not pragmas.nogc then
-  local is_main: boolean = mco_running() == nilptr
-  if is_main then
-    -- Must stop the garbage collector when inside a coroutine
-    gc:stop()
-  end
-  ## end
+function coroutine.resume(co: coroutine, ...: varargs): (boolean, string) <noinline>
   ## if select('#', ...) > 0 then
   local ok: boolean, err: string = coroutine.push(co, ...)
   assert(ok, err)
   ## end
-  local res: mco_result = mco_resume(co)
   ## if not pragmas.nogc then
-  if is_main then
-    -- Restart the garbage collector when stopped
-    gc:restart()
+  local ismain: boolean = mco_running() == nilptr
+  if ismain then -- switching from main, must save the main stack in the GC
+    gc:setstacktop()
+  end
+  ## end
+  local res: mco_result = mco_resume(co) -- continue the coroutine
+  ## if not pragmas.nogc then
+  if ismain then -- restore the previous stack top for scanning in the GC
+    gc:setstacktop(0)
   end
   ## end
   if res ~= MCO_SUCCESS then

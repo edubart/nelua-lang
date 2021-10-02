@@ -2483,16 +2483,6 @@ global coroutine: type = @*mco_coro
 
 The coroutine handle.
 
-### coroutine.create
-
-```nelua
-function coroutine.create(f: auto): coroutine
-```
-
-Returns a new coroutine with body function `f`.
-The function allocates stack memory and resources for the coroutine.
-It only creates a new coroutine and returns a handle to it, it does not start the coroutine.
-
 ### coroutine.destroy
 
 ```nelua
@@ -2504,6 +2494,24 @@ Destroy the coroutine `co`, freeing its stack memory and resources.
 Note that this is only needed to be called when the GC is disabled.
 
 *Remarks*: Destroying a coroutine before `"dead"` state will not execute its defer statements.
+
+### coroutine:__close
+
+```nelua
+function coroutine:__close(): void
+```
+
+Effectively the same as `destroy`, called when a to-be-closed variable goes out of scope.
+
+### coroutine.create
+
+```nelua
+function coroutine.create(f: auto): coroutine
+```
+
+Returns a new coroutine with body function `f`.
+The function allocates stack memory and resources for the coroutine.
+It only creates a new coroutine and returns a handle to it, it does not start the coroutine.
 
 ### coroutine.push
 
@@ -3764,7 +3772,7 @@ the global `embedded_general_allocator` is declared before this library is requi
 ### GeneralAllocator
 
 ```nelua
-global GeneralAllocator = @record{}
+global GeneralAllocator: type = @record{}
 ```
 
 General allocator record.
@@ -3869,11 +3877,12 @@ global GC: type = @record{
   running: boolean,  -- Whether the collector is running.
   collecting: boolean, -- Whether a collecting cycle is actively running.
   pause: usize, -- The collector pause (default 200).
-  membytes: usize, -- Total memory currently being tracked by the GC (in bytes).
-  lastmembytes: usize, -- Total GC memory tracked just after the last collection cycle.
+  membytes: usize, -- Total allocated memory currently being tracked by the GC (in bytes).
+  lastmembytes: usize, -- Total allocated memory tracked just after the last collection cycle.
   minaddr: usize, -- Minimum pointer address tracked by the GC.
   maxaddr: usize, -- Maximum pointer address tracked by the GC.
-  stackbottom: pointer, -- Stack bottom address.
+  stacktop: usize, -- Stack top address.
+  stackbottom: usize, -- Stack bottom address.
   frees: vector(pointer, GeneralAllocator), -- List of pointers to be freed.
   items: hashmap(pointer, GCItem, nil, GeneralAllocator), -- Map of all tracked allocations.
 }
@@ -3927,6 +3936,16 @@ function GC:reregister(oldptr: pointer, newptr: pointer, newsize: usize): boolea
 
 Register pointer that moved from `oldptr` to `newptr` with new size `newsize`.
 Called when reallocating a pointers.
+
+### GC:setstacktop
+
+```nelua
+function GC:setstacktop(stacktop: facultative(usize)): usize
+```
+
+Set new stack top for the GC scanner and returns the previous stack top.
+This may be used to support scanning from coroutines.
+If `stacktop` is omitted then it will calculate it.
 
 ### GC:count
 
@@ -4015,7 +4034,7 @@ Returns the previous value for pause.
 ### GCAllocator
 
 ```nelua
-global GCAllocator = @record{}
+global GCAllocator: type = @record{}
 ```
 
 GC allocator record.
