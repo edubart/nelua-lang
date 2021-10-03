@@ -110,7 +110,7 @@ global GC: type = @record{
 }
 
 -- The global GC instance.
-global gc: GC
+global gc: GC <nogcscan>
 
 --[[
 Unregister pointer `ptr` from the GC.
@@ -132,10 +132,8 @@ function GC:unregister(ptr: pointer, finalize: facultative(boolean)): boolean
   end
   -- finalize
   ## if finalize.type.is_boolean then
-  if finalize then
-    if item.finalizer then -- finalize
-      item.finalizer(ptr, item.userdata)
-    end
+  if finalize and item.finalizer then -- finalize
+    item.finalizer(ptr, item.userdata)
   end
   ## end
   return true
@@ -200,11 +198,12 @@ local function GC_markstack(self: *GC): void <noinline>
   if high < low then -- stack growing in inverse order?
     low, high = high, low
   end
+  low = align_forward(low, #@pointer)
   -- mark stack and registers
-  GC_markptrs(self, align_forward(low, #@pointer), high)
-  GC_markptrs(self, align_forward((@usize)(&regsbuf), #@pointer), (@usize)(&regsbuf) + #RegsBuf)
+  GC_markptrs(self, low, high)
+  GC_markptrs(self, (@usize)(&regsbuf), (@usize)(&regsbuf) + #RegsBuf)
   ## cemit '#if defined(__GNUC__) || defined(__clang__)'
-  GC_markptrs(self, (@usize)(&sp), #@pointer)
+  GC_markptrs(self, (@usize)(&sp), (@usize)(&sp) + #@pointer)
   ## cemit '#endif'
 end
 
@@ -315,7 +314,7 @@ local function GC_registerroots(self: *GC): void
         end
         if sym:is_on_static_storage() and not sym.cimport and
            sym ~= embedded_general_allocator and
-           symtype:has_pointer() and symtype.nickname ~= 'GC' then
+           symtype:has_pointer() and not sym.nogcscan then
           symbols[#symbols+1] = sym
         end
       end
@@ -345,7 +344,7 @@ function GC:register(ptr: pointer, size: usize, flags: usize,
                      finalizer: function(pointer, pointer): void, userdata: pointer): void
   if unlikely(not ptr) then return end
   -- small allocations that can't store pointers are always leafs
-  if size < #@usize then
+  if unlikely(size < #@usize) then
     flags = flags | GCFlags.LEAF
   end
   -- make item for the pointer
@@ -358,7 +357,7 @@ function GC:register(ptr: pointer, size: usize, flags: usize,
     finalizer = finalizer,
     userdata = userdata,
   }
-  if not hasflag(item.flags, GCFlags.ROOT) then -- skip root items, because they are always marked
+  if likely(not hasflag(flags, GCFlags.ROOT)) then -- skip root items, because they are always marked
     -- update collector address bounds
     local addr: usize = (@usize)(ptr)
     local addrhigh: usize = addr + size
@@ -382,7 +381,7 @@ function GC:reregister(oldptr: pointer, newptr: pointer, newsize: usize): boolea
     if unlikely(not item) then return false end -- not found
     oldsize = item.size
     item.size = newsize -- just update the size
-    if not hasflag(item.flags, GCFlags.ROOT) then
+    if likely(not hasflag(item.flags, GCFlags.ROOT)) then
       if newsize > oldsize then -- memory growing
         self.membytes = self.membytes + (newsize - oldsize)
         GC_maybecollect(self)
@@ -394,7 +393,7 @@ function GC:reregister(oldptr: pointer, newptr: pointer, newsize: usize): boolea
     local item: GCItem = self.items:remove(oldptr)
     if unlikely(item.ptr ~= oldptr) then return false end -- not found
     oldsize = item.size
-    if not hasflag(item.flags, GCFlags.ROOT) then
+    if likely(not hasflag(item.flags, GCFlags.ROOT)) then
       self.membytes = self.membytes - oldsize -- update memory
       -- update to be free items
       for i:usize=0,<self.frees.size do

@@ -390,6 +390,8 @@ typedefs.variable_annots = {
   noinit = true,
   -- Whether the compiler should never omit unused variables.
   nodce = true,
+  -- Weather the GC should not scan the variable for registers even if it contains pointers.
+  nogcscan = true,
   -- Whether to export the variable in C, declaring it with the 'extern' C qualifier.
   cexport = true,
   -- Whether the variable should be only available and used at compile time.

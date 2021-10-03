@@ -97,7 +97,7 @@ local function mco_running(): *mco_coro <cimport,cinclude'@minicoro.h'> end
 local function mco_result_description(res: mco_result): cstring <cimport,cinclude'@minicoro.h'> end
 
 -- Fake coroutine, used to indicate the main thread.
-local main_coro: mco_coro
+local main_coro: mco_coro <nogcscan>
 
 -- The coroutine handle.
 global coroutine: type = @*mco_coro

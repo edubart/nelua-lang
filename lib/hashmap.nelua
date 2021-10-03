@@ -153,7 +153,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
     -- iterate until the key is found
     while node_index ~= INVALID_INDEX do
       local node: *hashnodeT = &self.nodes[node_index]
-      if node.key == key then
+      if likely(node.key == key) then
         return node_index, prev_node_index, hash_index
       end
       prev_node_index = node_index
@@ -219,7 +219,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
     for i:usize=0,<self.nodes.size do
       if self.nodes[i].filled then
         local node_index: usize, prev_node_index: usize, hash_index: usize = self:_find(self.nodes[i].key)
-        if prev_node_index == INVALID_INDEX then
+        if likely(prev_node_index == INVALID_INDEX) then
           self.buckets[hash_index] = i
         else
           self.nodes[prev_node_index].next = i
@@ -258,7 +258,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
       self.free_index = node.next
       -- link the new node
       $node = {key = key, filled = true, next = INVALID_INDEX}
-      if prev_node_index == INVALID_INDEX then
+      if likely(prev_node_index == INVALID_INDEX) then
         self.buckets[hash_index] = node_index
       else
         self.nodes[prev_node_index].next = node_index
@@ -311,11 +311,11 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   ]]
   function hashmapT:remove(key: K): V
     local node_index: usize, prev_node_index: usize, hash_index: usize = self:_find(key)
-    if node_index == INVALID_INDEX then return V() end
+    if unlikely(node_index == INVALID_INDEX) then return V() end
     -- unlink the removed node
     local node: *hashnodeT = &self.nodes[node_index]
     local value: V = node.value
-    if prev_node_index == INVALID_INDEX then
+    if likely(prev_node_index == INVALID_INDEX) then
       self.buckets[hash_index] = node.next
     else
       self.nodes[prev_node_index].next = node.next
