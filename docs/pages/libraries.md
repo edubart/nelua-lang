@@ -2184,6 +2184,15 @@ Commits `n` previously written bytes effectively advancing the internal writing 
 A call to `prepare` must be preceded before calling this function, and its
 returned span length must have at least `n` bytes.
 
+### stringbuilderT:rollback
+
+```nelua
+function stringbuilderT:rollback(n: usize): void
+```
+
+Removes `n` previously written bytes effectively rewinding the internal writing buffer.
+The internal buffer must have at least `n` bytes.
+
 ### stringbuilderT:resize
 
 ```nelua

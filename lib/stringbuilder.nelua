@@ -152,6 +152,18 @@ end
   end
 
   --[[
+  Removes `n` previously written bytes effectively rewinding the internal writing buffer.
+  The internal buffer must have at least `n` bytes.
+  ]]
+  function stringbuilderT:rollback(n: usize): void
+    if unlikely(n == 0) then return end
+    check(self.size >= n, 'not enough space in string buffer')
+    local newsize: usize = self.size - n
+    self.size = newsize
+    memory.set(&self.data[newsize], 0, n)
+  end
+
+  --[[
   Resizes the internal writing buffer to `n` bytes, and sets the writing position to its end.
   When growing new elements will be zeroed.
   Returns `true` in case of success, otherwise `false` when out of buffer memory space.
