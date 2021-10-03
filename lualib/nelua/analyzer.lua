@@ -1655,6 +1655,7 @@ local function visitor_Type_MetaFieldIndex(context, node, objtype, name)
       symbol:link_node(infuncdef)
       -- declaration of record global function
       symbol.metafunc = true
+      symbol.staticstorage = true
       if node.is_ColonIndex then
         symbol.metafuncselftype = types.PointerType(objtype)
       end
