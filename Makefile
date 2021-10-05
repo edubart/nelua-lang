@@ -228,7 +228,7 @@ docs-gen:
 # Install
 
 # Install paths
-PREFIX?=/usr/local
+PREFIX=/usr/local
 DPREFIX=$(DESTDIR)$(PREFIX)
 PREFIX_BIN=$(DPREFIX)/bin
 PREFIX_LIB=$(DPREFIX)/lib

@@ -67,20 +67,32 @@ pacman -S base-devel git mingw-w64-x86_64-gcc gdb
 
 ## Clone and Install
 
-Now you can clone the project and install:
+Now you can clone the project and compile:
 
 ```bash
 git clone https://github.com/edubart/nelua-lang.git && cd nelua-lang
+make
+```
+
+Now install in your system:
+
+```bash
 sudo make install
 ```
 
-On Linux this will install in `/usr/local` by default.
-You can install somewhere else using the `PREFIX` argument.
-For example, suppose you want to install in your home directory.
-Then you would use `sudo make install PREFIX=~/nelua`,
-and the Nelua compiler would be available at `~/nelua/bin/nelua`.
+On Linux this will install in `/usr/local` by default,
+you could install it somewhere else using the `PREFIX` argument.
+For example, suppose you want to install in your home directory,
+then you could use `make install PREFIX=/home/user/nelua`
+and the Nelua compiler would be available at `/home/user/nelua/bin/nelua`.
 
-Alternatively you can run the `./nelua` file to run Nelua directly if you do not wish to install it anywhere in your system.
+Alternatively, if you want to run Nelua directly from the cloned repository,
+then you have the following options:
+* You could add the cloned `nelua-lang` directory to your `PATH` environment variable,
+then the `nelua` command will become available in your terminal.
+* You could create symbolic links to `./nelua` and `./nelua-lua`
+in one directory of your `PATH` environment variable.
+* You could run the `./nelua` file directly.
 
 Proceed to the [testing section](#testing).
 
