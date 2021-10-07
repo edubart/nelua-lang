@@ -173,7 +173,7 @@ it("narrow casting", function()
     local u: uinteger
     i = u u = i
     i = n n = i
-    n = u n = u
+    n = u u = n
   ]])
 
   expect.analyze_ast([[
