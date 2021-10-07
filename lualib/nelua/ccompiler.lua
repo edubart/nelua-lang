@@ -443,9 +443,10 @@ function compiler.get_run_command(binaryfile, runargs, compileopts)
         '-q',
         '-ex', 'set confirm off',
         '-ex', 'set breakpoint pending on',
+        '-ex', 'set print frame-info source-and-location',
         '-ex', 'break abort',
         '-ex', 'run',
-        '-ex', 'bt -frame-info source-and-location',
+        '-ex', 'bt',
         '-ex', 'quit',
         '--args', binaryfile,
       }
