@@ -5,7 +5,7 @@ local config = require 'nelua.configer'.get()
 local lester = require 'nelua.thirdparty.lester'
 local describe, it = lester.describe, lester.it
 
-describe("type checker", function()
+describe("analyzer", function()
 
 it("analyzed ast transform", function()
   expect.analyze_ast("local a = 1;",
