@@ -401,6 +401,10 @@ it("for", function()
   expect.generate_c(
     "for i=2,1,-1 do end",
     "for(int64_t i = 2; i >= 1; i = i + -1)")
+  expect.generate_c([[
+  local last <const> = -1
+  for i=5,0,last do end
+  ]], "for(int64_t i = 5, _end = 0, _step = last; _step >= 0 ? i <= _end : i >= _end; i = i + _step)")
   expect.run_c([[
     local x = 0
     for i=1,10 do x = x + 1 end
