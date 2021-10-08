@@ -477,18 +477,18 @@ in the middle of another expression, this is possible with the
 ```nelua
 local i = 2
 local s = (do
+  local res: string
   if i == 1 then
-    return 'one'
+    res = 'one'
   elseif i == 2 then
-    return 'two'
+    res = 'two'
   else
-    return 'other'
+    res = 'other'
   end
+  in res -- injects final expression result
 end)
 print(s) -- outputs: two
 ```
-
-This could be used as a flexible ternary if found in other programming languages, although more verbose.
 
 This construct is used internally by the compiler to implement other features,
 thus the motivation behind this was not really the syntax (it can be verbose),
@@ -1672,7 +1672,7 @@ it will serve as replacement macro for an expression:
 
 ```nelua
 ## local mul = expr_macro(function(a, b)
-  return #[a]# * #[b]#
+  in #[a]# * #[b]#
 ## end)
 
 local a, b = 2, 3

@@ -379,10 +379,10 @@ describe("expression", function()
     }})
   end)
   it("do expression", function()
-    expect_ast("return (do return nil end)",
+    expect_ast("return (do in nil end)",
       n.Block{
         n.Return{
-          n.DoExpr{n.Block{n.Return{n.Nil{}}}},
+          n.DoExpr{n.Block{n.In{n.Nil{}}}},
     }})
   end)
 end)

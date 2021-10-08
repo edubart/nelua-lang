@@ -763,98 +763,104 @@ function visitors.Return(context, node, emitter)
   local deferemitter = emitter:fork()
   -- close parent blocks before returning
   local scope = context.scope
-  local retscope = scope:get_up_return_scope()
+  local retscope = scope:get_up_function_scope()
   cgenerator.emit_close_upscopes(context, deferemitter, scope, retscope)
-  if retscope.is_doexpr then -- inside a do expression
+  local funcscope = context.state.funcscope
+  assert(funcscope == retscope)
+  local functype = funcscope.funcsym and funcscope.funcsym.type
+  local numrets = functype and #functype.rettypes or #node
+  if numrets == 0 then -- no returns
+    emitter:add_value(deferemitter)
+    if retscope.is_root then -- main must always return an integer
+      emitter:add_indent_ln('return 0;')
+    else
+      emitter:add_indent_ln('return;')
+    end
+  elseif numrets == 1 then -- one return
     local retnode = node[1]
-    emitter:add_indent_ln('_expr = ', retnode, ';')
-    emitter:add(deferemitter)
-    local needgoto = true
-    if context:get_visiting_node(2).is_DoExpr then
-      local blockstats = context:get_visiting_node(1)
-      if node == blockstats[#blockstats] then -- last statement does not need goto
-        needgoto = false
-      end
-    end
-    if needgoto then
-      local doexprlabel = retscope.doexprlabel
-      if not doexprlabel then
-        doexprlabel = context.scope:get_up_function_scope():generate_name('_doexprlabel')
-        retscope.doexprlabel = doexprlabel
-      end
-      emitter:add_indent_ln('goto ', doexprlabel, ';')
-    end
-  else -- returning from a function
-    local funcscope = context.state.funcscope
-    assert(funcscope == retscope)
-    local functype = funcscope.funcsym and funcscope.funcsym.type
-    local numrets = functype and #functype.rettypes or #node
-    if numrets == 0 then -- no returns
+    local rettype = retscope.is_root and primtypes.cint or functype:get_return_type(1)
+    if not deferemitter:empty() and retnode and not retnode.is_Id and not retnode.attr.comptime then
+      local retname = funcscope:generate_name('_ret')
+      emitter:add_indent(rettype, ' ', retname, ' = ')
+      emitter:add_converted_val(rettype, retnode)
+      emitter:add_ln(';')
       emitter:add_value(deferemitter)
-      if retscope.is_root then -- main must always return an integer
-        emitter:add_indent_ln('return 0;')
-      else
-        emitter:add_indent_ln('return;')
+      emitter:add_indent_ln('return ', retname, ';')
+    else
+      emitter:add_value(deferemitter)
+      emitter:add_indent('return ')
+      emitter:add_converted_val(rettype, retnode, nil, true)
+      emitter:add_ln(';')
+    end
+  else -- multiple returns
+    if retscope.is_root then
+      node:raisef("multiple returns in main is not supported")
+    end
+    local funcrettypename = context:funcrettypename(functype)
+    local multiretvalname, retname, retemitter
+    local sideeffects = not deferemitter:empty() or node:recursive_has_attr('sideeffect')
+    if sideeffects then
+      retname = funcscope:generate_name('_mulret')
+      emitter:add_indent_ln(funcrettypename, ' ', retname, ';')
+    else -- no side effects
+      retemitter = emitter:fork()
+      retemitter:add_indent('return (', funcrettypename, '){')
+    end
+    for i,funcrettype,retnode,rettype,lastcallindex in izipargnodes(functype.rettypes, node) do
+      if not sideeffects and i > 1 then
+        retemitter:add(', ')
       end
-    elseif numrets == 1 then -- one return
-      local retnode = node[1]
-      local rettype = retscope.is_root and primtypes.cint or functype:get_return_type(1)
-      if not deferemitter:empty() and retnode and not retnode.is_Id and not retnode.attr.comptime then
-        local retname = funcscope:generate_name('_ret')
-        emitter:add_indent(rettype, ' ', retname, ' = ')
-        emitter:add_converted_val(rettype, retnode)
-        emitter:add_ln(';')
-        emitter:add_value(deferemitter)
-        emitter:add_indent_ln('return ', retname, ';')
-      else
-        emitter:add_value(deferemitter)
-        emitter:add_indent('return ')
-        emitter:add_converted_val(rettype, retnode, nil, true)
-        emitter:add_ln(';')
+      if lastcallindex == 1 then -- last assignment value may be a multiple return call
+        multiretvalname = funcscope:generate_name('_ret')
+        local rettypename = context:funcrettypename(retnode.attr.calleetype)
+        emitter:add_indent_ln(rettypename, ' ', multiretvalname, ' = ', retnode, ';')
       end
-    else -- multiple returns
-      if retscope.is_root then
-        node:raisef("multiple returns in main is not supported")
-      end
-      local funcrettypename = context:funcrettypename(functype)
-      local multiretvalname, retname, retemitter
-      local sideeffects = not deferemitter:empty() or node:recursive_has_attr('sideeffect')
-      if sideeffects then
-        retname = funcscope:generate_name('_mulret')
-        emitter:add_indent_ln(funcrettypename, ' ', retname, ';')
-      else -- no side effects
-        retemitter = emitter:fork()
-        retemitter:add_indent('return (', funcrettypename, '){')
-      end
-      for i,funcrettype,retnode,rettype,lastcallindex in izipargnodes(functype.rettypes, node) do
-        if not sideeffects and i > 1 then
-          retemitter:add(', ')
-        end
-        if lastcallindex == 1 then -- last assignment value may be a multiple return call
-          multiretvalname = funcscope:generate_name('_ret')
-          local rettypename = context:funcrettypename(retnode.attr.calleetype)
-          emitter:add_indent_ln(rettypename, ' ', multiretvalname, ' = ', retnode, ';')
-        end
-        local retvalname = retnode
-        if lastcallindex then
-          retvalname = string.format('%s.r%d', multiretvalname, lastcallindex)
-        end
-        if sideeffects then
-          emitter:add_indent(string.format('%s.r%d', retname, i), ' = ')
-          emitter:add_converted_val(funcrettype, retvalname, rettype)
-          emitter:add_ln(';')
-        else
-          retemitter:add_converted_val(funcrettype, retvalname, rettype)
-        end
+      local retvalname = retnode
+      if lastcallindex then
+        retvalname = string.format('%s.r%d', multiretvalname, lastcallindex)
       end
       if sideeffects then
-        emitter:add(deferemitter)
-        emitter:add_indent_ln('return ', retname, ';')
-      else -- no side effects
-        retemitter:add_ln('};')
-        emitter:add(retemitter)
+        emitter:add_indent(string.format('%s.r%d', retname, i), ' = ')
+        emitter:add_converted_val(funcrettype, retvalname, rettype)
+        emitter:add_ln(';')
+      else
+        retemitter:add_converted_val(funcrettype, retvalname, rettype)
       end
     end
+    if sideeffects then
+      emitter:add(deferemitter)
+      emitter:add_indent_ln('return ', retname, ';')
+    else -- no side effects
+      retemitter:add_ln('};')
+      emitter:add(retemitter)
+    end
+  end
+end
+
+-- Emits `in` statement.
+function visitors.In(context, node, emitter)
+  local deferemitter = emitter:fork()
+  -- close parent blocks before returning
+  local scope = context.scope
+  local exprscope = scope:get_up_doexpr_scope()
+  cgenerator.emit_close_upscopes(context, deferemitter, scope, exprscope)
+  local retnode = node[1]
+  emitter:add_indent_ln('_expr = ', retnode, ';')
+  emitter:add(deferemitter)
+  local needgoto = true
+  if context:get_visiting_node(2).is_DoExpr then
+    local blockstats = context:get_visiting_node(1)
+    if node == blockstats[#blockstats] then -- last statement does not need goto
+      needgoto = false
+    end
+  end
+  if needgoto then
+    local doexprlabel = exprscope.doexprlabel
+    if not doexprlabel then
+      doexprlabel = context.scope:get_up_function_scope():generate_name('_doexprlabel')
+      exprscope.doexprlabel = doexprlabel
+    end
+    emitter:add_indent_ln('goto ', doexprlabel, ';')
   end
 end
 
@@ -894,7 +900,7 @@ function visitors.Switch(context, node, emitter)
     emitter:add_indent_ln("case ", caseexprs[#caseexprs], ': {') -- last case
     emitter:add(caseblock) -- block
     local laststmt = caseblock[#caseblock]
-    if not laststmt or not (laststmt.is_Return or laststmt.is_Continue or laststmt.is_Break) then
+    if not laststmt or not laststmt.is_breakswitchflow then
       emitter:add_indent_ln('  break;')
     end
     emitter:add_indent_ln("}")
@@ -903,7 +909,7 @@ function visitors.Switch(context, node, emitter)
     emitter:add_indent_ln('default: {')
     emitter:add(elsenode)
     local laststmt = elsenode[#elsenode]
-    if not laststmt or not (laststmt.is_Return or laststmt.is_Continue or laststmt.is_Break) then
+    if not laststmt or not laststmt.is_breakswitchflow then
       emitter:add_indent_ln('  break;')
     end
     emitter:add_indent_ln("}")
@@ -930,13 +936,8 @@ end
 function visitors.DoExpr(context, node, emitter)
   local attr = node.attr
   local isstatement = context:get_visiting_node(1).is_Block
-  if isstatement then -- a macros could have replaced a statement with do exprs
-    if attr.noop then -- skip macros without operations
-      return true
-    end
-  end
   local blocknode = node[1]
-  if blocknode[1].is_Return then -- single statement
+  if blocknode[1].is_In then -- single statement
     emitter:add(blocknode[1][1])
   else -- multiple statements
     emitter:add_ln("({") emitter:inc_indent()
@@ -1076,6 +1077,8 @@ function visitors.Continue(context, _, emitter)
   cgenerator.emit_close_upscopes(context, emitter, scope, scope:get_up_loop_scope())
   emitter:add_indent_ln('continue;')
 end
+
+function visitors.NoOp() end
 
 -- Emits label statement.
 function visitors.Label(context, node, emitter)

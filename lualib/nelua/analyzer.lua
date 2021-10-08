@@ -2156,6 +2156,10 @@ function visitors.Continue(context, node)
   node.done = true
 end
 
+function visitors.NoOp(_, node)
+  node.done = true
+end
+
 function visitors.Label(context, node)
   local labelname = node[1]
   local label = context.scope:find_label(labelname)
@@ -2176,7 +2180,7 @@ function visitors.Goto(context, node)
   local labelname = node[1]
   local label, labelscope = context.scope:find_label(labelname)
   if not label then
-    local funcscope = context.scope:get_up_return_scope() or context.rootscope
+    local funcscope = context.scope:get_up_function_scope() or context.rootscope
     if not funcscope.resolved_once then
       -- we should find it in the next traversal
       funcscope:delay_resolution(true)
@@ -2420,7 +2424,7 @@ end
 
 function visitors.Return(context, node)
   local retnodes = node
-  local funcscope = context.scope:get_up_return_scope() or context.rootscope
+  local funcscope = context.scope:get_up_function_scope() or context.rootscope
   funcscope.hasreturn = true
   if funcscope.rettypes then
     local done = true
@@ -2471,6 +2475,37 @@ function visitors.Return(context, node)
   end
 end
 
+function visitors.In(context, node)
+  local retnode = node[1]
+  local exprscope = context.scope:get_up_doexpr_scope()
+  if not exprscope then
+    retnode:raisef("no do expression block found to use `in` statement")
+  end
+  if exprscope.rettypes then
+    local inrettype = exprscope.rettypes[1]
+    assert(inrettype)
+    context:traverse_node(retnode, {desiredtype=inrettype})
+    local rettype = retnode.attr.type
+    if rettype then
+      retnode, rettype = visitor_convert(context, node, 1, inrettype, retnode, rettype)
+      if rettype then
+        local ok, err = inrettype:is_convertible_from(retnode or rettype)
+        assert(ok, err) -- we always expect a successful conversion
+        local retattr = retnode and retnode.attr
+        if retattr and not retattr:can_copy() and
+           not (retattr.scope and retattr.scope:get_up_function_scope() == exprscope) then
+          retnode:raisef("in `in` expression: cannot pass non copyable type '%s' by value",
+            rettype)
+        end
+      end
+    end
+    node.done = retnode.done and true
+  else
+    context:traverse_node(retnode)
+    exprscope:add_return_type(1, retnode.attr.type)
+  end
+end
+
 function visitors.Do(context, node)
   local blocknode = node[1]
   context:traverse_node(blocknode)
@@ -2483,7 +2518,7 @@ function visitors.DoExpr(context, node)
   repeat
     exprscope = context:push_forked_cleaned_scope(node)
     exprscope.is_doexpr = true
-    exprscope.is_returnbreak = true
+    exprscope.is_resultbreak = true
     context:traverse_node(blocknode)
     local resolutions_count = exprscope:resolve()
     context:pop_scope()
@@ -2492,11 +2527,11 @@ function visitors.DoExpr(context, node)
   local attr = node.attr
   if not node.checked then
     -- this block requires a return
-    if not blocknode:ends_with('Return') then
-      node:raisef("a return statement is missing inside do expression block")
+    if not blocknode:ends_with('In') then
+      node:raisef("a `in` statement is missing inside do expression block")
     end
     local firstnode = blocknode[1]
-    if firstnode.is_Return then -- forward attr from first expression
+    if firstnode.is_In then -- forward attr from first expression
       local exprattr = firstnode[1].attr
       attr.sideeffect = exprattr.sideeffect
       attr.comptime = exprattr.comptime
@@ -2511,9 +2546,6 @@ function visitors.DoExpr(context, node)
   if not attr.type then
     local rettypes = exprscope.rettypes
     if rettypes then -- known return type
-      if #rettypes ~= 1 then
-        node:raisef("`do` expression block can only return one argument")
-      end
       attr.type = rettypes[1]
     else -- transform into a symbol to force resolution on top scopes
       local symbol = Symbol.promote_attr(attr, node)
@@ -2917,7 +2949,7 @@ function visitors.FuncDef(context, node, opts)
     funcscope = context:push_forked_cleaned_scope(node)
     funcscope.funcsym = symbol
     funcscope.is_function = true
-    funcscope.is_returnbreak = true
+    funcscope.is_resultbreak = true
     context:push_forked_state{funcscope = funcscope}
 
     -- traverse the function arguments
@@ -2999,7 +3031,7 @@ function visitors.Function(context, node)
     funcscope = context:push_forked_cleaned_scope(node)
     funcscope.funcsym = symbol
     funcscope.is_function = true
-    funcscope.is_returnbreak = true
+    funcscope.is_resultbreak = true
     context:push_forked_state{funcscope = funcscope}
 
     -- traverse the function arguments

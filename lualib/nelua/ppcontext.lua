@@ -263,8 +263,7 @@ function PPContext.inject_value(self, value, dest, destpos, orignode)
       local ret = value(table.unpack(args))
       if ret == nil then -- no returns, probably a statement replacement
         -- statements should be already by the value call, transform this node into a no operation
-        local noop = aster.DoExpr{aster.Block{aster.Return{aster.Nil{}}}, pattr={noop=true}}
-        dest:transform(noop)
+        dest:transform(aster.NoOp{})
       else -- expression replacement
         dest:transform(aster.value(ret, orignode))
       end

@@ -15,7 +15,7 @@ local grammar = [==[
 chunk           <-- SHEBANG? SKIP Block (!.)^UnexpectedSyntax
 
 Block           <==(local / global /
-                    FuncDef / Return /
+                    FuncDef / Return / In /
                     Do / Defer /
                     If / Switch /
                     for /
@@ -29,6 +29,7 @@ Block           <==(local / global /
 -- Statements
 Label           <== `::` @name @`::`
 Return          <== `return` (expr (`,` @expr)*)?
+In              <== `in` @expr
 Break           <== `break`
 Continue        <== `continue`
 Goto            <== `goto` @name

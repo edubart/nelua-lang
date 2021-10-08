@@ -1687,20 +1687,20 @@ it("statement expressions", function()
   expect.run_c([[
     do
       local x = 1
-      local a = (do return x end)
+      local a = (do in x end)
       assert(a == 1)
-      assert((do return (1+4)*2 end) == 10)
+      assert((do in (1+4)*2 end) == 10)
 
       local function f(cond1: boolean, cond2: boolean)
         return (do
           if cond1 and cond2 then
-            return 12
+            in 12
           elseif cond1 then
-            return 1
+            in 1
           elseif cond2 then
-            return 2
+            in 2
           else
-            return 0
+            in 0
           end
         end)
       end
@@ -1715,7 +1715,7 @@ it("statement expressions", function()
       ## local f = expr_macro(function(x, a, b)
         local r = (#[x]# << #[a]#) >> #[b]#
         r = r + 4
-        return r
+        in r
       ## end)
 
       local x = 0xff
@@ -1726,11 +1726,11 @@ it("statement expressions", function()
     do
       local x = (do
         if true then
-          return 10
+          in 10
         else
-          return 20
+          in 20
         end
-        return 30
+        in 30
       end)
       assert(x == 10)
     end
@@ -1752,7 +1752,7 @@ it("replacement macros" ,function()
 
     do -- expressions
       ## local mul = expr_macro(function(a, b)
-        return #[a]# * #[b]#
+        in #[a]# * #[b]#
       ## end)
       local a, b = 2, 3
       assert(#[mul]#(a, b) == 6)

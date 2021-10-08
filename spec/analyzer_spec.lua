@@ -2012,9 +2012,9 @@ it("custom braces initialization", function()
 end)
 
 it("do expressions", function()
-  expect.analyze_ast("local a = (do return 1 end)")
-  expect.analyze_error("local a = (do end)", "a return statement is missing")
-  expect.analyze_error("local a = (do return 1, 2 end)", "can only return one argument")
+  expect.analyze_ast("local a = (do in 1 end)")
+  expect.analyze_error("local a = (do end)", "a `in` statement is missing")
+  expect.analyze_error("in 1", "no do expression block found to use")
 end)
 
 it("forward type declaration", function()
@@ -2234,6 +2234,11 @@ it("nocopy type annotation", function()
     local function f(): R
       return r
     end
+  ]], "non copyable type")
+  expect.analyze_error([[
+    local R <nocopy> = @record{x: integer}
+    local r: R
+    local r2: R = (do in r end)
   ]], "non copyable type")
   expect.analyze_error([[
     local R <nocopy> = @record{x: integer}

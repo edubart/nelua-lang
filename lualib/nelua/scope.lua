@@ -74,7 +74,7 @@ function Scope.create_root(context, node)
     usednames = {},
     is_root = true,
     is_function = true,
-    is_returnbreak = true,
+    is_resultbreak = true,
   }, Scope)
   setmetatable(rootscope.symbols, {
     __index = rootscope_symbols__index,
@@ -134,11 +134,11 @@ function Scope:get_up_function_scope()
   return upfunctionscope
 end
 
--- Return the first upper scope that would process return statements.
-function Scope:get_up_return_scope()
+-- Return the first upper scope that is a do expression.
+function Scope:get_up_doexpr_scope()
   local upreturnscope = self.upreturnscope
   if not upreturnscope then
-    upreturnscope = self:get_up_scope_of_kind('is_returnbreak')
+    upreturnscope = self:get_up_scope_of_kind('is_doexpr')
     self.upreturnscope = upreturnscope
   end
   return upreturnscope
@@ -187,7 +187,7 @@ function Scope:find_label(name)
       return label, self
     end
     self = self.parent
-  until (not self or self.is_returnbreak)
+  until (not self or self.is_function)
 end
 
 function Scope:add_label(label)
@@ -372,8 +372,8 @@ function Scope:add_return_type(index, type)
   end
 end
 
-function Scope:resolve_rettypes()
-  if self.rettypes or not self.is_returnbreak then -- not on a return block or already resolved
+function Scope:return_return_types()
+  if self.rettypes or not self.is_resultbreak then -- not on a return block or already resolved
     return 0
   end
   local possible_rettypes = self.possible_rettypes
@@ -405,7 +405,7 @@ function Scope:resolve_rettypes()
 end
 
 function Scope:resolve()
-  local count = self:resolve_symbols() + self:resolve_rettypes()
+  local count = self:resolve_symbols() + self:return_return_types()
   if config.debug_scope_resolve and count > 0 then
     console.info(self.node:format_message('info', "scope resolved %d symbols", count))
   end

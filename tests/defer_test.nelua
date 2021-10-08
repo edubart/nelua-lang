@@ -123,7 +123,7 @@ do -- issue #46
   do
     defer n = n+1 end
     local r = (do
-      return 0
+      in 0
     end)
     n = n + r
   end
