@@ -1665,15 +1665,15 @@ print(res) -- outputs: 6
 
 ### Expression replacement macros
 
-A preprocessor function created with `expr_macro`
+A preprocessor function using `in` statement
 can be called as if it were a runtime function
 in the middle of a statement,
 it will serve as replacement macro for an expression:
 
 ```nelua
-## local mul = expr_macro(function(a, b)
+## local function mul(a, b)
   in #[a]# * #[b]#
-## end)
+## end
 
 local a, b = 2, 3
 local res = #[mul]#(a, b)

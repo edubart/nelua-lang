@@ -791,9 +791,9 @@ do print '### Statement replacement macros'
 end
 
 do print '### Expression replacement macros'
-  ## local mul = expr_macro(function(a, b)
+  ## local function mul(a, b)
     in #[a]# * #[b]#
-  ## end)
+  ## end
 
   local a, b = 2, 3
   local res = #[mul]#(a, b)

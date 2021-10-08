@@ -2469,8 +2469,8 @@ function visitors.Return(context, node)
     node.done = done
   else
     context:traverse_nodes(retnodes)
-    for i,_,rettype in iargnodes(retnodes) do
-      funcscope:add_return_type(i, rettype)
+    for i,retnode,rettype in iargnodes(retnodes) do
+      funcscope:add_return_type(i, rettype, retnode)
     end
   end
 end
@@ -2502,7 +2502,7 @@ function visitors.In(context, node)
     node.done = retnode.done and true
   else
     context:traverse_node(retnode)
-    exprscope:add_return_type(1, retnode.attr.type)
+    exprscope:add_return_type(1, retnode.attr.type, retnode)
   end
 end
 
@@ -2527,11 +2527,12 @@ function visitors.DoExpr(context, node)
   local attr = node.attr
   if not node.checked then
     -- this block requires a return
-    if not blocknode:ends_with('In') then
+    local topblock = context:get_visiting_node(1)
+    if not topblock.is_Block and not blocknode:ends_with('In') then
       node:raisef("a `in` statement is missing inside do expression block")
     end
     local firstnode = blocknode[1]
-    if firstnode.is_In then -- forward attr from first expression
+    if firstnode and firstnode.is_In then -- forward attr from first expression
       local exprattr = firstnode[1].attr
       attr.sideeffect = exprattr.sideeffect
       attr.comptime = exprattr.comptime
@@ -2547,12 +2548,7 @@ function visitors.DoExpr(context, node)
     local rettypes = exprscope.rettypes
     if rettypes then -- known return type
       attr.type = rettypes[1]
-    else -- transform into a symbol to force resolution on top scopes
-      local symbol = Symbol.promote_attr(attr, node)
-      symbol:add_possible_type(nil, blocknode)
-      context.scope:add_symbol(attr)
     end
-
     node.done = attr.type and blocknode.done and true
   end
 end

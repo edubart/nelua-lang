@@ -1712,14 +1712,14 @@ it("statement expressions", function()
     end
 
     do
-      ## local f = expr_macro(function(x, a, b)
+      ## local function f(x, a, b)
         local r = (#[x]# << #[a]#) >> #[b]#
         r = r + 4
         in r
-      ## end)
+      ## end
 
       local x = 0xff
-      local y = #[f(x, 2, 3)]#
+      local y = #[f]#(x, 2, 3)
       assert(y == 131)
     end
 
@@ -1751,9 +1751,9 @@ it("replacement macros" ,function()
     end
 
     do -- expressions
-      ## local mul = expr_macro(function(a, b)
+      ## local function mul(a, b)
         in #[a]# * #[b]#
-      ## end)
+      ## end
       local a, b = 2, 3
       assert(#[mul]#(a, b) == 6)
       #[mul]#(a, b)

@@ -142,8 +142,8 @@ exprfact        <-- (exprunary opfact*)~>foldleft
 exprunary       <-- opunary / exprpow
 exprpow         <-- (exprsimple oppow*)~>foldleft
 exprsimple      <-- Number / String / Type / InitList / Boolean /
-                    Function / Nilptr / Nil / DoExpr / Varargs / exprsuffixed
-exprprim        <-- id / Paren
+                    Function / Nilptr / Nil / Varargs / exprsuffixed
+exprprim        <-- id / DoExpr / Paren
 
 -- Types
 RecordType      <== 'record' WORDSKIP @`{` (RecordField (fieldsep RecordField)* fieldsep?)? @`}`

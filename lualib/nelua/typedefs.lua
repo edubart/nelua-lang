@@ -477,13 +477,11 @@ typedefs.pp_methods = {
   static_assert = true,
   after_analyze = true,
   after_inference = true,
-  expr_macro = true,
   require = true,
   -- DEPRECATED aliases
   inject_astnode = 'inject_statement',
   staticerror = 'static_error',
   staticassert = 'static_assert',
-  exprmacro = 'expr_macro'
 }
 
 -- List of exported preprocessor variables that can change while preprocessing.

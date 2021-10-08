@@ -839,10 +839,10 @@ end
 
 -- Emits `in` statement.
 function visitors.In(context, node, emitter)
-  local deferemitter = emitter:fork()
   -- close parent blocks before returning
   local scope = context.scope
   local exprscope = scope:get_up_doexpr_scope()
+  local deferemitter = emitter:fork()
   cgenerator.emit_close_upscopes(context, deferemitter, scope, exprscope)
   local retnode = node[1]
   emitter:add_indent_ln('_expr = ', retnode, ';')
@@ -936,10 +936,21 @@ end
 function visitors.DoExpr(context, node, emitter)
   local attr = node.attr
   local isstatement = context:get_visiting_node(1).is_Block
+  if isstatement then
+    emitter:add_indent()
+  end
   local blocknode = node[1]
   if blocknode[1].is_In then -- single statement
     emitter:add(blocknode[1][1])
+  elseif not attr.type then
+    assert(isstatement)
+    emitter:add_ln("{") emitter:inc_indent()
+    context:push_forked_scope(node)
+    emitter:add(blocknode)
+    context:pop_scope()
+    emitter:dec_indent() emitter:add_indent("}")
   else -- multiple statements
+    assert(attr.type)
     emitter:add_ln("({") emitter:inc_indent()
     emitter:add_indent_ln(attr.type, ' _expr;')
     emitter:dec_indent()

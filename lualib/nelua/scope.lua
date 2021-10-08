@@ -355,9 +355,11 @@ function Scope:resolve_symbols()
   return count
 end
 
-function Scope:add_return_type(index, type)
+function Scope:add_return_type(index, type, ref)
   if not type then
-    self.has_unknown_return = true
+    self.has_unknown_return = ref or true
+  elseif self.has_unknown_return == ref then
+    self.has_unknown_return = nil
   end
   local possible_rettypes = self.possible_rettypes
   if not possible_rettypes then

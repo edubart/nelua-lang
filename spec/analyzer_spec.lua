@@ -2014,7 +2014,7 @@ end)
 it("do expressions", function()
   expect.analyze_ast("local a = (do in 1 end)")
   expect.analyze_error("local a = (do end)", "a `in` statement is missing")
-  expect.analyze_error("in 1", "no do expression block found to use")
+  expect.analyze_error("in 1", "no do expression block found")
 end)
 
 it("forward type declaration", function()

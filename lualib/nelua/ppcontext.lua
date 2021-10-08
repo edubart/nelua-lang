@@ -260,13 +260,17 @@ function PPContext.inject_value(self, value, dest, destpos, orignode)
         args[i] = argnodes[i]:get_simplified_value()
       end
       -- evaluate replacement macro
-      local ret = value(table.unpack(args))
-      if ret == nil then -- no returns, probably a statement replacement
-        -- statements should be already by the value call, transform this node into a no operation
-        dest:transform(aster.NoOp{})
-      else -- expression replacement
-        dest:transform(aster.value(ret, orignode))
-      end
+      local retnode = aster.DoExpr{aster.Block{
+        preprocess = function(blocknode)
+          self:push_statnodes(blocknode)
+          local ret = value(table.unpack(args))
+          if ret then
+            self:inject_statement(aster.In{ret})
+          end
+          self:pop_statnodes()
+        end
+      }}
+      dest:transform(retnode)
     else
       dest[destpos] = aster.value(value, orignode)
     end
@@ -364,23 +368,6 @@ Effectively the same as `generic(memoize(hygienize(func)))`.
 ]]
 function PPContext:generalize(func)
   return self:generic(memoize(self:hygienize(func)))
-end
-
---[[
-Wraps function `func` into a "do expression".
-Useful to create arbitrary substitution of expressions.
-]]
-function PPContext:expr_macro(func)
-  return function(...)
-    local args = table.pack(...)
-    return aster.DoExpr{aster.Block{
-      preprocess = function(blocknode)
-        self:push_statnodes(blocknode)
-        func(table.unpack(args))
-        self:pop_statnodes()
-      end
-    }}
-  end
 end
 
 --[[

@@ -631,19 +631,19 @@ end)
 
 it("expression macros", function()
   expect.analyze_ast([=[
-    ## local f = expr_macro(function(x, a, b)
+    ## local function f(x, a, b)
       in (#[x]# << #[a]#) >> #[b]#
-    ## end)
+    ## end
 
-    local y <comptime> = #[f(0xff, 2, 3)]#
+    local y <comptime> = #[f]#(0xff, 2, 3)
     ## assert(y.value:tonumber() == 127)
   ]=])
 
   expect.ast_type_equals([=[
-  ## local f = expr_macro(function(x, a, b)
+  ## local function f(x, a, b)
     #[x]# = #[b]#
     in #[a]#
-  ## end)
+  ## end
   local a = 0
   local b = #[f]#(a, 0, a + 1)
 ]=],[=[
@@ -656,9 +656,9 @@ it("expression macros", function()
 
   expect.run_c([=[
     local res: integer = 0
-    ## local gen_expr = expr_macro(function(x)
+    ## local function gen_expr(x)
       in #[x]#+1
-    ## end)
+    ## end
     ## local gen_stmt = function(x)
       res = res + #[x]#
     ## end
