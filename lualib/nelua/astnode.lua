@@ -499,4 +499,60 @@ function ASTNode:get_simplified_value()
   return self
 end
 
+--[[
+Checks if all nested block statements ends with a node with the tag `tag`.
+Returns true if all last nested block statement matches `tag`.
+Usually used to check if a block ends with return statement.
+
+This function has to perform a minimal control flow analysis to
+find out if the block ends with a return.
+]]
+function ASTNode:ends_with(tag)
+  assert(self.is_Block)
+  local statnodes = self
+  local laststat = statnodes[#statnodes]
+  if not laststat then return false end
+  if laststat.tag == tag then
+    return true
+  elseif laststat.is_Do then
+    return laststat[1]:ends_with(tag)
+  elseif laststat.is_If then
+    local pairs, elseblock = laststat[1], laststat[2]
+    for i=1,#pairs,2 do -- if statements
+      local block = pairs[i+1]
+      if not block:ends_with(tag) then
+        return false
+      end
+    end
+    if elseblock then -- else statement
+      return elseblock:ends_with(tag)
+    end
+  elseif laststat.is_Switch then -- switch statement
+    local pairs, elseblock = laststat[2], laststat[3]
+    for i=1,#pairs,2 do -- case statements
+      local block = pairs[i+1]
+      if not block:ends_with(tag) then
+        return false
+      end
+    end
+    if elseblock then -- else statement
+      return elseblock:ends_with(tag)
+    end
+  elseif laststat.is_While then
+    -- in case of a infinite while loop without breaks, the function could never return
+    -- TODO: consider goto statements breaking the loop
+    -- TODO: consider infinite repeat loop
+    local whilecondattr = laststat[1].attr
+    if whilecondattr.comptime and whilecondattr.value == true then -- infinite loop
+      for childnode in laststat:walk_trace_nodes({Do=true,If=true,Switch=true,Block=true,Break=true}, true) do
+        if childnode.is_Break then
+          return false
+        end
+      end
+      return true
+    end
+  end
+  return false
+end
+
 return ASTNode

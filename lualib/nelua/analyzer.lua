@@ -2471,62 +2471,6 @@ function visitors.Return(context, node)
   end
 end
 
-local function block_endswith_return(blocknode)
-  local statnodes = blocknode
-  local laststat = statnodes[#statnodes]
-  if not laststat then return false end
-  if laststat.is_Return then
-    blocknode.attr.returnending = true
-    return true
-  elseif laststat.is_Call then
-    local lastattr = laststat.attr
-    local calleesym = lastattr.calleesym
-    if not calleesym and not lastattr.type then
-      -- will be rechecked in next traversal
-      return true
-    end
-    if calleesym and calleesym.noreturn then
-      return true
-    end
-    return false
-  elseif laststat.is_Do then
-    return block_endswith_return(laststat[1])
-  elseif laststat.is_If then
-    local pairs, elseblock = laststat[1], laststat[2]
-    for i=1,#pairs,2 do
-      local block = pairs[i+1]
-      if not block_endswith_return(block) then
-        return false
-      end
-    end
-    if elseblock then
-      return block_endswith_return(elseblock)
-    end
-  elseif laststat.is_Switch then
-    local pairs, elseblock = laststat[2], laststat[3]
-    for i=1,#pairs,2 do
-      local block = pairs[i+1]
-      if not block_endswith_return(block) then
-        return false
-      end
-    end
-    if elseblock then
-      return block_endswith_return(elseblock)
-    end
-  elseif laststat.is_While then
-    local whilecondattr = laststat[1].attr
-    if whilecondattr.comptime and whilecondattr.value == true then -- infinite loop
-      for childnode in laststat:walk_trace_nodes({Do=true,If=true,Switch=true,Block=true,Break=true}, true) do
-        if childnode.is_Break then
-          return false
-        end
-      end
-      return true
-    end
-  end
-  return false
-end
-
 function visitors.Do(context, node)
   local blocknode = node[1]
   context:traverse_node(blocknode)
@@ -2548,7 +2492,7 @@ function visitors.DoExpr(context, node)
   local attr = node.attr
   if not node.checked then
     -- this block requires a return
-    if not block_endswith_return(blocknode) then
+    if not blocknode:ends_with('Return') then
       node:raisef("a return statement is missing inside do expression block")
     end
     local firstnode = blocknode[1]
@@ -2568,7 +2512,7 @@ function visitors.DoExpr(context, node)
     local rettypes = exprscope.rettypes
     if rettypes then -- known return type
       if #rettypes ~= 1 then
-        node:raisef("do expression block can only return one argument")
+        node:raisef("`do` expression block can only return one argument")
       end
       attr.type = rettypes[1]
     else -- transform into a symbol to force resolution on top scopes
@@ -3018,7 +2962,7 @@ function visitors.FuncDef(context, node, opts)
   -- type checking for returns
   if type and defn and type.is_function and rettypes and #rettypes > 0 then
     local canbeempty = tabler.iallfield(rettypes, 'is_nilable')
-    if not canbeempty and not block_endswith_return(blocknode) then
+    if not canbeempty and not blocknode:ends_with('Return') then
       node:raisef("a return statement is missing before function end")
     end
   end
@@ -3098,7 +3042,7 @@ function visitors.Function(context, node)
   -- type checking for returns
   if type and rettypes and #rettypes > 0 then
     local canbeempty = tabler.iallfield(rettypes, 'is_nilable')
-    if not canbeempty and not block_endswith_return(blocknode) then
+    if not canbeempty and not blocknode:ends_with('Return') then
       node:raisef("a return statement is missing before function end")
     end
   end

@@ -828,11 +828,14 @@ it("function return", function()
     local function f(): integer do return 1 end end
     local function f(): integer switch 1 case 1 then return 1 else return 2 end end
     local function f(): integer switch 1 case 1, 2 then return 1 else return 2 end end
-    local function f(): integer error('error!') end
-    local function f(): integer panic('panic!') end
+    local function f(): integer error('error!') return 0 end
+    local function f(): integer panic('panic!') return 0 end
     local function g() <noreturn> error'error!' end
-    local function f(): integer g() end
+    local function f(): integer g() return 0 end
   ]])
+  expect.analyze_error([[
+    local function f(): integer panic('panic!') end
+  ]], "a return statement is missing before function end")
   expect.analyze_error([[
     local function f() end
     local a: integer = f()

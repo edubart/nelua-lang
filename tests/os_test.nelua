@@ -88,10 +88,7 @@ print 'os OK!'
 do -- os.exit
   local function f(): integer
     os.exit(true)
-    -- intentionally omit return, should not generate error because os.exit is <noreturn>
-    ## if not (ccinfo.is_gcc or ccinfo.is_clang) then -- on other compilers we should return
     return 0
-    ## end
   end
   f()
   assert(false)
