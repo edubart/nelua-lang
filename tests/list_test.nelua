@@ -20,9 +20,9 @@ end
 do -- braces initialization
   local l: list(integer) = {1, 2, 3}
   assert(#l == 3)
-  local ok, node, value = next(l) assert(ok and node and value == 1)
-  ok, node, value = next(l, node) assert(ok and node and value == 2)
-  ok, node, value = next(l, node) assert(ok and node and value == 3)
+  local ok, node, value = next(l) assert(ok and node ~= nilptr and value == 1)
+  ok, node, value = next(l, node) assert(ok and node ~= nilptr and value == 2)
+  ok, node, value = next(l, node) assert(ok and node ~= nilptr and value == 3)
   ok, node, value = next(l, node) assert(not ok and not node and value == 0)
   l:clear()
 end
@@ -101,11 +101,11 @@ do -- insert
   pos = l:insert(2, pos)
   pos = l:insert(4, l.back)
   pos = l:insert(1, l.front)
-  local ok, node, value = next(l) assert(ok and node and value == 1)
-  ok, node, value = next(l, node) assert(ok and node and value == 2)
-  ok, node, value = next(l, node) assert(ok and node and value == 3)
-  ok, node, value = next(l, node) assert(ok and node and value == 4)
-  ok, node, value = next(l, node) assert(ok and node and value == 5)
+  local ok, node, value = next(l) assert(ok and node ~= nilptr and value == 1)
+  ok, node, value = next(l, node) assert(ok and node ~= nilptr and value == 2)
+  ok, node, value = next(l, node) assert(ok and node ~= nilptr and value == 3)
+  ok, node, value = next(l, node) assert(ok and node ~= nilptr and value == 4)
+  ok, node, value = next(l, node) assert(ok and node ~= nilptr and value == 5)
   ok, node, value = next(l, node) assert(not ok and not node and value == 0)
   l:clear()
 end

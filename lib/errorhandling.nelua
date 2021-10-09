@@ -1,0 +1,265 @@
+--[[
+NOTE: This is HIGHLY experimental and not fully developed yet, be warned!
+
+This modules implements a Lua style exception system.
+It implements `pcall` and `xpcall` functions that can be used to capture errors
+raised from `error` and `assert` functions.
+
+* TODO: handle call methods
+* TODO: don't allocate in error functions
+* TODO: check
+* TODO: option to disable exceptions
+]]
+
+##[==[
+--[[
+For now all the compiler code is placed here,
+later will be moved to the compiler sources
+]]
+local typedefs = require 'nelua.typedefs'
+local cgenerator = require 'nelua.cgenerator'
+local CEmitter = require 'nelua.cemitter'
+local console = require 'nelua.utils.console'
+
+console.warn 'using error handling module, it is highly experimental and incomplete!'
+
+-- Add <noerror> new annotation
+typedefs.function_annots.noerror = true
+
+local orig_Call = cgenerator.visitors.Call
+
+-- Hook all calls to return early in case a error is raised.
+function cgenerator.visitors.Call(context, node, emitter, ...)
+  local isblockcall = context:get_visiting_node(1).tag == 'Block'
+  local funcscope = context.scope:get_up_scope_of_kind('is_function')
+  local funcsym = funcscope and funcscope.funcsym
+  local attr = node.attr
+  local calleesym = attr.calleesym
+  local function go()
+    emitter:add_indent_ln('if(nelua_error_status) {')
+    emitter:inc_indent()
+    local scope = context.scope
+    local retscope = scope:get_up_function_scope()
+    assert(scope ~= retscope and retscope)
+    cgenerator.emit_close_upscopes(context, emitter, scope, retscope, true)
+    if #funcsym.type.rettypes > 0 then
+      local rettypename = context:funcrettypename(funcsym.type)
+      emitter:add_indent_ln('return (',rettypename,'){0};')
+    else
+      emitter:add_indent_ln('return;')
+    end
+    emitter:dec_indent()
+    emitter:add_indent_ln('}')
+  end
+  local pragmas = context.pragmas
+  if calleesym and funcsym and
+    not calleesym.noerror and not funcsym.noerror and not pragmas.noerror and
+    not calleesym.nosideeffects and not funcsym.nosideeffects and not pragmas.nosideeffects and
+    not calleesym.noreturn and not funcsym.noreturn and not pragmas.noreturn then
+    if isblockcall then
+      orig_Call(context, node, emitter, ...)
+      go()
+    else
+      emitter:add_ln('({')
+      emitter:inc_indent()
+      if attr.usemultirets then
+        local callrettypename = context:funcrettypename(node.attr.calleetype)
+        emitter:add_indent(callrettypename, ' __callret = ')
+      else
+        emitter:add_indent(attr.type, ' __callret = ')
+      end
+      orig_Call(context, node, emitter, ...)
+      emitter:add_ln(';')
+      go()
+      emitter:add_indent_ln('__callret;')
+      emitter:dec_indent()
+      emitter:add_indent('})')
+    end
+  else
+    orig_Call(context, node, emitter, ...)
+  end
+end
+]==]
+
+require 'string'
+
+-- C imports
+
+local FILE: type <cimport,cinclude'<stdio.h>',forwarddecl> = @record{}
+local stderr: *FILE <cimport,cinclude'<stdio.h>'>
+local function fwrite(ptr: pointer, size: csize, n: csize, fp: *FILE): csize <cimport,cinclude'<stdio.h>'> end
+local function fflush(fp: *FILE): cint <cimport,cinclude'<stdio.h>'> end
+local function fputc(c: cint, stream: *FILE): cint <cimport,cinclude'<stdio.h>'> end
+local function abort() <cimport,cinclude'<stdlib.h>'> end
+local function exit(status: cint): void <cimport,cinclude'<stdlib.h>'> end
+local function NELUA_UBSAN_UNREACHABLE(): void <cimport,cinclude[[
+/* Macro used to generate traceback on aborts when sanitizing. */
+#if defined(__clang__) && defined(__has_feature)
+  #if __has_feature(undefined_behavior_sanitizer)
+    #define NELUA_UBSAN_UNREACHABLE __builtin_unreachable
+  #endif
+#elif defined(__gnu_linux__) && defined(__GNUC__) && __GNUC__ >= 5
+  extern void __ubsan_handle_builtin_unreachable(void*) __attribute__((weak));
+  #define NELUA_UBSAN_UNREACHABLE() {if(&__ubsan_handle_builtin_unreachable) __builtin_unreachable();}
+#endif
+#ifndef NELUA_UBSAN_UNREACHABLE
+  #define NELUA_UBSAN_UNREACHABLE()
+#endif
+]]> end
+local function NELUA_TRAP(): void <cimport,cinclude[[
+#if defined(__clang__) || defined(__GNUC__)
+  #define NELUA_TRAP __builtin_trap
+#else
+  #dfine NELUA_TRAP() {*((volatile int*)0x0) = 0;}
+#endif
+]]> end
+
+-- Current raised error message.
+local nelua_error_msg: string
+
+-- Current raised error status, `true` if an error was raised.
+local nelua_error_status: boolean <nodce>
+
+-- Current error handler.
+local nelua_error_handler: function(string): string
+
+-- Default error message handler for `pcall`.
+local function pcall_msghandler(msg: string): string <noerror>
+  -- TODO: add runtime traceback
+  return msg
+end
+
+--[[
+Terminate the application abnormally with message `message`.
+This function never returns.
+
+Used to raise unrecoverable errors.
+]]
+global function panic(msg: facultative(string)): void <noreturn,noerror>
+  -- print error message to stderr
+  ## if not msg.type.is_niltype then
+  if msg.size > 0 then
+    fwrite(msg.data, 1, msg.size, stderr)
+    fputc('\n'_b, stderr)
+    fflush(stderr)
+  end
+  ## end
+  NELUA_UBSAN_UNREACHABLE() -- trap with error traceback when using undefined sanitizer
+  ## if pragmas.abort == 'exit' then -- call system's exit()
+    exit(-1)
+  ## elseif pragmas.abort == 'trap' then -- generate invalid instruction
+    NELUA_TRAP()
+  ## else -- call system's abort()
+    abort()
+  ## end
+end
+
+--[[
+Raises an error with message `msg`. This function never returns.
+Information about the error position is added at the beginning of the message.
+
+Raised errors can be caught with `pcall` or `xpcall`.
+]]
+global function error(msg: facultative(string)): void <alwayspoly>
+  --TODO: handle error level parameter
+  ## pragmapush{noerror=true}
+  ## local locmsg = context.state.inpolyeval.srcnode:format_message('runtime error', 'error!')
+  ## if msg.type.is_niltype then
+  local msg: string = string.copy(#[locmsg]#)
+  ## else
+  local sb: stringbuilder
+  sb:write(#[locmsg:match('^(.*)error!')]#, msg, #[locmsg:match('error!(.*)$')]#)
+  msg = sb:promote()
+  ## end
+  if nelua_error_handler then
+    local error_handler: auto = nelua_error_handler
+    nelua_error_handler = nilptr
+    nelua_error_status = true
+    nelua_error_msg = error_handler(msg)
+  else
+    panic(msg)
+  end
+  ## pragmapop()
+end
+
+--[[
+Raises an error if the value `v` is evaluated to `false`, otherwise, returns `v`.
+In case of error, `msg` is the error msg, when absent defaults to `"assertion failed!"`.
+
+Raised errors can be caught with `pcall` or `xpcall`.
+]]
+global function assert(v: auto, msg: facultative(string)) <alwayspoly>
+  -- TODO: forward multiple arguments to multiple returns
+  if unlikely(not v) then
+    ## pragmapush{noerror=true}
+    ## local locmsg = context.state.inpolyeval.srcnode:format_message('runtime assertion', 'assertion failed!')
+    ## if msg.type.is_niltype then
+    local msg: string = string.copy(#[locmsg]#)
+    ## else
+    local sb: stringbuilder
+    sb:write(#[locmsg:match('^(.*)assertion failed!')]#, msg, #[locmsg:match('assertion failed!(.*)$')]#)
+    msg = sb:promote()
+    ## end
+    if nelua_error_handler then
+      local error_handler: auto = nelua_error_handler
+      nelua_error_handler = nilptr
+      nelua_error_status = true
+      nelua_error_msg = error_handler(msg)
+    else
+      panic(msg)
+    end
+    ## pragmapop()
+  end
+  ## if not v.type.is_niltype then
+  return v
+  ## end
+end
+
+--[[
+Calls the function `f` with the given arguments in protected mode.
+This means that any error inside `f` is not propagated, instead,
+`pcall` catches the error and returns a status code.
+Its first result is the status, which is `true` if the call succeeds without errors.
+Its second result is the error message, which is empty if the call succeeds without errors.
+After the second result, `pcall` returns all results from the call.
+In case of any error, `pcall` returns `false` plus the error message.
+]]
+global function pcall(f: auto, ...: varargs) <noerror>
+  --TODO: forward multiple returns
+  local oldmsghandler: auto = nelua_error_handler
+  nelua_error_handler = pcall_msghandler
+  local ret = f(...)
+  nelua_error_handler = oldmsghandler
+  if nelua_error_status then
+    local errmsg: string = nelua_error_msg
+    nelua_error_status = false
+    nelua_error_msg = (@string){}
+    return false, errmsg, ret
+  end
+  return true, (@string){}, ret
+end
+
+--[[
+Like `pcall`, but it sets a new message handler `msghandler`.
+In case of runtime errors, this handler will be called with the error message
+and its return value will be the message returned by `xpcall`.
+Typically, the message handler is used to add more debug information to the error message,
+such as a stack traceback.
+Such information cannot be gathered after the return of `pcall`,
+since by then the stack has unwound.
+]]
+global function xpcall(f: auto, msghandler: function(string): string, ...: varargs) <noerror>
+  --TODO: forward multiple returns
+  assert(msghandler ~= nilptr, 'bad message handler')
+  local oldmsghandler: auto = nelua_error_handler
+  nelua_error_handler = msghandler
+  local ret = f(...)
+  nelua_error_handler = oldmsghandler
+  if nelua_error_status then
+    local errmsg: string = nelua_error_msg
+    nelua_error_status = false
+    nelua_error_msg = (@string){}
+    return false, errmsg, ret
+  end
+  return true, (@string){}, ret
+end

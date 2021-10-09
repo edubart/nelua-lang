@@ -1,0 +1,40 @@
+require 'errorhandling'
+
+-- Function that throws an error.
+local f_deferout: byte = 0
+local function f(x: integer): integer
+  f_deferout = 0
+  defer f_deferout = 'f'_b end
+  error 'f error'
+  panic 'impossible'
+  return x
+end
+
+local g_deferout: byte = 0
+local function g(x: integer): integer
+  g_deferout = 0
+  defer g_deferout = 'g'_b end
+  return f(x)
+end
+
+do -- pcall
+  local ok, err <close>, ret = pcall(g, 1)
+  assert(ok == false)
+  assert(err:find('f error') > 0)
+  assert(ret == 0)
+  assert(f_deferout == 'f'_b)
+  assert(g_deferout == 'g'_b)
+end
+
+do -- xpcall
+  local function xpcall_msghandler(msg: string): string
+    return msg
+  end
+
+  local ok, err <close>, ret = xpcall(f, xpcall_msghandler, 1)
+  assert(ok == false)
+  assert(err:find('f error') > 0)
+  assert(ret == 0)
+  assert(f_deferout == 'f'_b)
+  assert(g_deferout == 'g'_b)
+end

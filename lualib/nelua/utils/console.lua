@@ -101,7 +101,7 @@ local logex = console.logex
 
 -- Formatted logging functions (string.format style)
 function console.warnf(format, ...)
-  logex(io.stderr, colors.warn, 'warning: '..colors.bright..pformat(format, ...)..colors.reset)
+  logex(io.stderr, colors.warn, 'warning: '..colors.reset..pformat(format, ...)..colors.reset)
 end
 function console.errorf(format, ...)
   logex(io.stderr, colors.error, 'error: '..colors.reset..pformat(format, ...))
