@@ -81,6 +81,7 @@ Annotation      <== name annotargs?
 -- Preprocessor replaceable nodes
 PreprocessExpr  <== `#[` {@expr->0} @`]#`
 PreprocessName  <== `#|` {@expr->0} @`|#`
+ppcallprim : PreprocessExpr <== {NAME->0} `!` &callsuffix
 
 -- Suffixes
 Call            <== callargs
@@ -143,7 +144,7 @@ exprunary       <-- opunary / exprpow
 exprpow         <-- (exprsimple oppow*)~>foldleft
 exprsimple      <-- Number / String / Type / InitList / Boolean /
                     Function / Nilptr / Nil / Varargs / exprsuffixed
-exprprim        <-- id / DoExpr / Paren
+exprprim        <-- ppcallprim / id / DoExpr / Paren
 
 -- Types
 RecordType      <== 'record' WORDSKIP @`{` (RecordField (fieldsep RecordField)* fieldsep?)? @`}`

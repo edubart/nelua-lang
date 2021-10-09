@@ -1484,6 +1484,15 @@ describe("preprocessor", function()
         n.Assign{{n.PreprocessExpr{"a"}}, {n.Number{"1"}}}
     })
   end)
+  it("replacement macro syntax sugar", function()
+    expect_ast("local a = f!(1)",
+      n.Block{
+        n.VarDecl{
+          "local",
+          {n.IdDecl{"a", false}},
+          {n.Call{{n.Number{"1"}}, n.PreprocessExpr{"f"}}}
+    }})
+  end)
   it("eval name", function()
     expect_ast("::#|a|#::",
       n.Block{

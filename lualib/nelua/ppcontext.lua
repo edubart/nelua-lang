@@ -265,7 +265,7 @@ function PPContext.inject_value(self, value, dest, destpos, orignode)
           self:push_statnodes(blocknode)
           local ret = value(table.unpack(args))
           if ret then
-            self:inject_statement(aster.In{ret})
+            self:inject_statement(aster.In{aster.value(ret)})
           end
           self:pop_statnodes()
         end
