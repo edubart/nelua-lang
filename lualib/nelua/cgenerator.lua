@@ -753,7 +753,10 @@ function visitors.Block(context, node, emitter)
   local scope = context:push_forked_scope(node)
   emitter:inc_indent()
   emitter:add_list(node, '')
-  cgenerator.emit_close_scope(context, emitter, scope)
+  local laststat = node[#node]
+  if laststat and not laststat.is_breakflow then
+    cgenerator.emit_close_scope(context, emitter, scope, true)
+  end
   emitter:dec_indent()
   context:pop_scope()
 end
@@ -900,7 +903,7 @@ function visitors.Switch(context, node, emitter)
     emitter:add_indent_ln("case ", caseexprs[#caseexprs], ': {') -- last case
     emitter:add(caseblock) -- block
     local laststmt = caseblock[#caseblock]
-    if not laststmt or not laststmt.is_breakswitchflow then
+    if not laststmt or not laststmt.is_breakflow then
       emitter:add_indent_ln('  break;')
     end
     emitter:add_indent_ln("}")
@@ -909,7 +912,7 @@ function visitors.Switch(context, node, emitter)
     emitter:add_indent_ln('default: {')
     emitter:add(elsenode)
     local laststmt = elsenode[#elsenode]
-    if not laststmt or not laststmt.is_breakswitchflow then
+    if not laststmt or not laststmt.is_breakflow then
       emitter:add_indent_ln('  break;')
     end
     emitter:add_indent_ln("}")
@@ -1471,11 +1474,9 @@ function visitors.BinaryOp(context, node, emitter, untypedinit)
 end
 
 -- Emits defers before exiting scope `scope`.
-function cgenerator.emit_close_scope(context, emitter, scope, isupscope)
-  if scope.closed then return end -- already closed
-  if not isupscope then -- mark as closed
-    scope.closed = true
-  end
+function cgenerator.emit_close_scope(context, emitter, scope)
+  if scope.closing then return end
+  scope.closing = true -- prevent closing again
   local deferblocks = scope.deferblocks
   if deferblocks then
     for i=#deferblocks,1,-1 do
@@ -1487,16 +1488,18 @@ function cgenerator.emit_close_scope(context, emitter, scope, isupscope)
       emitter:add_indent_ln('}')
     end
   end
+  scope.closing = nil -- allow to close again
 end
 
 -- Emits all defers when exiting a nested scope.
 function cgenerator.emit_close_upscopes(context, emitter, scope, topscope)
   cgenerator.emit_close_scope(context, emitter, scope)
-  repeat
-    scope = scope.parent
-    cgenerator.emit_close_scope(context, emitter, scope, true)
-  until scope == topscope
-  cgenerator.emit_close_scope(context, emitter, scope, true)
+  if topscope and topscope ~= scope then
+    repeat
+      scope = scope.parent
+      cgenerator.emit_close_scope(context, emitter, scope)
+    until scope == topscope
+  end
 end
 
 -- Emits C pragmas to disable harmless C warnings that the generated code may trigger.

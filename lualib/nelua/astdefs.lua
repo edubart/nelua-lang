@@ -254,14 +254,14 @@ aster.register('Return',
   shaper.array_of(shaper.Node),  -- returned exprs
 {
   is_unpackable = true,
-  is_breakswitchflow = true,
+  is_breakflow = true,
 })
 
 -- In statement.
 aster.register('In', {
   shaper.Node, -- final expr
 }, {
-  is_breakswitchflow = true,
+  is_breakflow = true,
 })
 
 -- If statement.
@@ -318,12 +318,12 @@ aster.register('ForIn', {
 
 -- Break statement.
 aster.register('Break', {}, {
-  is_breakswitchflow = true,
+  is_breakflow = true,
 })
 
 -- Continue statement.
 aster.register('Continue', {}, {
-  is_breakswitchflow = true,
+  is_breakflow = true,
 })
 
 -- Label statement.
