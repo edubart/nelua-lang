@@ -150,8 +150,7 @@ function cbuiltins.NELUA_ATOMIC(context)
   #include <stdatomic.h>
   #define NELUA_ATOMIC _Atomic
 #else
-  #define NELUA_ATOMIC(a) a
-  #error "Atomic is unsupported."
+  #define NELUA_ATOMIC(a) volatile a
 #endif
 ]], 'directives')
 end
@@ -164,13 +163,12 @@ function cbuiltins.NELUA_THREAD_LOCAL(context)
   #define NELUA_THREAD_LOCAL _Thread_local
 #elif __cplusplus >= 201103L
   #define NELUA_THREAD_LOCAL thread_local
-#elif defined(__GNUC__)
-  #define NELUA_THREAD_LOCAL __thread
 #elif defined(_MSC_VER)
   #define NELUA_THREAD_LOCAL __declspec(thread)
+#elif defined(__GNUC__) || defined(__clang__)
+  #define NELUA_THREAD_LOCAL __thread
 #else
   #define NELUA_THREAD_LOCAL
-  #error "Thread local is unsupported."
 #endif
 ]], 'directives')
 end

@@ -356,9 +356,6 @@ local minicoro_heading = [==[
 if pragmas.nochecks then
   minicoro_heading = minicoro_heading .. '#define MCO_NO_DEBUG\n'
 end
-if not (ccinfo.is_gcc or ccinfo.is_clang) then
-  minicoro_heading = minicoro_heading .. '#define MCO_NO_MULTITHREAD\n'
-end
 local minicoro_code = minicoro_heading..[==[
 /*
 Minimal asymmetric stackful cross-platform coroutine library in pure C.

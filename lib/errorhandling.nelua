@@ -7,8 +7,6 @@ raised from `error` and `assert` functions.
 
 * TODO: handle call methods
 * TODO: check function
-* TODO: option to disable exceptions
-* TODO: make thread safe
 ]]
 
 ##[==[
@@ -26,8 +24,8 @@ console.warn 'using error handling module, it is highly experimental and incompl
 -- Add <noerror> new annotation
 typedefs.function_annots.noerror = true
 
+if not pragmas.noexceptions then
 local orig_Call = cgenerator.visitors.Call
-
 -- Hook all calls to return early in case a error is raised.
 function cgenerator.visitors.Call(context, node, emitter, ...)
   local isblockcall = context:get_visiting_node(1).tag == 'Block'
@@ -41,7 +39,13 @@ function cgenerator.visitors.Call(context, node, emitter, ...)
     local scope = context.scope
     local retscope = scope:get_up_function_scope()
     assert(scope ~= retscope and retscope)
-    cgenerator.emit_close_upscopes(context, emitter, scope, retscope, true)
+    local deferemitter = emitter:fork()
+    cgenerator.emit_close_upscopes(context, deferemitter, scope, retscope, true)
+    if not deferemitter:empty() then -- must clear error to execute defer code
+      emitter:add_indent_ln('nelua_error_status = false;')
+      emitter:add_value(deferemitter)
+      emitter:add_indent_ln('nelua_error_status = true;')
+    end
     if #funcsym.type.rettypes > 0 then
       local rettypename = context:funcrettypename(funcsym.type)
       emitter:add_indent_ln('return (',rettypename,'){0};')
@@ -53,8 +57,9 @@ function cgenerator.visitors.Call(context, node, emitter, ...)
   end
   local pragmas = context.pragmas
   if calleesym and funcsym and
+    calleesym.type.sideeffect and funcsym.type.sideeffect and
+    not calleesym.cimport and
     not calleesym.noerror and not funcsym.noerror and not pragmas.noerror and
-    not calleesym.nosideeffects and not funcsym.nosideeffects and not pragmas.nosideeffects and
     not calleesym.noreturn and not funcsym.noreturn and not pragmas.noreturn then
     if isblockcall then
       orig_Call(context, node, emitter, ...)
@@ -78,6 +83,7 @@ function cgenerator.visitors.Call(context, node, emitter, ...)
   else
     orig_Call(context, node, emitter, ...)
   end
+end
 end
 ]==]
 
@@ -113,21 +119,6 @@ local function NELUA_TRAP(): void <cimport,cinclude[[
 #endif
 ]]> end
 
--- Current raised error message.
-local nelua_error_msg: string
-
--- Current raised error status, `true` if an error was raised.
-local nelua_error_status: boolean <nodce>
-
--- Current error handler.
-local nelua_error_handler: function(string): string
-
--- Default error message handler for `pcall`.
-local function pcall_msghandler(msg: string): string <noerror>
-  -- TODO: find a way to add runtime traceback
-  return msg
-end
-
 --[[
 Terminate the application abnormally with message `message`.
 This function never returns.
@@ -153,17 +144,34 @@ global function panic(msg: facultative(string)): void <noinline,noreturn,noerror
   ## end
 end
 
+## if not pragmas.noexceptions then
+-- Current raised error message.
+local nelua_error_msg: string <threadlocal>
+
+-- Current raised error status, `true` if an error was raised.
+local nelua_error_status: boolean <threadlocal,nodce>
+
+-- Current error handler.
+local nelua_error_handler: function(string): string <threadlocal>
+## end
+
 -- Macro used to raise errors in `error` and `assert`.
-## local function raise_impl()
-  if nelua_error_handler then
-    msg = string.copy(msg)
-    local error_handler: auto = nelua_error_handler
-    nelua_error_handler = nilptr
-    nelua_error_status = true
-    nelua_error_msg = error_handler(msg)
-  else
+## local function raise_impl(copy)
+  ## if not pragmas.noexceptions then
+    if nelua_error_handler then
+      ## if copy then
+      msg = string.copy(msg)
+      ## end
+      local error_handler: auto = nelua_error_handler
+      nelua_error_handler = nilptr
+      nelua_error_status = true
+      nelua_error_msg = error_handler(msg)
+    else
+      panic(msg)
+    end
+  ## else
     panic(msg)
-  end
+  ## end
 ## end
 
 --[[
@@ -181,21 +189,25 @@ Raised errors can be caught with `pcall` or `xpcall`.
 ]]
 global function error(msg: facultative(string), level: facultative(isize)): void <noinline,alwayspoly>
   ## pragmapush{noerror=true} -- avoid raising another error while raising an error
-  ## if level.type.is_niltype then
-  local level: isize = 1
-  ## end
-  ## local locmsg = context.state.inpolyeval.srcnode:format_message('runtime error', 'error!')
-  ## if msg.type.is_niltype then
-  local msg: string = #[locmsg]#
-  ## else
-  local sb: stringbuilder
-  if level > 0 then -- appends error location
-    sb:write(#[locmsg:match('^(.*)error!')]#, msg, #[locmsg:match('error!(.*)$')]#)
-    msg = sb:view()
+  do
+    ## if level.type.is_niltype then
+    local level: isize = 1
+    ## end
+    ## local locmsg = context.state.inpolyeval.srcnode:format_message('runtime error', 'error!')
+    ## if msg.type.is_niltype then
+    local msg: string = #[locmsg]#
+    ## raise_impl(true)
+    ## else
+    if level > 0 then -- appends error location
+      local sb: stringbuilder
+      sb:write(#[locmsg:match('^(.*)error!')]#, msg, #[locmsg:match('error!(.*)$')]#)
+      msg = sb:promote()
+      ## raise_impl(e)
+    else
+      ## raise_impl(true)
+    end
+    ## end
   end
-  ## end
-  ## raise_impl()
-  sb:destroy()
   ## pragmapop()
 end
 
@@ -210,13 +222,14 @@ global function assert(v: auto, message: auto, ...: varargs) <alwayspoly>
   if unlikely(not v) then
     ## local locmsg = context.state.inpolyeval.srcnode:format_message('runtime error', 'assertion failed!')
     ## if not message.type.is_niltype then
-    local sb: stringbuilder <close>
+    local sb: stringbuilder
     sb:write(#[locmsg:match('^(.*)assertion failed!')]#, message, #[locmsg:match('assertion failed!(.*)$')]#)
-    local msg: string = sb:view()
+    local msg: string = sb:promote()
+    ## raise_impl()
     ## else
     local msg: string = #[locmsg]#
+    ## raise_impl(true)
     ## end
-    ## raise_impl()
   end
   ## pragmapop()
   ## if not v.type.is_niltype and not message.type.is_niltype then
@@ -225,6 +238,8 @@ global function assert(v: auto, message: auto, ...: varargs) <alwayspoly>
   return v
   ## end
 end
+
+## if not pragmas.noexceptions then
 
 -- Macro used to implement `xpcall` and `pcall`.
 ## local function xpcall_impl()
@@ -241,6 +256,12 @@ end
   end
   return true, (@string){}, r1, r2, r3, r4
 ## end
+
+-- Default error message handler for `pcall`.
+local function pcall_msghandler(msg: string): string <noerror>
+  -- TODO: find a way to add runtime traceback
+  return msg
+end
 
 --[[
 Calls the function `f` with the given arguments in protected mode.
@@ -271,6 +292,8 @@ global function xpcall(f: auto, msghandler: function(string): string, ...: varar
   assert(msghandler ~= nilptr, 'bad message handler')
   ## xpcall_impl()
 end
+
+## end
 
 --[[
 Some strings methods are used in the above polymorphic functions,

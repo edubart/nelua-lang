@@ -2,6 +2,8 @@ require 'errorhandling'
 
 local fail_defer: boolean = false
 local function fail(x: integer): integer
+  local sb: stringbuilder <close>
+  sb:write('some', 'stuff')
   fail_defer = false
   defer fail_defer = true end
   if x <= 0 then
