@@ -1374,7 +1374,8 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           end
         else
           if (funcargtype.is_cvarargs or funcargtype.is_varargs) and
-            not (argtype and funcargtype.is_varargs and lastcallindex and lastcallindex > 1) then
+            (not (argtype and funcargtype.is_varargs and lastcallindex and lastcallindex > 1) or
+            (argtype and argtype.is_niltype)) then
             break
           end
           arg = argtype

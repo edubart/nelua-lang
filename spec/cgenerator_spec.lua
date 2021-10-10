@@ -3738,6 +3738,16 @@ it("polymorphic variable arguments", function()
       return g(1, ...)
     end
     assert(f(2) == 3)
+
+    -- test a codegen issue
+    local R = @record{x: integer}
+    function R.__eq(a: R, b: R): boolean return a.x == b.x end
+    local function foo(v: auto, ...: varargs) return v end
+    local r1: R, r2: R
+    local v = foo(r1 == r2)
+    assert(v)
+    local v = foo(R.__eq(r1, r2))
+    assert(v)
   ]=], (([[
 unpack
 a
