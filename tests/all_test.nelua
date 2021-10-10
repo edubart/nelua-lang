@@ -1,5 +1,3 @@
-require 'errorhandling'
-
 require 'tests.builtins_test'
 require 'tests.io_test'
 require 'tests.libc_test'

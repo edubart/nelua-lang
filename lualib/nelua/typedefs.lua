@@ -537,8 +537,14 @@ typedefs.pp_constants = {
 
 -- List of builtins (converted to a symbol on first usage).
 typedefs.builtin_attrs = {
-  likely = {type = types.FunctionType({{name='cond', type=primtypes.boolean}}, primtypes.boolean)},
-  unlikely = {type = types.FunctionType({{name='cond', type=primtypes.boolean}}, primtypes.boolean)},
+  likely = {
+    type = types.FunctionType({{name='cond', type=primtypes.boolean}}, primtypes.boolean),
+    noerror = true,
+  },
+  unlikely = {
+    type = types.FunctionType({{name='cond', type=primtypes.boolean}}, primtypes.boolean),
+    noerror = true,
+  },
   panic = {
     type = types.FunctionType({{name='message', type=primtypes.string}}),
     noreturn = true, sideeffect = true},

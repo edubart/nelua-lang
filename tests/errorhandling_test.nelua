@@ -1,40 +1,65 @@
 require 'errorhandling'
 
--- Function that throws an error.
-local f_deferout: byte = 0
-local function f(x: integer): integer
-  f_deferout = 0
-  defer f_deferout = 'f'_b end
-  error 'f error'
-  panic 'impossible'
+local fail_defer: boolean = false
+local function fail(x: integer): integer
+  fail_defer = false
+  defer fail_defer = true end
+  if x <= 0 then
+    error 'error fail'
+    panic 'impossible'
+  end
   return x
 end
 
-local g_deferout: byte = 0
-local function g(x: integer): integer
-  g_deferout = 0
-  defer g_deferout = 'g'_b end
-  return f(x)
+local failproxy_defer: boolean = false
+local function failproxy(x: integer): integer
+  failproxy_defer = false
+  defer failproxy_defer = true end
+  return fail(x)
+end
+
+local function xpcall_msghandler(msg: string): string
+  return msg
 end
 
 do -- pcall
-  local ok, err <close>, ret = pcall(g, 1)
-  assert(ok == false)
-  assert(err:find('f error') > 0)
-  assert(ret == 0)
-  assert(f_deferout == 'f'_b)
-  assert(g_deferout == 'g'_b)
+  -- fail
+  local ok, err <close>, ret = pcall(failproxy, 0)
+  assert(ok == false and ret == 0)
+  assert(err:find('error fail') > 0)
+  assert(fail_defer == true and failproxy_defer == true)
+  -- success
+  local ok, err <close>, ret = pcall(failproxy, 1)
+  assert(ok == true and err == '' and ret == 1)
+  assert(fail_defer == true and failproxy_defer == true)
 end
 
 do -- xpcall
-  local function xpcall_msghandler(msg: string): string
-    return msg
-  end
+  -- fail
+  local ok, err <close>, ret = xpcall(fail, xpcall_msghandler, 0)
+  assert(ok == false and ret == 0)
+  assert(err:find('error fail') > 0)
+  assert(fail_defer == true and failproxy_defer == true)
+  -- success
+  local ok, err <close>, ret = xpcall(fail, xpcall_msghandler, 1)
+  assert(ok == true and err == '' and ret == 1)
+  assert(fail_defer == true and failproxy_defer == true)
+end
 
-  local ok, err <close>, ret = xpcall(f, xpcall_msghandler, 1)
-  assert(ok == false)
-  assert(err:find('f error') > 0)
-  assert(ret == 0)
-  assert(f_deferout == 'f'_b)
-  assert(g_deferout == 'g'_b)
+do -- assert
+  local ok = assert(true)
+  assert(ok == true)
+  local ok, msg = assert(true, 'test')
+  assert(ok == true and msg == 'test')
+  local ok, a, b = assert(true, 1, 2)
+  assert(ok == true and a == 1 and b == 2)
+end
+
+do -- error
+  local function raiseerr(): integer
+    error('myerror', 0)
+    return 0
+  end
+  local ok, err <close> = pcall(raiseerr)
+  assert(ok == false and err == 'myerror')
 end

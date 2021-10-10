@@ -1,14 +1,14 @@
 --[[
 NOTE: This is HIGHLY experimental and not fully developed yet, be warned!
 
-This modules implements a Lua style exception system.
+This module implements a Lua style exception system.
 It implements `pcall` and `xpcall` functions that can be used to capture errors
 raised from `error` and `assert` functions.
 
 * TODO: handle call methods
-* TODO: don't allocate in error functions
-* TODO: check
+* TODO: check function
 * TODO: option to disable exceptions
+* TODO: make thread safe
 ]]
 
 ##[==[
@@ -81,8 +81,6 @@ function cgenerator.visitors.Call(context, node, emitter, ...)
 end
 ]==]
 
-require 'string'
-
 -- C imports
 
 local FILE: type <cimport,cinclude'<stdio.h>',forwarddecl> = @record{}
@@ -107,6 +105,7 @@ local function NELUA_UBSAN_UNREACHABLE(): void <cimport,cinclude[[
 #endif
 ]]> end
 local function NELUA_TRAP(): void <cimport,cinclude[[
+/* Macro to simulate an illegal instruction to force a crash. */
 #if defined(__clang__) || defined(__GNUC__)
   #define NELUA_TRAP __builtin_trap
 #else
@@ -125,7 +124,7 @@ local nelua_error_handler: function(string): string
 
 -- Default error message handler for `pcall`.
 local function pcall_msghandler(msg: string): string <noerror>
-  -- TODO: add runtime traceback
+  -- TODO: find a way to add runtime traceback
   return msg
 end
 
@@ -135,7 +134,7 @@ This function never returns.
 
 Used to raise unrecoverable errors.
 ]]
-global function panic(msg: facultative(string)): void <noreturn,noerror>
+global function panic(msg: facultative(string)): void <noinline,noreturn,noerror>
   -- print error message to stderr
   ## if not msg.type.is_niltype then
   if msg.size > 0 then
@@ -154,24 +153,10 @@ global function panic(msg: facultative(string)): void <noreturn,noerror>
   ## end
 end
 
---[[
-Raises an error with message `msg`. This function never returns.
-Information about the error position is added at the beginning of the message.
-
-Raised errors can be caught with `pcall` or `xpcall`.
-]]
-global function error(msg: facultative(string)): void <alwayspoly>
-  --TODO: handle error level parameter
-  ## pragmapush{noerror=true}
-  ## local locmsg = context.state.inpolyeval.srcnode:format_message('runtime error', 'error!')
-  ## if msg.type.is_niltype then
-  local msg: string = string.copy(#[locmsg]#)
-  ## else
-  local sb: stringbuilder
-  sb:write(#[locmsg:match('^(.*)error!')]#, msg, #[locmsg:match('error!(.*)$')]#)
-  msg = sb:promote()
-  ## end
+-- Macro used to raise errors in `error` and `assert`.
+## local function raise_impl()
   if nelua_error_handler then
+    msg = string.copy(msg)
     local error_handler: auto = nelua_error_handler
     nelua_error_handler = nilptr
     nelua_error_status = true
@@ -179,87 +164,116 @@ global function error(msg: facultative(string)): void <alwayspoly>
   else
     panic(msg)
   end
+## end
+
+--[[
+Raises an error with message `msg`. This function never returns.
+
+Usually information about the error position is added at the beginning of the message.
+
+The `level` argument specifies how to get the error position.
+Passing a `level` 0 avoids the addition of error position information to the message.
+With `level` 1 (the default), the error position is where the error function was called.
+Level 2 or above at this moment has the same effect as 1, but in the future
+may change.
+
+Raised errors can be caught with `pcall` or `xpcall`.
+]]
+global function error(msg: facultative(string), level: facultative(isize)): void <noinline,alwayspoly>
+  ## pragmapush{noerror=true} -- avoid raising another error while raising an error
+  ## if level.type.is_niltype then
+  local level: isize = 1
+  ## end
+  ## local locmsg = context.state.inpolyeval.srcnode:format_message('runtime error', 'error!')
+  ## if msg.type.is_niltype then
+  local msg: string = #[locmsg]#
+  ## else
+  local sb: stringbuilder
+  if level > 0 then -- appends error location
+    sb:write(#[locmsg:match('^(.*)error!')]#, msg, #[locmsg:match('error!(.*)$')]#)
+    msg = sb:view()
+  end
+  ## end
+  ## raise_impl()
+  sb:destroy()
   ## pragmapop()
 end
 
 --[[
-Raises an error if the value `v` is evaluated to `false`, otherwise, returns `v`.
-In case of error, `msg` is the error msg, when absent defaults to `"assertion failed!"`.
+Raises an error if the value `v` is evaluated to `false`, otherwise, returns all its arguments.
+In case of error, `message` is the error message, when absent, it defaults to `"assertion failed!"`.
 
 Raised errors can be caught with `pcall` or `xpcall`.
 ]]
-global function assert(v: auto, msg: facultative(string)) <alwayspoly>
-  -- TODO: forward multiple arguments to multiple returns
+global function assert(v: auto, message: auto, ...: varargs) <alwayspoly>
+  ## pragmapush{noerror=true} -- avoid raising another error while raising an error
   if unlikely(not v) then
-    ## pragmapush{noerror=true}
-    ## local locmsg = context.state.inpolyeval.srcnode:format_message('runtime assertion', 'assertion failed!')
-    ## if msg.type.is_niltype then
-    local msg: string = string.copy(#[locmsg]#)
+    ## local locmsg = context.state.inpolyeval.srcnode:format_message('runtime error', 'assertion failed!')
+    ## if not message.type.is_niltype then
+    local sb: stringbuilder <close>
+    sb:write(#[locmsg:match('^(.*)assertion failed!')]#, message, #[locmsg:match('assertion failed!(.*)$')]#)
+    local msg: string = sb:view()
     ## else
-    local sb: stringbuilder
-    sb:write(#[locmsg:match('^(.*)assertion failed!')]#, msg, #[locmsg:match('assertion failed!(.*)$')]#)
-    msg = sb:promote()
+    local msg: string = #[locmsg]#
     ## end
-    if nelua_error_handler then
-      local error_handler: auto = nelua_error_handler
-      nelua_error_handler = nilptr
-      nelua_error_status = true
-      nelua_error_msg = error_handler(msg)
-    else
-      panic(msg)
-    end
-    ## pragmapop()
+    ## raise_impl()
   end
-  ## if not v.type.is_niltype then
+  ## pragmapop()
+  ## if not v.type.is_niltype and not message.type.is_niltype then
+  return v, message, ...
+  ## elseif not v.type.is_niltype then
   return v
   ## end
 end
+
+-- Macro used to implement `xpcall` and `pcall`.
+## local function xpcall_impl()
+  -- TODO: find a way to forward more multiple returns in a dynamic way
+  local oldmsghandler: auto = nelua_error_handler
+  nelua_error_handler = msghandler
+  local r1, r2, r3, r4 = f(...)
+  nelua_error_handler = oldmsghandler
+  if nelua_error_status then
+    local errmsg: string = nelua_error_msg
+    nelua_error_status = false
+    nelua_error_msg = (@string){}
+    return false, errmsg, r1, r2, r3, r4
+  end
+  return true, (@string){}, r1, r2, r3, r4
+## end
 
 --[[
 Calls the function `f` with the given arguments in protected mode.
 This means that any error inside `f` is not propagated, instead,
 `pcall` catches the error and returns a status code.
+
 Its first result is the status, which is `true` if the call succeeds without errors.
 Its second result is the error message, which is empty if the call succeeds without errors.
-After the second result, `pcall` returns all results from the call.
-In case of any error, `pcall` returns `false` plus the error message.
+After the second result, `pcall` returns up to 4 results from the call.
+In case of any error, `pcall` returns `false` plus the error message and empty results.
 ]]
-global function pcall(f: auto, ...: varargs) <noerror>
-  --TODO: forward multiple returns
-  local oldmsghandler: auto = nelua_error_handler
-  nelua_error_handler = pcall_msghandler
-  local ret = f(...)
-  nelua_error_handler = oldmsghandler
-  if nelua_error_status then
-    local errmsg: string = nelua_error_msg
-    nelua_error_status = false
-    nelua_error_msg = (@string){}
-    return false, errmsg, ret
-  end
-  return true, (@string){}, ret
+global function pcall(f: auto, ...: varargs) <noinline,noerror>
+  local msghandler: auto = pcall_msghandler
+  ## xpcall_impl()
 end
 
 --[[
 Like `pcall`, but it sets a new message handler `msghandler`.
-In case of runtime errors, this handler will be called with the error message
+In case of any runtime error, this handler will be called with the error message
 and its return value will be the message returned by `xpcall`.
+
 Typically, the message handler is used to add more debug information to the error message,
 such as a stack traceback.
 Such information cannot be gathered after the return of `pcall`,
 since by then the stack has unwound.
 ]]
-global function xpcall(f: auto, msghandler: function(string): string, ...: varargs) <noerror>
-  --TODO: forward multiple returns
+global function xpcall(f: auto, msghandler: function(string): string, ...: varargs) <noinline,noerror>
   assert(msghandler ~= nilptr, 'bad message handler')
-  local oldmsghandler: auto = nelua_error_handler
-  nelua_error_handler = msghandler
-  local ret = f(...)
-  nelua_error_handler = oldmsghandler
-  if nelua_error_status then
-    local errmsg: string = nelua_error_msg
-    nelua_error_status = false
-    nelua_error_msg = (@string){}
-    return false, errmsg, ret
-  end
-  return true, (@string){}, ret
+  ## xpcall_impl()
 end
+
+--[[
+Some strings methods are used in the above polymorphic functions,
+however we must require after the following modules it may also use them.
+]]
+require 'string'
