@@ -361,6 +361,9 @@ function Scope:add_return_type(index, type, ref)
   elseif self.has_unknown_return == ref then
     self.has_unknown_return = nil
   end
+  if type and type.is_void then -- void must be converted to nil
+    type = primtypes.niltype
+  end
   local possible_rettypes = self.possible_rettypes
   if not possible_rettypes then
     possible_rettypes = {}
@@ -374,7 +377,7 @@ function Scope:add_return_type(index, type, ref)
   end
 end
 
-function Scope:return_return_types()
+function Scope:resolve_return_types()
   if self.rettypes or not self.is_resultbreak then -- not on a return block or already resolved
     return 0
   end
@@ -407,7 +410,7 @@ function Scope:return_return_types()
 end
 
 function Scope:resolve()
-  local count = self:resolve_symbols() + self:return_return_types()
+  local count = self:resolve_symbols() + self:resolve_return_types()
   if config.debug_scope_resolve and count > 0 then
     console.info(self.node:format_message('info', "scope resolved %d symbols", count))
   end

@@ -2286,9 +2286,8 @@ function visitors.VarDecl(context, node)
         if valtype.is_varanys then
           -- varanys are always stored as any in variables
           valtype = primtypes.any
-        elseif not vartype and valtype.is_niltype then
-          -- untyped variables assigned to nil always store as any type
-          valtype = primtypes.any
+        elseif valtype.is_void then
+          valtype = primtypes.niltype
         end
       end
       if varnode.attr.comptime and not (valnode.attr.comptime and valtype) then
@@ -2310,9 +2309,6 @@ function visitors.VarDecl(context, node)
       symbol.scope:add_symbol(symbol)
     end
     if assigning and valtype then
-      if valtype.is_void then
-        varnode:raisef("cannot assign to expressions of type 'void'")
-      end
       local assignvaltype = false
       if varnode.attr.comptime then
         -- for comptimes the type must be known ahead
@@ -2388,9 +2384,6 @@ function visitors.Assign(context, node)
       valnode, valtype = visitor_convert(context, valnodes, i, vartype, valnode, valtype)
     end
     if valtype then
-      if valtype.is_void then
-        varnode:raisef("cannot assign to expressions of type 'void'")
-      end
       if valnode and not valnode.attr:can_copy() then
         valnode:raisef("cannot assign non copyable type '%s'", valtype)
       end

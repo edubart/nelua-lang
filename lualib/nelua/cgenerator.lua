@@ -491,6 +491,8 @@ function visitors.Id(context, node, emitter, untypedinit)
   assert(not type.is_comptime)
   if type.is_nilptr then
     emitter:add_null()
+  elseif type.is_niltype then
+    emitter:add_nil_literal()
   elseif attr.comptime then
     emitter:add_literal(attr, untypedinit)
   else

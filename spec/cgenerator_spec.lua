@@ -203,6 +203,16 @@ it("nil", function()
     "(f(), f(), true)")
   expect.generate_c("local function f() <nosideeffect> return nil end assert(f() ~= f())",
     "(f(), f(), false)")
+  expect.run_c([=[
+    local function f(): void end
+    local ret: niltype = f()
+    print(ret)
+
+    local function f() end
+    local function g() return f() end
+    local res = g()
+    assert(res == nil)
+  ]=], 'nil')
 end)
 
 it("call", function()

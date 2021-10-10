@@ -754,6 +754,14 @@ function NiltypeType:_init(name, size)
   Type._init(self, name, size)
 end
 
+-- Get the desired type when converting this type from another type.
+function NiltypeType:get_convertible_from_type(type, explicit, autoref)
+  if type.is_void then
+    return true
+  end
+  return Type.get_convertible_from_type(self, type, explicit, autoref)
+end
+
 -- Negation operator for niltype type.
 NiltypeType.unary_operators['not'] = function()
   return primtypes.boolean

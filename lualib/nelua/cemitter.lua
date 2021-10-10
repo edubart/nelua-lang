@@ -190,6 +190,10 @@ function CEmitter:add_converted_val(type, val, valtype, force, untypedinit)
       self:add('(&', val, ')')
     elseif type.is_aggregate and valtype.is_pointer and valtype.subtype == type then -- auto deref
       self:add_deref(val, valtype)
+    elseif valtype.is_void and type.is_niltype then
+      self:add('(',val,',')
+      self:add_nil_literal()
+      self:add(')')
     else -- cast
       local checked = not (force or untypedinit)
       self:add_typed_val(type, val, valtype, checked)

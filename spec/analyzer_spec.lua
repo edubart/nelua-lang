@@ -130,7 +130,7 @@ it("any type", function()
 end)
 
 it("nil type" , function()
-  expect.ast_type_equals("local a = nil", "local a: any = nil")
+  expect.ast_type_equals("local a = nil", "local a: niltype = nil")
 end)
 
 it("nilptr type" , function()
@@ -833,18 +833,18 @@ it("function return", function()
     local function g() <noreturn> error'error!' end
     local function f(): integer g() return 0 end
   ]])
+  expect.analyze_ast([[
+    local function f() end
+    local a: any
+    a = f()
+  ]])
   expect.analyze_error([[
     local function f(): integer panic('panic!') end
   ]], "a return statement is missing before function end")
   expect.analyze_error([[
     local function f() end
     local a: integer = f()
-  ]], "cannot assign to expressions of type 'void'")
-  expect.analyze_error([[
-    local function f() end
-    local a: any
-    a = f()
-  ]], "cannot assign to expressions of type 'void'")
+  ]], "no viable type conversion from 'void'")
   expect.analyze_error([[
     local function f(): (integer, string) return 1 end
   ]], "missing return expression at index")
