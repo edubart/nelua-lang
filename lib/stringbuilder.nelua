@@ -232,12 +232,16 @@ end
 
   -- Helper to format an argument.
   local function formatarg(self: *stringbuilderT, c: byte,
-                           buff: cstring, maxitem: usize, form: *[MAX_FORMAT]byte, arg1: auto): (boolean, isize)
+                           form: *[MAX_FORMAT]byte, arg1: auto): (boolean, isize)
+    local buf: span(byte) = self:prepare(MAX_ITEM) -- to put formatted item
+    if buf.size < MAX_ITEM then
+      return false, 0
+    end
     local nb: isize = -1
     ## if primtypes.cint:is_convertible_from(arg1.type) then
       if c == 'c'_byte then
         local n: cint = (@cint)(arg1)
-        nb = snprintf(buff, maxitem, &form[0], n)
+        nb = snprintf((@cstring)(buf.data), MAX_ITEM, &form[0], n)
         goto next
       end
     ## end if primtypes.clonglong:is_convertible_from(arg1.type) then
@@ -245,7 +249,7 @@ end
         local lenmod: cstring = 'lli'
         addlenmod(form, lenmod, #lenmod - 1)
         local n: clonglong = (@clonglong)(arg1)
-        nb = snprintf(buff, maxitem, &form[0], n)
+        nb = snprintf((@cstring)(buf.data), MAX_ITEM, &form[0], n)
         goto next
       end
     ## end if primtypes.culonglong:is_convertible_from(arg1.type) then
@@ -259,7 +263,7 @@ end
         ## else
         local n: culonglong = (@culonglong)(arg1)
         ## end
-        nb = snprintf(buff, maxitem, &form[0], n)
+        nb = snprintf((@cstring)(buf.data), MAX_ITEM, &form[0], n)
         goto next
       end
     ## end if primtypes.number:is_convertible_from(arg1.type) then
@@ -270,16 +274,16 @@ end
         ## if arg1.type.is_clongdouble then
         local lenmod: cstring = 'Lf'
         addlenmod(form, lenmod, #lenmod - 1)
-        nb = snprintf(buff, maxitem, &form[0], arg1)
+        nb = snprintf((@cstring)(buf.data), MAX_ITEM, &form[0], arg1)
         ## elseif arg1.type.is_float128 then
         ## linklib 'quadmath'
         local function quadmath_snprintf(s: cstring, maxlen: csize, format: cstring, ...: cvarargs): cint <cimport,cinclude'<quadmath.h>'> end
         local lenmod: cstring = 'Qf'
         addlenmod(form, lenmod, #lenmod - 1)
-        nb = quadmath_snprintf(buff, maxitem, &form[0], arg1)
+        nb = quadmath_snprintf((@cstring)(buf.data), MAX_ITEM, &form[0], arg1)
         ## else
         local n: float64 = (@float64)(arg1)
-        nb = snprintf(buff, maxitem, &form[0], n)
+        nb = snprintf((@cstring)(buf.data), MAX_ITEM, &form[0], n)
         ## end
         goto next
       end
@@ -288,11 +292,11 @@ end
         --TODO: handle lenmod?
         local p: pointer = (@pointer)(arg1)
         if p == nilptr then
-          memory.copy(buff, "(null)"_cstring, 7)
+          memory.copy((@cstring)(buf.data), "(null)"_cstring, 7)
           nb = 6
         else
           local n: culonglong = (@culonglong)((@usize)(p))
-          nb = snprintf(buff, maxitem, '0x%llx', n)
+          nb = snprintf((@cstring)(buf.data), MAX_ITEM, '0x%llx', n)
         end
         goto next
       end
@@ -305,12 +309,18 @@ end
       ## end
       local slen: usize = s.size + 1
       if form[1] == c and form[2] == 0 then -- just copy the string
-        buff = (@cstring)(self:prepare(slen).data)
-        if buff then
-          memory.copy(buff, s.data, s.size)
-          nb = (@isize)(s.size)
+        buf = self:prepare(slen)
+        if buf.size < slen then
+          return false, 0
         end
+        memory.copy(buf.data, s.data, s.size)
+        nb = (@isize)(s.size)
       else
+        if slen < MAX_ITEM then slen = MAX_ITEM end
+        buf = self:prepare(slen)
+        if buf.size < slen then
+          return false, 0
+        end
         ## if arg1.type.is_string then
         -- the string may not be null terminated (in case of a string view)
         -- copy to force null termination
@@ -319,10 +329,7 @@ end
         ## end
         local cs: cstring = (@cstring)(s.data)
         if s.size == 0 then cs = ''_cstring end
-        buff = (@cstring)(self:prepare(slen > maxitem and slen or maxitem).data)
-        if buff then
-          nb = snprintf(buff, maxitem, &form[0], cs)
-        end
+        nb = snprintf((@cstring)(buf.data), buf.size, &form[0], cs)
         ## if arg1.type.is_string then
         s:destroy()
         ## end
@@ -330,9 +337,6 @@ end
       ## if not arg1.type.is_stringy then
       s:destroy()
       ## end
-      if not buff then
-        return false, 0
-      end
       goto next
     end
     assert(false, 'invalid format for argument')
@@ -364,11 +368,6 @@ end
           pos = pos + 1
         else -- format item
           local form: [MAX_FORMAT]byte -- to store the format ('%...')
-          local maxitem: usize = MAX_ITEM
-          local buff: cstring = (@cstring)(self:prepare(MAX_ITEM).data) -- to put formatted item
-          if not buff then
-            return false, written
-          end
           -- scan format
           pos = pos + scanformat(&fmt.data[pos], &form)
           c = fmt.data[pos]
@@ -377,7 +376,7 @@ end
           local ok: boolean, nb: isize = false, -1
           ## for i=1,select('#', ...) do
           if #[i]# == argi then
-            ok, nb = formatarg(self, c, buff, maxitem, &form, #[select(i, ...)]#)
+            ok, nb = formatarg(self, c, &form, #[select(i, ...)]#)
             goto next
           end
           ## end
