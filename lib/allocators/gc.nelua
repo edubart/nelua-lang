@@ -157,6 +157,18 @@ local function GC_markptrs(self: *GC, low: usize, high: usize): void <noinline,c
   end
 end
 
+-- Mark single pointer and scan it.
+local function GC_markptr(self: *GC, ptr: pointer): void <noinline>
+  local item: *GCItem = self.items:peek(ptr)
+  if item and not item:ismarked() then -- unmarked reference found
+    item.flags = item.flags | GCFlags.MARK -- mark
+    if not hasflag(item.flags, GCFlags.LEAF) then -- don't scan leafs
+      local addr: usize = (@usize)(ptr)
+      GC_markptrs(self, addr, addr + item.size)
+    end
+  end
+end
+
 -- Unmark all items.
 local function GC_unmarkall(self:* GC): void <noinline>
   for ptr: pointer, item: *GCItem in mpairs(self.items) do
@@ -203,7 +215,7 @@ local function GC_markstack(self: *GC): void <noinline>
   GC_markptrs(self, low, high)
   GC_markptrs(self, (@usize)(&regsbuf), (@usize)(&regsbuf) + #RegsBuf)
   ## cemit '#if defined(__GNUC__) || defined(__clang__)'
-  GC_markptrs(self, (@usize)(&sp), (@usize)(&sp) + #@pointer)
+  GC_markptr(self, sp)
   ## cemit '#endif'
 end
 

@@ -366,7 +366,6 @@ do -- string.matchview
 end
 
 do -- string.gmatch
-  local i: integer = 0
   local seq: sequence(string)
   for k, captures in ('from=hello, to = world'):gmatch('(%w+)%s*=%s*(%w+)') do
     seq[#seq+1] = k

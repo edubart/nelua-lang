@@ -111,8 +111,8 @@ require 'span'
       return p
     else -- shrinking or growing
       local newp: pointer = self:alloc(newsize)
-      if likely(p ~= nilptr) then
-        if likely(newp ~= nilptr and oldsize ~= 0) then
+      if likely(newp ~= nilptr) then
+        if oldsize > 0 then
           -- copy the old size when growing or the new size when shrinking
           local minsize: usize = oldsize
           if newsize < oldsize then
@@ -221,7 +221,7 @@ require 'span'
       s = self:spanalloc(@T, size)
       return s
     end
-    local p: *[0]T = (@*[0]T)(self:realloc(s.data, size * #T, s.size))
+    local p: *[0]T = (@*[0]T)(self:realloc(s.data, size * #T, s.size * #T))
     if unlikely(size > 0 and p == nilptr) then
       -- reallocation failed, return the original span
       return s

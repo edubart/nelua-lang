@@ -38,6 +38,14 @@ do -- indexing new elements and clear
   seq:destroy()
 end
 
+do -- indexing zero element
+  local seq: sequence(integer)
+  seq[0] = 1
+  assert(seq[0] == 1)
+  assert(#seq == 0)
+  seq:destroy()
+end
+
 do -- reserve and resize
   local seq: sequence(integer) = {}
   assert(seq:capacity() == 0)

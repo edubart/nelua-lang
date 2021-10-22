@@ -182,7 +182,8 @@ function string.gmatch(s: string, pattern: string, init: facultative(isize)): (a
     captures: [MAX_CAPTURES]string
   }
   local function gmatch_next(state: *GMatchState, it: string): (boolean, string, span(string))
-    local ok: boolean, matched: string, captures: span(string)
+    -- volatile is used to force returns to be aligned (due to GC issue on MinGW 8.1)
+    local ok: boolean, matched: string <volatile>, captures: span(string)
     local s: isize, e: isize = state.ms:match(state.init, false)
     if e ~= -1 then -- no match
       ok = true
@@ -212,7 +213,8 @@ function string.gmatchview(s: string, pattern: string, init: facultative(isize))
     captures: [MAX_CAPTURES]string
   }
   local function gmatch_next(state: *GMatchState, it: string): (boolean, string, span(string))
-    local ok: boolean, matched: string, captures: span(string)
+    -- volatile is used to force returns to be aligned (due to GC issue on MinGW 8.1)
+    local ok: boolean, matched: string <volatile>, captures: span(string)
     local s: isize, e: isize = state.ms:match(state.init, false)
     if e ~= -1 then -- no match
       ok = true
