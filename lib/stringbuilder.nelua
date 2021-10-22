@@ -317,9 +317,11 @@ end
         -- TODO: this may be expansive, should we implement a custom snprintf later?
         s = string.copy(s)
         ## end
+        local cs: cstring = (@cstring)(s.data)
+        if s.size == 0 then cs = ''_cstring end
         buff = (@cstring)(self:prepare(slen > maxitem and slen or maxitem).data)
         if buff then
-          nb = snprintf(buff, maxitem, &form[0], s.data)
+          nb = snprintf(buff, maxitem, &form[0], cs)
         end
         ## if arg1.type.is_string then
         s:destroy()

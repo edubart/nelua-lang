@@ -452,6 +452,7 @@ do -- string format
   s = string.rep('xuxu', 500) assert_string_eq(string.format('%s', s), s) s:destroy()
   assert_string_eq(string.format('a number here: %d !', 1337), 'a number here: 1337 !')
   assert_string_eq(string.format('%-30s %s', 'a', 'b'), 'a                              b')
+  assert_string_eq(string.format('|%4s|', ''), '|    |')
 end
 
 do -- print
