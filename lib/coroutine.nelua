@@ -102,6 +102,8 @@ local main_coro: mco_coro <nogcscan>
 -- The coroutine handle.
 global coroutine: type = @*mco_coro
 
+local function_concept = #[concept(function(x) return x.type.is_function end)]#
+
 --[[
 Destroy the coroutine `co`, freeing its stack memory and resources.
 
@@ -134,7 +136,7 @@ Returns a new coroutine with body function `f`.
 The function allocates stack memory and resources for the coroutine.
 It only creates a new coroutine and returns a handle to it, it does not start the coroutine.
 ]]
-function coroutine.create(f: auto): coroutine
+function coroutine.create(f: function_concept): coroutine
   local F: type = #[f.type]#
   local function coroutine_main(co: *mco_coro): void
     -- Meta program to use values from last `push` as `f` arguments and to `push` returns from `f`.
@@ -278,7 +280,7 @@ Creates and immediately starts a new coroutine with body function `f`.
 Extra arguments are passed to the function `f` arguments.
 This is effectively the same as calling `coroutine.create` and then `coroutine.resume`.
 ]]
-function coroutine.spawn(f: auto, ...: varargs): coroutine
+function coroutine.spawn(f: function_concept, ...: varargs): coroutine
   local co: coroutine = coroutine.create(f)
   local ok: boolean, err: string = coroutine.resume(co, ...)
   assert(ok, err)

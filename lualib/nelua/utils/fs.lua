@@ -34,7 +34,7 @@ function fs.readfile(filename, is_bin)
 end
 
 --[[
-Write string `str` into file `filename`, creating necessary directories as needed.
+Write string `str` into file `filename`.
 Returns true on success, otherwise nil plus and error message.
 ]]
 function fs.writefile(filename, str, is_bin)
