@@ -352,18 +352,17 @@ end
   The `fmt` string is expected to be a valid format, it should follow `string.format` rules.
   ]]
   function stringbuilderT:writef(fmt: string, ...: varargs): (boolean, usize)
-    local L_ESC: byte <comptime> = '%'_byte
     local pos: usize, written: usize, argi: int32 = 0, 0, 0
     while pos < fmt.size do
       local c: byte = fmt.data[pos]
       pos = pos + 1
-      if c ~= L_ESC then
+      if c ~= '%'_b then
         if not self:writebyte(c) then return false, written end
         written = written + 1
       else
         c = fmt.data[pos]
-        if c == L_ESC then -- %%
-          if not self:writebyte(L_ESC) then return false, written end
+        if c == '%'_b then -- %%
+          if not self:writebyte('%'_b) then return false, written end
           written = written + 1
           pos = pos + 1
         else -- format item
@@ -380,11 +379,11 @@ end
             goto next
           end
           ## end
+          assert(false, 'bad format argument (no value)')
           ::next::
           if not ok then
             return false, written
           end
-          assert(nb >= 0, 'missing argument in format')
           self:commit((@usize)(nb))
           written = written + (@usize)(nb)
         end
