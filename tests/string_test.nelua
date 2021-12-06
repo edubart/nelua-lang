@@ -1,5 +1,6 @@
 require 'string'
 require 'span'
+require 'hashmap'
 
 local maxi: isize <comptime> = #[primtypes.isize.max]#
 local mini: isize <comptime> = #[primtypes.isize.min]#
@@ -346,8 +347,6 @@ do -- string.match
   ok, seq = string.match('xaaabbb', '^x(a+)(b+)$')
   assert(ok)
   assert(#seq == 2)
-  print(seq[1])
-  print(seq[2])
   assert(seq[1] == 'aaa' and seq[2] == 'bbb')
   seq[1]:destroy()
   seq[2]:destroy()
@@ -409,6 +408,27 @@ do -- string.gmatchview
     elseif i == 3 then assert(k == 'ccc')
     end
   end
+end
+
+do -- string.gsub
+  local sub: string, n: isize = string.gsub('hello', 'ell', 'ELL')
+  assert(sub == 'hELLo' and n == 1)
+  sub:destroy()
+
+  sub, n = string.gsub('hello WORLD', '%l', function(x: string)
+    defer x:destroy() end
+    return string.upper(x)
+  end)
+  assert(sub == 'HELLO WORLD' and n == 5)
+  sub:destroy()
+
+  local map: hashmap(string, string)
+  map['hello'] = 'HI'
+  map['world'] = 'EARTH'
+  sub, n = string.gsub('$hello $great $world', '$(%w+)', map)
+  print(sub == 'HI $great EARTH' and n == 3)
+  map:destroy()
+  sub:destroy()
 end
 
 do -- string format

@@ -32,26 +32,66 @@ global PatternMatcher: type = @record{
   pattern: string,
   depth: isize, -- control for recursive depth (to avoid stack overflow)
   numcaptures: isize, -- total number of captures (finished or unfinished)
-  capture: [32]PatternMatcherCapture -- maximum of 32 match captures
+  capture: [32]PatternMatcherCapture, -- maximum of 32 match captures
+  plain: boolean,
+  anchor: boolean,
 }
 
+-- Check whether pattern has no special characters.
+local function match_has_pattern_specials(pattern: string): boolean
+  for i: usize = 0,<pattern.size do
+    switch pattern.data[i]
+    case '^'_b, '$'_b, '*'_b, '+'_b, '?'_b, '.'_b, '('_b, '['_b, '%'_b, '-'_b then
+      return true
+    end
+  end
+  return false -- no special chars found
+end
+
+local function match_has_pattern_anchor(pattern: string): boolean
+  return pattern.size > 0 and pattern.data[0] == '^'_byte
+end
+
 -- Creates a new pattern matching state to being on `source` with pattern `pattern`.
-function PatternMatcher.create(source: string, pattern: string): PatternMatcher
+function PatternMatcher.create(source: string, pattern: string, plain: boolean): PatternMatcher
+  if not match_has_pattern_specials(pattern) then
+    plain = false
+  end
+  local anchor: boolean = not plain and match_has_pattern_anchor(pattern)
   return (@PatternMatcher) {
     source = source,
     pattern = pattern,
-    depth = MAX_MATCH_CALLS
+    plain = plain,
+    anchor = anchor,
+    depth = MAX_MATCH_CALLS,
   }
 end
 
+function PatternMatcher:reset_captures()
+  for i=0,<self.numcaptures do
+    self.capture[i] = {}
+  end
+  self.numcaptures = 0
+end
+
 -- Returns the capture at index `i`.
-function PatternMatcher:get_capture(i: isize): string
-  assert(not self.capture[i]:is_position(), 'position capture not supported yet')
-  assert(not self.capture[i]:is_unfinished(), 'unfinished capture')
-  return (@string){
-    data=&self.source.data[self.capture[i].init],
-    size=(@usize)(self.capture[i].len)
-  }
+function PatternMatcher:get_capture(i: isize): (boolean, string, PatternMatcherCapture)
+  if unlikely(i < 0 or i >= self.numcaptures) then
+    return false, 'invalid capture index', {}
+  end
+  if unlikely(self.capture[i]:is_unfinished()) then
+    return false, 'unfinished capture', {}
+  end
+  local capture: PatternMatcherCapture = self.capture[i]
+  if not self.capture[i]:is_position() then
+    local capstr: string = (@string){
+      data=&self.source.data[self.capture[i].init],
+      size=(@usize)(self.capture[i].len)
+    }
+    return true, capstr, capture
+  else
+    return true, '', capture
+  end
 end
 
 -- Match pattern recursive function.
@@ -175,7 +215,7 @@ function PatternMatcher._match(ms: *PatternMatcher, s: isize, p: isize): isize
 
   local function match_balance(ms: *PatternMatcher, s: isize, p: isize): isize
     assert(p < #ms.pattern - 1, "malformed pattern (missing arguments to '%b')")
-    if ms.source.data[s] ~= ms.pattern.data[p] then
+    if s >= #ms.source or ms.source.data[s] ~= ms.pattern.data[p] then
       return -1
     else
       local b: byte = ms.pattern.data[p]
@@ -235,6 +275,7 @@ function PatternMatcher._match(ms: *PatternMatcher, s: isize, p: isize): isize
     ms.numcaptures = numcaptures+1
     local res: isize = ms:_match(s, p)
     if res == -1 then -- match failed?
+      ms.capture[numcaptures] = {}
       ms.numcaptures = ms.numcaptures - 1 -- undo capture
     end
     return res
@@ -303,9 +344,10 @@ function PatternMatcher._match(ms: *PatternMatcher, s: isize, p: isize): isize
         p = p + 2
         assert(ms.pattern.data[p] == '['_byte, "missing '[' after '%f' in pattern")
         local ep: isize = match_class_end(ms, p) -- points to what is next
-        local previous: byte = (s == 0) and '\0'_byte or ms.source.data[s-1]
+        local previous: byte = (s == 0 and s < #ms.source) and '\0'_byte or ms.source.data[s-1]
+        local next: byte = (s == #ms.source) and '\0'_byte or ms.source.data[s]
         if not match_bracket_class(ms, previous, p, ep - 1) and
-           match_bracket_class(ms, ms.source.data[s], p, ep - 1) then
+           match_bracket_class(ms, next, p, ep - 1) then
           p = ep
           continue
         end
@@ -360,27 +402,13 @@ function PatternMatcher._match(ms: *PatternMatcher, s: isize, p: isize): isize
   return s
 end
 
--- Check whether pattern has no special characters.
-local function match_has_pattern_specials(pattern: string): boolean
-  for i: usize = 0,<pattern.size do
-    switch pattern.data[i]
-    case '^'_b, '$'_b, '*'_b, '+'_b, '?'_b, '.'_b, '('_b, '['_b, '%'_b, '-'_b then
-      return true
-    end
-  end
-  return false -- no special chars found
-end
-
 -- Match pattern auxiliary function.
-function PatternMatcher.match(ms: *PatternMatcher, init: isize, plain: boolean): (isize, isize)
-  if init < 0 then init = (@isize)(ms.source.size) + init + 1 end
-  if init <= 0 then init = 1 end
-  local s: isize = init - 1
+function PatternMatcher.match(ms: *PatternMatcher, s: isize): (isize, isize)
   if (@usize)(s) > ms.source.size then
     return s, -1
   elseif ms.pattern.size == 0 then
     return s, s
-  elseif plain or not match_has_pattern_specials(ms.pattern) then
+  elseif ms.plain then
     local found: pointer = memory.find(
       &ms.source.data[s], ms.source.size - (@usize)(s),
       &ms.pattern.data[0], ms.pattern.size)
@@ -392,18 +420,17 @@ function PatternMatcher.match(ms: *PatternMatcher, init: isize, plain: boolean):
     end
   else
     local p: isize = 0
-    local anchor: boolean = ms.pattern.data[0] == '^'_byte
-    if anchor then
+    if ms.anchor then
       p = 1 -- skip anchor character
     end
-    repeat
-      ms.numcaptures = 0
+    repeat -- keep trying to match while advancing
+      ms:reset_captures()
       local e: isize = ms:_match(s, p)
-      if e ~= -1 then
+      if e ~= -1 then -- matched
         return s, e
       end
       s = s + 1
-    until s >= #ms.source or anchor
+    until s > #ms.source or ms.anchor
     return s, -1
   end
 end

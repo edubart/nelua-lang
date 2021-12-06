@@ -154,13 +154,16 @@ A value of true as a fourth, optional argument plain turns off the pattern match
 function string.find(s: string, pattern: string, init: facultative(isize), plain: facultative(boolean)): (isize, isize)
   ## if init.type.is_niltype then
   local init: isize = 1
+  ## else
+  if init < 0 then init = (@isize)(s.size) + init + 1 end
+  if init <= 0 then init = 1 end
   ## end
   ## if plain.type.is_niltype then
   local plain: boolean = false
   ## end
-  local ms: PatternMatcher = PatternMatcher.create(s, pattern)
-  local startpos: isize, endpos: isize = ms:match(init, plain)
-  if endpos ~= -1 then
+  local ms: PatternMatcher = PatternMatcher.create(s, pattern, plain)
+  local startpos: isize, endpos: isize = ms:match(init-1)
+  if endpos ~= -1 then -- matched
     return startpos+1, endpos
   else -- no match
     return 0, 0
@@ -174,6 +177,9 @@ A third, optional argument specifies where to start the search, its default valu
 function string.gmatch(s: string, pattern: string, init: facultative(isize)): (auto, auto, string)
   ## if init.type.is_niltype then
   local init: isize = 1
+  ## else
+  if init < 0 then init = (@isize)(s.size) + init + 1 end
+  if init <= 0 then init = 1 end
   ## end
   local MAX_CAPTURES <comptime> = 8
   local GMatchState: type = @record{
@@ -184,20 +190,23 @@ function string.gmatch(s: string, pattern: string, init: facultative(isize)): (a
   local function gmatch_next(state: *GMatchState, it: string): (boolean, string, span(string))
     -- volatile is used to force returns to be aligned (due to GC issue on MinGW 8.1)
     local ok: boolean, matched: string <volatile>, captures: span(string)
-    local s: isize, e: isize = state.ms:match(state.init, false)
-    if e ~= -1 then -- no match
+    local startpos: isize, endpos: isize = state.ms:match(state.init)
+    if endpos ~= -1 then -- matched
       ok = true
-      state.init = e+2
-      matched = string.copy((@string){data=&state.ms.source.data[s], size=(@usize)(e-s)})
+      state.init = endpos+1
+      matched = string.copy((@string){data=&state.ms.source.data[startpos], size=(@usize)(endpos-startpos)})
       assert(state.ms.numcaptures <= MAX_CAPTURES, 'too many captures')
       for i:isize=0,<state.ms.numcaptures do
-        state.captures[i] = string.copy(state.ms:get_capture(i))
+        local ok: boolean, capstr: string, capture: PatternMatcherCapture = state.ms:get_capture(i)
+        assert(ok, capstr)
+        assert(not capture:is_position(), 'position capture not supported yet')
+        state.captures[i] = string.copy(capstr)
       end
       captures = (@span(string)){data=&state.captures[0], size=(@usize)(state.ms.numcaptures)}
     end
     return ok, matched, captures
   end
-  local state: GMatchState = {ms = PatternMatcher.create(s, pattern), init = init}
+  local state: GMatchState = {ms = PatternMatcher.create(s, pattern, false), init = init-1}
   return gmatch_next, state, (@string){}
 end
 
@@ -205,6 +214,9 @@ end
 function string.gmatchview(s: string, pattern: string, init: facultative(isize)): (auto, auto, string)
   ## if init.type.is_niltype then
   local init: isize = 1
+  ## else
+  if init < 0 then init = (@isize)(s.size) + init + 1 end
+  if init <= 0 then init = 1 end
   ## end
   local MAX_CAPTURES <comptime> = 8
   local GMatchState: type = @record{
@@ -215,21 +227,213 @@ function string.gmatchview(s: string, pattern: string, init: facultative(isize))
   local function gmatch_next(state: *GMatchState, it: string): (boolean, string, span(string))
     -- volatile is used to force returns to be aligned (due to GC issue on MinGW 8.1)
     local ok: boolean, matched: string <volatile>, captures: span(string)
-    local s: isize, e: isize = state.ms:match(state.init, false)
-    if e ~= -1 then -- no match
+    local startpos: isize, endpos: isize = state.ms:match(state.init)
+    if endpos ~= -1 then -- matched
       ok = true
-      state.init = e+2
-      matched = (@string){data=&state.ms.source.data[s], size=(@usize)(e-s)}
+      state.init = endpos+1
+      matched = (@string){data=&state.ms.source.data[startpos], size=(@usize)(endpos-startpos)}
       assert(state.ms.numcaptures <= MAX_CAPTURES, 'too many captures')
       for i:isize=0,<state.ms.numcaptures do
-        state.captures[i] = state.ms:get_capture(i)
+        local ok: boolean, capstr: string, capture: PatternMatcherCapture = state.ms:get_capture(i)
+        assert(ok, capstr)
+        assert(not capture:is_position(), 'position capture not supported yet')
+        state.captures[i] = capstr
       end
       captures = (@span(string)){data=&state.captures[0], size=(@usize)(state.ms.numcaptures)}
     end
     return ok, matched, captures
   end
-  local state: GMatchState = {ms = PatternMatcher.create(s, pattern), init = init}
+  local state: GMatchState = {ms = PatternMatcher.create(s, pattern, false), init = init-1}
   return gmatch_next, state, (@string){}
+end
+
+--[[
+Returns a copy of `s` in which all (or the first `n`, if given) occurrences of the pattern
+have been replaced by a replacement string specified by `repl`,
+which can be a string, a string hashmap, or a function.
+`gsub` also returns, as its second value, the total number of matches that occurred.
+
+The name `gsub` comes from Global SUBstitution.
+
+* If `repl` is a string, then its value is used for replacement.
+The character '% works as an escape character: any sequence in `repl` of the form '%d',
+with d between 1 and 9, stands for the value of the d-th captured substring;
+the sequence '%0' stands for the whole match; the sequence '%%' stands for a single %.
+
+If `repl` is a hashmap of strings, then it is queried for every match,
+using the first capture as the key and its hashmap value as the replacement string,
+if the.
+
+If `repl` is a function, then this function is called every time a match occurs
+with all captured substrings passed as arguments, in order.
+In any case, if the pattern specifies no captures,
+then it behaves as if the whole pattern was inside a capture.
+
+If the value returned by the table query or by the function call is a string or a number,
+then it is used as the replacement string;
+otherwise, if it is false or nil, then there is no replacement (that is, the original match is kept in the string).
+]]
+function string.gsub(s: string, pattern: string, repl: auto, maxn: facultative(isize)): (string, isize)
+  ## if maxn.type.is_niltype then
+  local maxn: isize = (@isize)(s.size) + 1
+  ## end
+  local n: isize = 0 -- replacement count
+  local sb: stringbuilder
+  local pos: isize = 0
+  local ms: PatternMatcher = PatternMatcher.create(s, pattern, false)
+  local lastmatch: isize = -1
+  while n < maxn do
+    local startpos: isize, endpos: isize = ms:match(pos)
+    if endpos ~= -1 and endpos ~= lastmatch then -- matched
+      lastmatch = endpos
+      n = n + 1
+      local skip: string = (@string){data=&s.data[pos], size=(@usize)(startpos-pos)}
+      sb:write(skip)
+      local match: string = (@string){data=&s.data[startpos], size=(@usize)(endpos-startpos)}
+      local matchrepl: string
+      local ri: usize = 0
+      ## if repl.type.is_hashmap then
+        local ok: boolean, capstr: string, capture: PatternMatcherCapture = ms:get_capture(0)
+        local key: string
+        if not ok and ms.numcaptures == 0 then
+          key = match
+        else
+          assert(ok, capstr)
+          assert(not capture:is_position(), 'position capture not supported yet')
+          key = capstr
+        end
+        local it: *string = repl:peek(key)
+        if it then
+          matchrepl = $it
+        else
+          matchrepl = match
+        end
+      ## else
+        ## if repl.type.is_stringy then -- string replacement
+          matchrepl = repl
+        ## elseif repl.type.is_function then -- callback replacement
+          local capindex: isize, capstr: string
+          ## local args = {}
+          ## for i=1,#repl.type.argtypes do
+            capindex = #[i-1]#
+            local ok: boolean, capstr: string, capture: PatternMatcherCapture = ms:get_capture(capindex)
+            if not ok and capindex == 0 and ms.numcaptures == 0 then
+              capstr = string.copy(match)
+            else
+              assert(ok, capstr)
+              if capture:is_position() then
+                capstr = tostring(capture.init+1)
+              else
+                capstr = string.copy(capstr)
+              end
+            end
+            local #|'a'..i|#: string = capstr
+            ## table.insert(args, aster.Id{'a'..i})
+          ## end
+          ## if repl.type:get_return_type(1).is_string then -- function that returns the replacement
+            matchrepl = repl(#[aster.unpack(args)]#)
+            defer matchrepl:destroy() end
+          ## else -- call function and replace original match
+            matchrepl = match
+            repl(#[aster.unpack(args)]#)
+          ## end
+        ## else
+          ## static_error('invalid replacement argument')
+        ## end
+        --TODO: handle numbers
+        while true do -- replace captures
+          local found = memory.scan(&matchrepl.data[ri], '%'_b, matchrepl.size - ri)
+          if not found then break end
+          local advance: usize = (@usize)(found) - (@usize)(&matchrepl.data[ri])
+          sb:write((@string){&matchrepl.data[ri], advance})
+          local c: byte = matchrepl.data[ri + advance + 1]
+          if c == '%'_b then -- %%
+            sb:writebyte('%'_b)
+          elseif c == '0'_b then -- %0
+            sb:write(match)
+          elseif c >= '1'_b and c <= '9'_b then -- should be a digit
+            local capindex: isize = c - '1'_b
+            local ok: boolean, capstr: string, capture: PatternMatcherCapture = ms:get_capture(capindex)
+            if not ok and capindex == 0 and ms.numcaptures == 0 then
+              sb:write(match)
+            else
+              assert(ok, capstr)
+              if capture:is_position() then
+                local s: string = tostring(capture.init+1)
+                sb:write(s)
+                s:destroy()
+              else
+                sb:write(capstr)
+              end
+            end
+          else
+            error "invalid use of '%' in replacement string"
+          end
+          ri = ri + advance + 2
+        end
+      ## end
+      sb:write((@string){&matchrepl.data[ri], matchrepl.size - ri})
+      pos = endpos
+    elseif pos < s.size then -- otherwise, skip one character
+      sb:writebyte(s.data[pos])
+      pos = pos + 1
+    else -- end of subject
+      break
+    end
+    if ms.anchor then break end
+  end
+  sb:write((@string){&s.data[pos], s.size - pos})
+  return sb:promote(), n
+end
+
+-- Helper used by `string.match` and `string.matchview`.
+local function string_match(s: string, pattern: string, init: facultative(isize)): (boolean, sequence(string))
+  ## if init.type.is_niltype then
+  local init: isize = 1
+  ## else
+  if init < 0 then init = (@isize)(s.size) + init + 1 end
+  if init <= 0 then init = 1 end
+  ## end
+  local ms: PatternMatcher = PatternMatcher.create(s, pattern, false)
+  local startpos: isize, endpos: isize = ms:match(init-1)
+  local captures: sequence(string)
+  if endpos ~= -1 then -- matched
+    if ms.numcaptures > 0 then -- has captures
+      captures:resize((@usize)(ms.numcaptures))
+      for i:isize=0,<ms.numcaptures do
+        local ok: boolean, capstr: string, capture: PatternMatcherCapture = ms:get_capture(i)
+        assert(ok, capstr)
+        assert(not capture:is_position(), 'position capture not supported yet')
+        captures[(@usize)(i+1)] = capstr
+      end
+      return true, captures
+    else -- nothing captured, then capture whole match
+      captures[1] = ms.source:subview(startpos+1, endpos)
+      return true, captures
+    end
+  else -- no match
+    return false, captures
+  end
+end
+
+--[[
+Look for the first match of pattern in the string.
+If it finds one, then returns true plus a sequence with the captured values,
+otherwise it returns false plus an empty sequence.
+If pattern specifies no captures, then the whole match is captured.
+A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
+]]
+function string.match(s: string, pattern: string, init: facultative(isize)): (boolean, sequence(string))
+  local ok: boolean, seq: sequence(string) = string_match(s, pattern, init)
+  for i: isize = 1, #seq do
+    seq[i] = string.copy(seq[i])
+  end
+  return ok, seq
+end
+
+-- Like `string.match` but uses sub string views (see also `string.subview`).
+function string.matchview(s: string, pattern: string, init: facultative(isize)): (boolean, sequence(string))
+  return string_match(s, pattern, init)
 end
 
 --[[
@@ -260,50 +464,6 @@ function string.rep(s: string, n: isize, sep: facultative(string)): string
   end
   ## end
   return ret
-end
-
--- Helper used by `string.match` and `string.matchview`.
-local function string_match(s: string, pattern: string, init: facultative(isize)): (boolean, sequence(string))
-  ## if init.type.is_niltype then
-  local init: isize = 1
-  ## end
-  local ms: PatternMatcher = PatternMatcher.create(s, pattern)
-  local startpos: isize, endpos: isize = ms:match(init, false)
-  local captures: sequence(string)
-  if endpos ~= -1 then
-    if ms.numcaptures > 0 then -- has captures
-      captures:resize((@usize)(ms.numcaptures))
-      for i:isize=0,<ms.numcaptures do
-        captures[(@usize)(i+1)] = ms:get_capture(i)
-      end
-      return true, captures
-    else -- nothing captured, then capture whole match
-      captures[1] = ms.source:subview(startpos+1, endpos)
-      return true, captures
-    end
-  else -- no match
-    return false, captures
-  end
-end
-
---[[
-Look for the first match of pattern in the string.
-If it finds one, then returns true plus a sequence with the captured values,
-otherwise it returns false plus an empty sequence.
-If pattern specifies no captures, then the whole match is captured.
-A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
-]]
-function string.match(s: string, pattern: string, init: facultative(isize)): (boolean, sequence(string))
-  local ok: boolean, seq: sequence(string) = string_match(s, pattern, init)
-  for i: isize = 1, #seq do
-    seq[i] = string.copy(seq[i])
-  end
-  return ok, seq
-end
-
--- Like `string.match` but uses sub string views (see also `string.subview`).
-function string.matchview(s: string, pattern: string, init: facultative(isize)): (boolean, sequence(string))
-  return string_match(s, pattern, init)
 end
 
 -- Returns a string that is the string `s` reversed.

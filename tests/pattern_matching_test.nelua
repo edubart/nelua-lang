@@ -23,6 +23,17 @@ local function assert_no_match(s: string, patt: string)
   assert(status == false and #captures == 0)
 end
 
+local function assert_gsub(s: string, patt: string, repl: auto, res: string, nres: facultative(integer))
+  ## if not nres.type.is_niltype then
+  local got: string, gotn: integer = string.gsub(s, patt, repl, nres)
+  assert(got == res and gotn == nres)
+  ## else
+  local got: string = string.gsub(s, patt, repl, nres)
+  assert(got == res)
+  ## end
+  got:destroy()
+end
+
 do -- test pattern matching syntax
   -- character class
   assert_match('a', 'a')
@@ -137,6 +148,17 @@ do -- test pattern matching syntax
   assert_match('1a', '1%f[%l]%l')
   assert_match('12345abcdef', '%d+%f[%l]%l+')
   assert_match('12345abcdef', '%d+%f[^%d]%l+')
+  assert(string.find("a", "%f[a]") == 1)
+  assert(string.find("a", "%f[^%z]") == 1)
+  assert(string.find("a", "%f[^%l]") == 2)
+  assert(string.find("aba", "%f[a%z]") == 3)
+  assert(string.find("aba", "%f[%z]") == 4)
+  assert(string.find("aba", "%f[%l%z]") == 0)
+  assert(string.find("aba", "%f[^%l%z]") == 0)
+  do
+    local i, e = string.find(" alo aalo allo", "%f[%S].-%f[%s].-%f[%S]")
+    assert(i == 2 and e == 5)
+  end
 
   -- captures
   assert_match('a', '(a)', 'a')
@@ -146,6 +168,43 @@ do -- test pattern matching syntax
   assert_match('abc {abc }{b}{ }', '(a*(.)%w(%s*)){%1}{%2}{%3}', (@sequence(string)){'abc ', 'b', ' '})
   -- assert_match('flaaap', '()aa()', 'aa')
   assert_no_match('flaaap', '()aa()%1')
+end
+
+do -- gsub
+  assert_gsub('alo', 'o', 'u%%', 'alu%')
+  assert_gsub('ulo ulo', 'u', 'x', 'xlo xlo')
+  assert_gsub('alo ulo  ', ' +$', '', 'alo ulo') -- trim
+  assert_gsub('  alo alo  ', '^%s*(.-)%s*$', '%1', 'alo alo') -- double trim
+  assert_gsub('alo  alo  \n 123\n ', '%s+', ' ', 'alo alo 123 ')
+  assert_gsub('alo alo', '()[al]', '%1', '12o 56o')
+  assert_gsub("abc=xyz", "(%w*)(%p)(%w+)", "%3%2%1-%0", "xyz=abc-abc=xyz")
+  assert_gsub("abc", "%w", "%1%0", "aabbcc")
+  assert_gsub("abc", "%w+", "%0%1", "abcabc")
+  assert_gsub('aei', '$', '\0ou', 'aei\0ou')
+  assert_gsub('', '^', 'r', 'r')
+  assert_gsub('', '$', 'r', 'r')
+  assert_gsub("abc d", '(.)', '%1@', 'a@b@c@ @d@', 5)
+  assert_gsub('abcd', '(.)', '%0@', 'a@b@cd', 2)
+  assert_gsub("a b cd", " *", "-", "-a-b-c-d-")
+  assert_gsub("(9 ((8))(\0) 7) \0\0 a b ()(c)() a", "%b()", "", " \0\0 a b  a")
+  assert_gsub("(9 ((8) 7) a b (\0 c) a", "%b()", "", "(9  a b  a")
+  assert_gsub("alo 'oi' alo", "%b''", '"', 'alo " alo')
+  assert_gsub("aaa aa a aaa a", "%f[%w]a", "x",  "xaa xa x xaa x")
+  assert_gsub("[[]] [][] [[[[", "%f[[].", "x", "x[]] x]x] x[[[")
+  assert_gsub("01abc45de3", "%f[%d]", ".", ".01abc.45de.3")
+  assert_gsub("01abc45 de3x", "%f[%D]%w", ".", "01.bc45 de3.")
+  assert_gsub("function", "%f[\1-\255]%w", ".", ".unction")
+  assert_gsub("function", "%f[^\1-\255]", ".", "function.")
+
+  assert_gsub("um (dois) tres (quatro)", "(%(%w+%))", function(x: string): string
+    defer x:destroy() end
+    return string.upper(x)
+  end, "um (DOIS) tres (QUATRO)")
+
+  assert_gsub("trocar tudo em |teste|b| é |beleza|al|", "|([^|]*)|([^|]*)|", function(a: string, b: string): string
+    defer a:destroy() b:destroy() end
+    return string.gsub(a,'.',b)
+  end, "trocar tudo em bbbbb é alalalalalal")
 end
 
 print 'pattern OK!'

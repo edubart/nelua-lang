@@ -1718,15 +1718,36 @@ function string.gmatchview(s: string, pattern: string, init: facultative(isize))
 
 Like `string.gmatch` but uses sub string views (see also `string.subview`).
 
-### string.rep
+### string.gsub
 
 ```nelua
-function string.rep(s: string, n: isize, sep: facultative(string)): string
+function string.gsub(s: string, pattern: string, repl: auto, maxn: facultative(isize)): (string, isize)
 ```
 
-Returns a string that is the concatenation of `n` copies of the string `s` separated by the string `sep`.
-The default value for `sep` is the empty string (that is, no separator).
-Returns the empty string if `n` is not positive.
+Returns a copy of `s` in which all (or the first `n`, if given) occurrences of the pattern
+have been replaced by a replacement string specified by `repl`,
+which can be a string, a string hashmap, or a function.
+`gsub` also returns, as its second value, the total number of matches that occurred.
+
+The name `gsub` comes from Global SUBstitution.
+
+* If `repl` is a string, then its value is used for replacement.
+The character '% works as an escape character: any sequence in `repl` of the form '%d',
+with d between 1 and 9, stands for the value of the d-th captured substring;
+the sequence '%0' stands for the whole match; the sequence '%%' stands for a single %.
+
+If `repl` is a hashmap of strings, then it is queried for every match,
+using the first capture as the key and its hashmap value as the replacement string,
+if the.
+
+If `repl` is a function, then this function is called every time a match occurs
+with all captured substrings passed as arguments, in order.
+In any case, if the pattern specifies no captures,
+then it behaves as if the whole pattern was inside a capture.
+
+If the value returned by the table query or by the function call is a string or a number,
+then it is used as the replacement string;
+otherwise, if it is false or nil, then there is no replacement (that is, the original match is kept in the string).
 
 ### string.match
 
@@ -1747,6 +1768,16 @@ function string.matchview(s: string, pattern: string, init: facultative(isize)):
 ```
 
 Like `string.match` but uses sub string views (see also `string.subview`).
+
+### string.rep
+
+```nelua
+function string.rep(s: string, n: isize, sep: facultative(string)): string
+```
+
+Returns a string that is the concatenation of `n` copies of the string `s` separated by the string `sep`.
+The default value for `sep` is the empty string (that is, no separator).
+Returns the empty string if `n` is not positive.
 
 ### string.reverse
 
@@ -2515,7 +2546,7 @@ Effectively the same as `destroy`, called when a to-be-closed variable goes out 
 ### coroutine.create
 
 ```nelua
-function coroutine.create(f: auto): coroutine
+function coroutine.create(f: function_concept): coroutine
 ```
 
 Returns a new coroutine with body function `f`.
@@ -2576,7 +2607,7 @@ Starts or continues the execution of the coroutine `co`.
 ### coroutine.spawn
 
 ```nelua
-function coroutine.spawn(f: auto, ...: varargs): coroutine
+function coroutine.spawn(f: function_concept, ...: varargs): coroutine
 ```
 
 Creates and immediately starts a new coroutine with body function `f`.
