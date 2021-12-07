@@ -12,49 +12,37 @@ local aster = require 'nelua.aster'
 
 function builtins.require(context, node, argnodes)
   local attr = node.attr
-  if attr.alreadyrequired or attr.runtime_require then
+  if attr.alreadyrequired then
     -- already tried to load
-    return
+    return attr.functype
   end
 
   local justloaded = false
   if not attr.loadedast then
-    local canloadatruntime = context.generator == 'lua'
     context:traverse_nodes(argnodes)
     local argnode = argnodes[1]
-    if not (argnode and
-            argnode.attr.type and argnode.attr.type.is_string and
-            argnode.attr.comptime) or not context.scope.is_topscope then
-      -- not a compile time require
-      if canloadatruntime then
-        attr.runtime_require = true
-        return
-      else
-        node:raisef('runtime require unsupported, use require with a compile time string in top scope')
-      end
-    end
 
     -- load it and parse
     local reqname = argnode.attr.value
+    if not reqname then
+      node:raisef('runtime require unsupported, use require with a compile time string')
+    end
     local reldir = argnode.src.name and fs.dirname(argnode.src.name) or nil
     local filepath, err = fs.findmodule(reqname, config.path, reldir, 'nelua')
     if not filepath then
-      if canloadatruntime then
-        -- maybe it would succeed at runtime
-        attr.runtime_require = true
+      if context.generator == 'lua' then
         return
       else
         node:raisef("in require: module '%s' not found:\n%s", reqname, err)
       end
     end
 
-    local unitname = pegger.filename_to_unitname(reqname..'.nelua')
-    if context.pragmas.unitname == unitname then
+    local origunitname = pegger.filename_to_unitname(reqname..'.nelua')
+    if context.pragmas.unitname == origunitname then
       node:raisef("in require: module '%s' cannot require itself", reqname)
     end
 
-    attr.funcname = context.rootscope:generate_name('nelua_require_'..unitname, true)
-
+    local unitname = origunitname
     -- nelua internal libs have unit name of just 'nelua'
     if filepath:find(config.lib_path, 1, true) then
       unitname = 'nelua'
@@ -66,9 +54,16 @@ function builtins.require(context, node, argnodes)
     local reqnode = context.requires[filepath]
     if reqnode and reqnode ~= node then
       -- already required
+      local reqattr = reqnode.attr
+      reqattr.multiplerequire = true
       attr.alreadyrequired = true
-      return
+      attr.functype = reqattr.functype
+      attr.funcname = reqattr.funcname
+      attr.value = reqattr.value
+      return attr.functype
     end
+
+    attr.funcname = context.rootscope:generate_name('nelua_require_'..origunitname, true)
 
     local input
     input, err = fs.readfile(filepath)

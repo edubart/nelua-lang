@@ -1177,7 +1177,14 @@ function visitors.VarDecl(context, node, emitter)
            not valnode.attr.comptime and not lastcallindex then -- could be a call
       emitter:add_indent_ln(valnode, ';')
     elseif valnode and valnode.attr.requirename then -- require call
-      emitter:add_indent_ln(valnode, ';')
+      local rollbackpos = emitter:get_pos()
+      emitter:add_indent()
+      emitter:add(valnode)
+      if emitter:get_pos() == rollbackpos+1 then
+        emitter:rollback(rollbackpos) -- revert text added
+      else
+        emitter:add(';')
+      end
     end
     if varattr.cinclude and (context.pragmas.nodce or varattr:is_used(true)) then
       context:ensure_include(varattr.cinclude)
@@ -1216,6 +1223,15 @@ function visitors.Assign(context, node, emitter)
     elseif not vartype.is_comptime and valnode and
            not valnode.attr.comptime and not lastcallindex then -- could be a call
       emitter:add_indent_ln(valnode, ';')
+    elseif valnode and valnode.attr.requirename then -- require call
+      local rollbackpos = emitter:get_pos()
+      emitter:add_indent()
+      emitter:add(valnode)
+      if emitter:get_pos() == rollbackpos+1 then
+        emitter:rollback(rollbackpos) -- revert text added
+      else
+        emitter:add(';')
+      end
     end
   end
   emitter:add(defemitter)

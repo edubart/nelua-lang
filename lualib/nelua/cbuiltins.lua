@@ -824,30 +824,64 @@ end
 -- Implementation of `require` builtin.
 function cbuiltins.calls.require(context, node)
   local attr = node.attr
+  local funcname = attr.funcname
   if attr.alreadyrequired then
+    local cachedfuncname = funcname..'_cached'
+    if context.definitions[cachedfuncname] then
+      return cachedfuncname
+    end
     return
   end
-  local ast = attr.loadedast
-  assert(not attr.runtime_require and ast)
-  local funcname = attr.funcname
-  local defemitter = CEmitter(context)
   context:push_scope(context.rootscope)
   local funcscope = context:push_forked_scope(node)
   context:push_forked_state{funcscope=funcscope}
   context:push_forked_pragmas(attr.pragmas)
-  defemitter:add_ln('{')
-  local lastpos = defemitter:get_pos()
-  defemitter:add(ast)
-  local empty = defemitter:get_pos() == lastpos
-  defemitter:add('}')
+  local implemitter = CEmitter(context)
+  implemitter:add(attr.loadedast)
+  local implcode = implemitter:generate()
+  local empty = #implcode == 0 or implcode:find('^[%s;]+return NELUA_NIL;\n$')
+  local rettypename = context:funcrettypename(attr.functype)
   context:pop_pragmas()
   context:pop_state()
   context:pop_scope()
   context:pop_scope()
-  if not empty then
+  if not empty then -- has code inside
     local args = {{primtypes.niltype, 'modname'}}
-    local rettypename = context:funcrettypename(attr.functype)
-    context:define_function_builtin(funcname, '', rettypename, args, defemitter:generate())
+    context:define_function_builtin(funcname, '', rettypename, args, '{\n'..implcode..'}')
+    --  proxy require with cached result
+    if attr.multiplerequire then
+      local cachedfuncname = funcname..'_cached'
+      local decemitter = CEmitter(context)
+      decemitter:add(rettypename, ' ', cachedfuncname, '(', primtypes.niltype, ' modname)')
+      local heading = decemitter:generate()
+      local proxyemitter = CEmitter(context)
+      proxyemitter:add_indent_ln(heading, ' {')
+      proxyemitter:inc_indent()
+      proxyemitter:add_indent_ln('static ', primtypes.boolean, ' loaded = ', false, ';')
+      if rettypename ~= 'void' then
+        proxyemitter:add_indent_ln('static ', rettypename, ' cache;')
+      end
+      proxyemitter:add_indent_ln('if(!loaded) {')
+      proxyemitter:inc_indent()
+      if rettypename ~= 'void' then
+        proxyemitter:add_indent_ln('cache = ', funcname, '(NELUA_NIL);')
+      else
+        proxyemitter:add_indent_ln(funcname, '(NELUA_NIL);')
+      end
+      proxyemitter:add_indent_ln('loaded = ', true, ';')
+      proxyemitter:dec_indent()
+      proxyemitter:add_indent_ln('}')
+      if rettypename ~= 'void' then
+        proxyemitter:add_indent_ln('return cache;')
+      else
+        proxyemitter:add_indent_ln('return;')
+      end
+      proxyemitter:dec_indent()
+      proxyemitter:add_indent_ln('}')
+      context:add_declaration('static '..heading..';\n', cachedfuncname)
+      context:add_definition(proxyemitter:generate(), cachedfuncname)
+      return cachedfuncname
+    end
     return funcname
   end
 end

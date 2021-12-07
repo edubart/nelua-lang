@@ -3129,7 +3129,6 @@ it("require builtin", function()
   expect.c_gencode_equals([[
     require 'examples.helloworld'
   ]], [[
-    require 'examples.helloworld'
     require 'examples/helloworld'
   ]])
   expect.run_error_c([[
@@ -3142,23 +3141,37 @@ it("require builtin", function()
 end)
 
 it("require returns", function()
-  fs.writefile('require_tmp.nelua', [[return 1]])
+  fs.writefile('require_tmp.nelua', [[
+    local counter = 0
+    counter = counter + 1
+    return counter
+  ]])
   expect.run_c([[
-    local a = require 'require_tmp'
-    assert(a == 1)
+    local a1 = require 'require_tmp'
+    assert(a1 == 1)
+    do
+      local a2 = require 'require_tmp'
+      assert(a2 == 1)
+    end
   ]])
 
   fs.writefile('require_tmp.nelua', [[return 1, 'hello']])
   expect.run_c([[
     local a, b = require 'require_tmp'
     assert(a == 1 and b == 'hello')
+    a, b = require 'require_tmp'
+    assert(a == 1 and b == 'hello')
   ]])
 
   fs.writefile('require_tmp.nelua', [[return @record{x: integer}]])
   expect.run_c([[
-    local R: type = require 'require_tmp'
-    local r: R = {x = 1}
-    assert(r.x == 1)
+    local R1: type = require 'require_tmp'
+    local r1: R1 = {x = 1}
+    assert(r1.x == 1)
+
+    local R2: type = require 'require_tmp'
+    local r2: R2 = {x = 2}
+    assert(r2.x == 2)
   ]])
 
   fs.deletefile('require_tmp.nelua')

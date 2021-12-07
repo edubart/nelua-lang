@@ -1,7 +1,6 @@
 local expect = require 'spec.tools.expect'
 local n = require 'nelua.aster'
 local bn = require 'nelua.utils.bn'
-local config = require 'nelua.configer'.get()
 local lester = require 'nelua.thirdparty.lester'
 local describe, it = lester.describe, lester.it
 
@@ -1754,15 +1753,11 @@ it("builtins", function()
 end)
 
 it("require builtin", function()
-  config.generator = 'lua'
   expect.analyze_ast("require 'examples.helloworld'")
-  expect.analyze_ast("require 'somelualib'")
-  expect.analyze_ast("local a = 'dynamiclib'; require(a)")
-  config.generator = 'c'
+  expect.analyze_ast("local a <comptime> = 'examples.helloworld'; require(a)")
   expect.analyze_ast("require 'examples.helloworld'")
   expect.analyze_error("require 'somelualib'", 'not found')
   expect.analyze_error("local a = 'dynamiclib'; require(a)", 'runtime require unsupported')
-  config.generator = nil
 end)
 
 it("strict mode", function()
