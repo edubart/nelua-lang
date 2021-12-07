@@ -90,7 +90,7 @@ function Scope:fork(node)
     node = node,
     context = context,
     parent = self,
-    is_topscope = self.is_root,
+    is_topscope = self.is_root or self.is_require,
     children = {},
     labels = {},
     usednames = {},
@@ -208,10 +208,13 @@ Generates a unique identifier name prefixed with `name` in the current scope.
 Returns "name_N" where N is an integral number that starts for 1,
 and increments every generate call.
 ]]
-function Scope:generate_name(name)
+function Scope:generate_name(name, compact)
   local count = (self.usednames[name] or 0) + 1
   self.usednames[name] = count
-  return name..'_'..count
+  if count > 1 or not compact then
+    return name..'_'..count
+  end
+  return name
 end
 
 function Scope:make_checkpoint()
@@ -355,7 +358,7 @@ function Scope:resolve_symbols()
   return count
 end
 
-function Scope:add_return_type(index, type, ref)
+function Scope:add_return_type(index, type, value, ref)
   if not type then
     self.has_unknown_return = ref or true
   elseif self.has_unknown_return == ref then
@@ -374,6 +377,10 @@ function Scope:add_return_type(index, type, ref)
     possible_rettypes[index] = {[1] = type}
   elseif type and not tabler.ifind(rettypes, type) then
     rettypes[#rettypes+1] = type
+  end
+  if value then
+    self.retvalues = self.retvalues or {}
+    self.retvalues[index] = value
   end
 end
 

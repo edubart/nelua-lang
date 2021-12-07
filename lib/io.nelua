@@ -280,3 +280,5 @@ function io.lines(filename: facultative(string), fmt: overload(integer,string,ni
     return lines_next, (@LinesState){file=file,fmt=fmt}, (@string){}
   ## end
 end
+
+return io

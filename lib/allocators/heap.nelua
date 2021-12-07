@@ -492,3 +492,5 @@ Generic used to instantiate a heap allocator type in the form of `HeapAllocator(
 Argument `SIZE` is the size of the heap in bytes.
 ]]
 global HeapAllocator: type = #[generalize(make_HeapAllocatorT)]#
+
+return HeapAllocator

@@ -54,3 +54,5 @@ function C.asctime_r(tp: *C.tm, buf: cstring): cstring <cimport,cinclude'<time.h
 function C.ctime_r(timer: *C.time_t, buf: cstring): cstring <cimport,cinclude'<time.h>'> end
 function C.gmtime_r(timer: *C.time_t, tp: *C.tm): *C.tm <cimport,cinclude'<time.h>'> end
 function C.localtime_r(timer: *C.time_t, tp: *C.tm): *C.tm <cimport,cinclude'<time.h>'> end
+
+return C

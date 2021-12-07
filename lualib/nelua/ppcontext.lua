@@ -337,6 +337,7 @@ function PPContext:hygienize(func)
   local pragmas = context.pragmas
   return function(...)
     -- restore saved state
+    local oldaddindex = statnodes.addindex
     statnodes.addindex = addindex
     self:push_statnodes(statnodes)
     scope:push_checkpoint(checkpoint)
@@ -357,7 +358,7 @@ function PPContext:hygienize(func)
       oldscope:find_shared_up_scope(scope):delay_resolution()
       addindex = statnodes.addindex
     end
-    statnodes.addindex = nil
+    statnodes.addindex = oldaddindex
     return table.unpack(rets)
   end
 end

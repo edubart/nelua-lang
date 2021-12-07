@@ -2,6 +2,7 @@ local lester = require 'nelua.thirdparty.lester'
 local describe, it = lester.describe, lester.it
 
 local ccompiler = require 'nelua.ccompiler'
+local fs = require 'nelua.utils.fs'
 local config = require 'nelua.configer'.get()
 local expect = require 'spec.tools.expect'
 
@@ -26,16 +27,16 @@ end)
 
 it("return", function()
   expect.generate_c("return", [[
-int nelua_main(int nelua_argc, char** nelua_argv) {
+int nelua_main(int argc, char** argv) {
   return 0;
 }]])
   expect.generate_c("return 1", [[
-int nelua_main(int nelua_argc, char** nelua_argv) {
+int nelua_main(int argc, char** argv) {
   return 1;
 }]])
   expect.generate_c("return 1")
   expect.generate_c("if false then return end", [[
-int nelua_main(int nelua_argc, char** nelua_argv) {
+int nelua_main(int argc, char** argv) {
   if(false) {
     return 0;
   }
@@ -3138,6 +3139,29 @@ it("require builtin", function()
   expect.run_error_c([[
     require 'invalid_file'
   ]], "module 'invalid_file' not found")
+end)
+
+it("require returns", function()
+  fs.writefile('require_tmp.nelua', [[return 1]])
+  expect.run_c([[
+    local a = require 'require_tmp'
+    assert(a == 1)
+  ]])
+
+  fs.writefile('require_tmp.nelua', [[return 1, 'hello']])
+  expect.run_c([[
+    local a, b = require 'require_tmp'
+    assert(a == 1 and b == 'hello')
+  ]])
+
+  fs.writefile('require_tmp.nelua', [[return @record{x: integer}]])
+  expect.run_c([[
+    local R: type = require 'require_tmp'
+    local r: R = {x = 1}
+    assert(r.x == 1)
+  ]])
+
+  fs.deletefile('require_tmp.nelua')
 end)
 
 it("name collision", function()

@@ -263,3 +263,5 @@ static inline void call_once(once_flag *flag, void (*func)(void)) {
 }
 #endif
 ]==] ]]
+
+return C

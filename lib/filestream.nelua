@@ -474,3 +474,5 @@ function filestream:__tostring(): string
     return string.format('file (%p)', fp)
   end
 end
+
+return filestream

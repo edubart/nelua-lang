@@ -107,3 +107,4 @@ global C.ATOMIC_POINTER_LOCK_FREE: cint <const,cimport,nodecl>
 -- Initializes a new atomic flag.
 global C.ATOMIC_FLAG_INIT: C.atomic_flag <const,cimport,nodecl>
 
+return C

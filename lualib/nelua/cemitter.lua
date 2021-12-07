@@ -443,7 +443,9 @@ function CEmitter:add_qualified_declaration(attr, type, name)
   if attr.aligned then
     self:add(context:ensure_builtin('NELUA_ALIGNAS'), '(', attr.aligned, ') ')
   end
-  if attr.cimport and attr.codename ~= 'nelua_main' then
+  if attr.cimport and attr.codename ~= 'nelua_main' and
+                      attr.codename ~= 'nelua_argc' and
+                      attr.codename ~= 'nelua_argv' then
     self:add(context:ensure_builtin('NELUA_CIMPORT'), ' ')
   elseif attr.cexport then
     self:add(context:ensure_builtin('NELUA_CEXPORT'), ' ')

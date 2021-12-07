@@ -89,3 +89,5 @@ end
 require 'allocators.allocator'
 
 ## implement_allocator_interface(GeneralAllocator)
+
+return GeneralAllocator

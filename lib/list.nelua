@@ -330,3 +330,5 @@ Argument `Allocator` is an allocator type for the container storage,
 in case absent then then `DefaultAllocator` is used.
 ]]
 global list: type = #[generalize(make_listT)]#
+
+return list

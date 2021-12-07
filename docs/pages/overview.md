@@ -2393,9 +2393,9 @@ The above code generates exactly this C code:
 ```c
 /* ------------------------------ DECLARATIONS ------------------------------ */
 int puts(const char* s);
-static int nelua_main(int nelua_argc, char** nelua_argv);
+static int nelua_main(int argc, char** argv);
 /* ------------------------------ DEFINITIONS ------------------------------- */
-int nelua_main(int nelua_argc, char** nelua_argv) {
+int nelua_main(int argc, char** argv) {
   puts("hello");
   return 0;
 }
@@ -2425,9 +2425,9 @@ The above code generates exactly this C code:
 ```c
 #include <stdio.h>
 /* ------------------------------ DECLARATIONS ------------------------------ */
-static int nelua_main(int nelua_argc, char** nelua_argv);
+static int nelua_main(int argc, char** argv);
 /* ------------------------------ DEFINITIONS ------------------------------- */
-int nelua_main(int nelua_argc, char** nelua_argv) {
+int nelua_main(int argc, char** argv) {
   puts("hello");
   return 0;
 }

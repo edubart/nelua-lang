@@ -238,3 +238,5 @@ function memory.spanfind(s: an_span, x: auto): isize
   end
   return -1
 end
+
+return memory

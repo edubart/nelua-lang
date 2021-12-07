@@ -460,3 +460,5 @@ global stringbuilder: type = #[make_stringbuilderT()]#
 
 -- Some string methods are used in polymorphic functions, like `tostring`.
 require 'string'
+
+return stringbuilder

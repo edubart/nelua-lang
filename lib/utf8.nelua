@@ -270,3 +270,5 @@ function utf8.len(s: string, i: facultative(isize), j: facultative(isize), relax
   end
   return n, -1
 end
+
+return utf8

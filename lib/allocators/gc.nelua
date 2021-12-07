@@ -782,3 +782,5 @@ function GCAllocator:new(what: auto, size: facultative(usize)): auto <noinline>
 end
 
 ## implement_allocator_interface(GCAllocator)
+
+return GCAllocator

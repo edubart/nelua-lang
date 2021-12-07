@@ -718,10 +718,8 @@ local TypeType = types.typeclass()
 types.TypeType = TypeType
 TypeType.is_type = true
 TypeType.is_comptime = true
-TypeType.nodecl = true
 TypeType.is_unpointable = true
 TypeType.is_polymorphic = true
-TypeType.is_nameable = true
 
 function TypeType:_init(name)
   Type._init(self, name, 0)
@@ -1716,7 +1714,7 @@ function FunctionType:_init(argattrs, rettypes, node, refonly)
   if rettypes then
     for i=1,#rettypes do
       local rettype = rettypes[i]
-      if rettype.is_comptime then
+      if rettype.is_comptime and not rettype.is_type then
         ASTNode.raisef(node, "in function return: return #%d cannot be of compile-time type '%s'", i, rettype)
       elseif not refonly and not rettype:is_defined() then
         ASTNode.raisef(node, "in function return: return #%d cannot be of forward declared type '%s'", i, rettype)
@@ -2495,7 +2493,6 @@ StringType.binary_operators.gt = make_string_cmp_opfunc(function(a,b) return a>b
 local CVaList = types.typeclass(RecordType)
 types.CVaList = CVaList
 CVaList.is_cvalist = true
-CVaList.is_nameable = false
 CVaList.nodecl = true
 CVaList.cimport = true
 CVaList.cinclude = '<stdarg.h>'

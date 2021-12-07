@@ -173,6 +173,10 @@ typevisitors[types.NiltypeType] = function(context)
   context:ensure_builtin('nlniltype')
 end
 
+typevisitors[types.TypeType] = function(context)
+  context:ensure_builtin('nltype')
+end
+
 typevisitors.FunctionReturnType = function(context, functype)
   if #functype.rettypes <= 1 then
     return context:ensure_type(functype:get_return_type(1))
@@ -1172,6 +1176,8 @@ function visitors.VarDecl(context, node, emitter)
     elseif not vartype.is_comptime and valnode and
            not valnode.attr.comptime and not lastcallindex then -- could be a call
       emitter:add_indent_ln(valnode, ';')
+    elseif valnode and valnode.attr.requirename then -- require call
+      emitter:add_indent_ln(valnode, ';')
     end
     if varattr.cinclude and (context.pragmas.nodce or varattr:is_used(true)) then
       context:ensure_include(varattr.cinclude)
@@ -1591,7 +1597,14 @@ end
 function cgenerator.emit_nelua_main(context, ast, emitter)
   assert(ast.is_Block) -- ast is expected to be a Block
   local rollbackpos = emitter:get_pos()
-  emitter:add_text("int nelua_main(int nelua_argc, char** nelua_argv) {\n") -- begin block
+  emitter:add_text("int nelua_main(int argc, char** argv) {\n") -- begin block
+  if context.cmainimports then
+    emitter:inc_indent()
+    for _,varname in ipairs(context.cmainimports) do
+      emitter:add_indent_ln('nelua_',varname,' = ',varname,';')
+    end
+    emitter:dec_indent()
+  end
   local startpos = emitter:get_pos() -- save current emitter position
   context:traverse_node(ast, emitter) -- emit ast statements
   if context.hookmain or emitter:get_pos() ~= startpos then -- main is used or statements were added
@@ -1599,7 +1612,7 @@ function cgenerator.emit_nelua_main(context, ast, emitter)
       emitter:add_indent_ln("  return 0;") -- ensures that an int is always returned
     end
     emitter:add_ln("}") -- end bock
-    context:add_declaration('static int nelua_main(int nelua_argc, char** nelua_argv);\n', 'nelua_main')
+    context:add_declaration('static int nelua_main(int argc, char** argv);\n', 'nelua_main')
   else -- empty main, we can skip `nelua_main` usage
     emitter:rollback(rollbackpos) -- revert text added for begin block
   end

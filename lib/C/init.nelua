@@ -2,3 +2,5 @@
 
 -- Namespace used to import C functions.
 global C: type = @record{}
+
+return C

@@ -490,7 +490,7 @@ function math.type(x: auto): auto <inline,nosideeffect>
   ## end
 end
 
-require 'detail.xoshiro256'
+local Xoshiro256: type = require 'detail.xoshiro256'
 
 -- Default initialization for the pseudo random generator
 local default_random: Xoshiro256 = {state={
@@ -574,3 +574,5 @@ global math.maxinteger: integer <comptime> = #[primtypes.integer.max]#
 
 -- An integer with the maximum value for an unsigned integer.
 global math.maxuinteger: uinteger <comptime> = #[primtypes.uinteger.max]#
+
+return math

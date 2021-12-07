@@ -39,3 +39,5 @@ function C.strerror(errnum: cint): cstring <cimport,cinclude'<string.h>'> end
 function C.memccpy(dest: pointer, src: pointer, c: cint, n: csize): pointer <cimport,cinclude'<string.h>'> end
 function C.strdup(s: cstring): cstring <cimport,cinclude'<string.h>'> end
 function C.strndup(string: cstring, n: csize): cstring <cimport,cinclude'<string.h>'> end
+
+return C

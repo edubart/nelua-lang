@@ -658,6 +658,9 @@ it("function definition", function()
     local f: function(integer): string
     function f(a: integer): string return '' end
   ]])
+  expect.analyze_ast([[
+    local function f(): type return @integer end
+  ]])
   expect.analyze_error([[
     do
       global function f() end
@@ -683,12 +686,9 @@ it("function definition", function()
     local f: function():(integer, string)
     function f(): integer return 1 end
   ]], "no viable type conversion")
-  expect.analyze_error([[
+  expect.analyze_ast([[
     local f: function(): type
-  ]], "return #1 cannot be of")
-  expect.analyze_error([[
-    local function f(): type end
-  ]], "return #1 cannot be of")
+  ]])
   expect.analyze_error([[
     local function f(): f end
   ]], "invalid type for function return")

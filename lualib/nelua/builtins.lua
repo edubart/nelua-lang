@@ -5,6 +5,7 @@ local preprocessor = require 'nelua.preprocessor'
 local typedefs = require 'nelua.typedefs'
 local types = require 'nelua.types'
 local Attr = require 'nelua.attr'
+local Symbol = require 'nelua.symbol'
 local primtypes = typedefs.primtypes
 local pegger = require 'nelua.utils.pegger'
 local aster = require 'nelua.aster'
@@ -52,6 +53,8 @@ function builtins.require(context, node, argnodes)
       node:raisef("in require: module '%s' cannot require itself", reqname)
     end
 
+    attr.funcname = context.rootscope:generate_name('nelua_require_'..unitname, true)
+
     -- nelua internal libs have unit name of just 'nelua'
     if filepath:find(config.lib_path, 1, true) then
       unitname = 'nelua'
@@ -84,16 +87,46 @@ function builtins.require(context, node, argnodes)
   -- analyze it
   local ast = attr.loadedast
   attr.pragmas = attr.pragmas or {unitname = attr.unitname}
-  context:push_forked_state{inrequire = true}
   context:push_scope(context.rootscope)
-  context:push_forked_pragmas(attr.pragmas)
-  if justloaded then
-    preprocessor.preprocess(context, ast)
-  end
-  context:traverse_node(ast)
-  context:pop_pragmas()
+
+  local funcscope, funcsym
+  repeat
+    funcscope = context:push_forked_cleaned_scope(node)
+    funcsym = funcscope.funcsym
+    if not funcsym then
+      funcsym = Symbol{
+        name = attr.funcname,
+        codename = attr.funcname,
+        scope = context.rootscope,
+        reqfunc = true,
+      }
+      funcscope.funcsym = funcsym
+      funcscope.is_require = true
+      funcscope.is_function = true
+      funcscope.is_resultbreak = true
+      funcsym:add_use_by()
+    end
+    context:push_forked_state{funcscope=funcscope}
+    context:push_forked_pragmas(attr.pragmas)
+    if justloaded then
+      preprocessor.preprocess(context, ast)
+      justloaded = false
+    end
+    context:traverse_node(ast)
+    context:pop_pragmas()
+    local resolutions_count = funcscope:resolve()
+    context:pop_state()
+    context:pop_scope()
+  until resolutions_count == 0 or #funcscope.rettypes == 0
+
   context:pop_scope()
-  context:pop_state()
+
+  local type = types.FunctionType({{name='modname', type=primtypes.string, comptime=true}}, funcscope.rettypes, node)
+  type.sideeffect = true
+  attr.functype = type
+  attr.value = funcscope.retvalues and funcscope.retvalues[1]
+  funcsym.type = type
+  return type
 end
 
 function builtins.assert(context, node, argnodes)

@@ -328,3 +328,5 @@ global C.FP_SUBNORMAL: cint <const,cimport,cinclude'<math.h>'>
 global C.FP_ZERO: cint <const,cimport,cinclude'<math.h>'>
 global C.FP_INFINITE: cint <const,cimport,cinclude'<math.h>'>
 global C.FP_NAN: cint <const,cimport,cinclude'<math.h>'>
+
+return C

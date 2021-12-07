@@ -18,8 +18,8 @@ global arg: sequence(string, GeneralAllocator)
 ## after_analyze(hygienize(function()
   ## if symbols.arg:is_used() then
   -- Import argc and argv from C 'nelua_main'
-  local nelua_argc: cint <cimport,nodecl>
-  local nelua_argv: *[0]cstring <cimport,nodecl>
+  local nelua_argc: cint <cimport>
+  local nelua_argv: *[0]cstring <cimport>
 
   -- setup args
   if nelua_argc > 0 then
@@ -33,3 +33,5 @@ global arg: sequence(string, GeneralAllocator)
 ## end))
 
 -- NOTE: The memory of `arg` is never freed, but it's fine, it's not a leak for global variables.
+
+return arg

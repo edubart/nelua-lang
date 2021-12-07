@@ -11,7 +11,7 @@ local CAP_UNFINISHED: isize <comptime> = -1
 local CAP_POSITION: isize <comptime> = -2
 
 -- Record holding a matched capture.
-global PatternMatcherCapture: type = @record{
+local PatternMatcherCapture: type = @record{
   init: isize,
   len: isize
 }
@@ -434,3 +434,5 @@ function PatternMatcher.match(ms: *PatternMatcher, s: isize): (isize, isize)
     return s, -1
   end
 end
+
+return PatternMatcher

@@ -45,3 +45,5 @@ global C.LC_CTYPE: cint <const,cimport,cinclude'<locale.h>'>
 global C.LC_MONETARY: cint <const,cimport,cinclude'<locale.h>'>
 global C.LC_NUMERIC: cint <const,cimport,cinclude'<locale.h>'>
 global C.LC_TIME: cint <const,cimport,cinclude'<locale.h>'>
+
+return C

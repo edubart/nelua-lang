@@ -139,3 +139,5 @@ Argument `SIZE` is the maximum number of elements in the pool.
 The pool will effectively have an internal buffer with `#T * SIZE` bytes.
 ]]
 global PoolAllocator: type = #[generalize(make_PoolAllocatorT)]#
+
+return PoolAllocator

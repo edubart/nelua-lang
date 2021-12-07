@@ -114,3 +114,5 @@ global C.SEEK_END: cint <const,cimport,cinclude'<stdio.h>'>
 
 global C.TMP_MAX: cint <const,cimport,cinclude'<stdio.h>'>
 global C.L_tmpnam: cint <const,cimport,cinclude'<stdio.h>'>
+
+return C

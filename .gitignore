@@ -30,3 +30,4 @@ tempCodeRunner.*
 /pgo
 preview.md
 test_file.tmp
+require_tmp.nelua

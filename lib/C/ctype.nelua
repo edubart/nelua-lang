@@ -26,3 +26,5 @@ function C.ispunct(x: cint): cint <cimport,cinclude'<ctype.h>'> end
 
 function C.tolower(c: cint): cint <cimport,cinclude'<ctype.h>'> end
 function C.toupper(c: cint): cint <cimport,cinclude'<ctype.h>'> end
+
+return C

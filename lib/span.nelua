@@ -108,3 +108,5 @@ Generic used to instantiate a span type in the form of `span(T)`.
 Argument `T` is the value type that the span will store.
 ]]
 global span: type = #[generalize(make_spanT)]#
+
+return span

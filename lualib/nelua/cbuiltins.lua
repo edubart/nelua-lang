@@ -291,6 +291,12 @@ function cbuiltins.nlniltype(context)
     "} nlniltype;")
 end
 
+-- Used by `type` type at runtime.
+function cbuiltins.nltype(context)
+  context:ensure_builtin('nlniltype')
+  context:define_builtin_decl('nltype', "typedef struct nlniltype nltype;")
+end
+
 -- Used by `nil` at runtime.
 function cbuiltins.NELUA_NIL(context)
   context:ensure_builtin('nlniltype')
@@ -816,27 +822,33 @@ function cbuiltins.calls.check(context, node)
 end
 
 -- Implementation of `require` builtin.
-function cbuiltins.calls.require(context, node, emitter)
+function cbuiltins.calls.require(context, node)
   local attr = node.attr
   if attr.alreadyrequired then
     return
   end
   local ast = attr.loadedast
   assert(not attr.runtime_require and ast)
-  local bracepos = emitter:get_pos()
-  emitter:add_indent_ln("{ /* require '", attr.requirename, "' */")
-  local lastpos = emitter:get_pos()
-  context:push_forked_state{inrequire = true}
+  local funcname = attr.funcname
+  local defemitter = CEmitter(context)
   context:push_scope(context.rootscope)
+  local funcscope = context:push_forked_scope(node)
+  context:push_forked_state{funcscope=funcscope}
   context:push_forked_pragmas(attr.pragmas)
-  emitter:add(ast)
+  defemitter:add_ln('{')
+  local lastpos = defemitter:get_pos()
+  defemitter:add(ast)
+  local empty = defemitter:get_pos() == lastpos
+  defemitter:add('}')
   context:pop_pragmas()
-  context:pop_scope()
   context:pop_state()
-  if emitter:get_pos() == lastpos then
-    emitter:rollback(bracepos)
-  else
-    emitter:add_indent_ln('}')
+  context:pop_scope()
+  context:pop_scope()
+  if not empty then
+    local args = {{primtypes.niltype, 'modname'}}
+    local rettypename = context:funcrettypename(attr.functype)
+    context:define_function_builtin(funcname, '', rettypename, args, defemitter:generate())
+    return funcname
   end
 end
 

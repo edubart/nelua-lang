@@ -66,3 +66,5 @@ global function type(v: auto): string <inline>
     return #[v.type.name]#
   ## end
 end
+
+return traits

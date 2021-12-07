@@ -150,3 +150,5 @@ Argument `ALIGN` is the default alignment for new allocations,
 must be at least 4 and in power of two, in case absent then `8` is used.
 ]]
 global ArenaAllocator: type = #[generalize(make_ArenaT)]#
+
+return ArenaAllocator

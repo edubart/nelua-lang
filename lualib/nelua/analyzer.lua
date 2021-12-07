@@ -589,6 +589,10 @@ function visitors.Annotation(context, node, opts)
     else
       objattr.codename = codename
     end
+    if codename == 'nelua_argc' or codename == 'nelua_argv' then
+      context.cmainimports = context.cmainimports or {}
+      table.insert(context.cmainimports, (codename:gsub('nelua_', '')))
+    end
   elseif name == 'nickname' then
     assert(objattr._type and objattr.is_nameable)
     local type, nickname = objattr, params
@@ -1537,7 +1541,8 @@ function visitors.Call(context, node, opts)
       local builtinfunc = builtins[calleeattr.name]
       if builtinfunc then
         local builtintype = attr.builtintype
-        if builtintype then
+        if builtintype and builtinfunc ~= builtins.require then
+          -- cache type if not require builtin
           calleetype = builtintype
         else
           builtintype = builtinfunc(context, node, argnodes, calleenode)
@@ -2464,7 +2469,7 @@ function visitors.Return(context, node)
   else
     context:traverse_nodes(retnodes)
     for i,retnode,rettype in iargnodes(retnodes) do
-      funcscope:add_return_type(i, rettype, retnode)
+      funcscope:add_return_type(i, rettype, retnode and retnode.attr.value, retnode)
     end
   end
 end
@@ -2496,7 +2501,8 @@ function visitors.In(context, node)
     node.done = retnode.done and true
   else
     context:traverse_node(retnode)
-    exprscope:add_return_type(1, retnode.attr.type, retnode)
+    local retattr = retnode.attr
+    exprscope:add_return_type(1, retattr.type, retattr.value, retnode)
   end
 end
 

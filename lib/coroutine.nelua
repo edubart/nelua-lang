@@ -2220,3 +2220,5 @@ elseif ccinfo.is_avr then
   static_error('coroutine is not supported for target platform')
 end
 ]]
+
+return coroutine

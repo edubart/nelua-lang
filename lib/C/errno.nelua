@@ -16,3 +16,5 @@ global C.errno: cint <cimport,cinclude'<errno.h>'>
 global C.EDOM: cint <const,cimport,cinclude'<errno.h>'>
 global C.EILSEQ: cint <const,cimport,cinclude'<errno.h>'>
 global C.ERANGE: cint <const,cimport,cinclude'<errno.h>'>
+
+return C

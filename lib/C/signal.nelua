@@ -22,3 +22,5 @@ global C.SIGINT: cint <const,cimport,cinclude'<signal.h>'>
 global C.SIGILL: cint <const,cimport,cinclude'<signal.h>'>
 global C.SIGABRT: cint <const,cimport,cinclude'<signal.h>'>
 global C.SIGFPE: cint <const,cimport,cinclude'<signal.h>'>
+
+return C

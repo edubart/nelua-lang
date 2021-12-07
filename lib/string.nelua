@@ -21,7 +21,7 @@ require 'span'
 require 'sequence'
 require 'stringbuilder'
 require 'allocators.default'
-require 'detail.patternmatcher'
+local PatternMatcher: type = require 'detail.patternmatcher'
 
 --[[
 Allocate a new string to be filled with length `size`.
@@ -197,7 +197,7 @@ function string.gmatch(s: string, pattern: string, init: facultative(isize)): (a
       matched = string.copy((@string){data=&state.ms.source.data[startpos], size=(@usize)(endpos-startpos)})
       assert(state.ms.numcaptures <= MAX_CAPTURES, 'too many captures')
       for i:isize=0,<state.ms.numcaptures do
-        local ok: boolean, capstr: string, capture: PatternMatcherCapture = state.ms:get_capture(i)
+        local ok: boolean, capstr: string, capture: auto = state.ms:get_capture(i)
         assert(ok, capstr)
         assert(not capture:is_position(), 'position capture not supported yet')
         state.captures[i] = string.copy(capstr)
@@ -234,7 +234,7 @@ function string.gmatchview(s: string, pattern: string, init: facultative(isize))
       matched = (@string){data=&state.ms.source.data[startpos], size=(@usize)(endpos-startpos)}
       assert(state.ms.numcaptures <= MAX_CAPTURES, 'too many captures')
       for i:isize=0,<state.ms.numcaptures do
-        local ok: boolean, capstr: string, capture: PatternMatcherCapture = state.ms:get_capture(i)
+        local ok: boolean, capstr: string, capture: auto = state.ms:get_capture(i)
         assert(ok, capstr)
         assert(not capture:is_position(), 'position capture not supported yet')
         state.captures[i] = capstr
@@ -293,7 +293,7 @@ function string.gsub(s: string, pattern: string, repl: auto, maxn: facultative(i
       local matchrepl: string
       local ri: usize = 0
       ## if repl.type.is_hashmap then
-        local ok: boolean, capstr: string, capture: PatternMatcherCapture = ms:get_capture(0)
+        local ok: boolean, capstr: string, capture: auto = ms:get_capture(0)
         local key: string
         if not ok and ms.numcaptures == 0 then
           key = match
@@ -316,7 +316,7 @@ function string.gsub(s: string, pattern: string, repl: auto, maxn: facultative(i
           ## local args = {}
           ## for i=1,#repl.type.argtypes do
             capindex = #[i-1]#
-            local ok: boolean, capstr: string, capture: PatternMatcherCapture = ms:get_capture(capindex)
+            local ok: boolean, capstr: string, capture: auto = ms:get_capture(capindex)
             if not ok and capindex == 0 and ms.numcaptures == 0 then
               capstr = string.copy(match)
             else
@@ -353,7 +353,7 @@ function string.gsub(s: string, pattern: string, repl: auto, maxn: facultative(i
             sb:write(match)
           elseif c >= '1'_b and c <= '9'_b then -- should be a digit
             local capindex: isize = c - '1'_b
-            local ok: boolean, capstr: string, capture: PatternMatcherCapture = ms:get_capture(capindex)
+            local ok: boolean, capstr: string, capture: auto = ms:get_capture(capindex)
             if not ok and capindex == 0 and ms.numcaptures == 0 then
               sb:write(match)
             else
@@ -401,7 +401,7 @@ local function string_match(s: string, pattern: string, init: facultative(isize)
     if ms.numcaptures > 0 then -- has captures
       captures:resize((@usize)(ms.numcaptures))
       for i:isize=0,<ms.numcaptures do
-        local ok: boolean, capstr: string, capture: PatternMatcherCapture = ms:get_capture(i)
+        local ok: boolean, capstr: string, capture: auto = ms:get_capture(i)
         assert(ok, capstr)
         assert(not capture:is_position(), 'position capture not supported yet')
         captures[(@usize)(i+1)] = capstr
@@ -1635,3 +1635,5 @@ function string.packsize(fmt: string): isize
   end
   return (@isize)(len)
 end
+
+return string

@@ -296,3 +296,5 @@ Argument `Allocator` is an allocator type for the container storage,
 in case absent then `DefaultAllocator` is used.
 ]]
 global sequence: type = #[generalize(make_sequenceT)]#
+
+return sequence

@@ -88,3 +88,5 @@ function hash.hash(v: auto): usize <nosideeffect>
     return 0
   ## else static_error("cannot hash type '%s'", type) end
 end
+
+return hash
