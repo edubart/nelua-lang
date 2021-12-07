@@ -7,8 +7,7 @@ The functions provided here can be used with the `for in` construction.
 
 ##[[
 local function container_type_by_reference(xtype)
-  local reftype
-  local containertype
+  local reftype, containertype
   if xtype.is_pointer then
     reftype = xtype
     containertype = reftype.subtype
@@ -19,25 +18,17 @@ local function container_type_by_reference(xtype)
     containertype = xtype
     reftype = types.PointerType(containertype)
   end
-  return containertype, reftype
+  return reftype, containertype
 end
 ]]
--- Concept used to pass contiguous containers by reference.
-local contiguous_reference_concept: type = #[concept(function(x)
-  local containertype, reftype = container_type_by_reference(x.type)
-  if containertype.is_contiguous then
-    return reftype
-  end
-  return false, string.format("type '%s' is not a reference to a contiguous container", x.type)
-end)]#
 
 -- Concept used to pass containers by reference.
 local container_reference_concept: type = #[concept(function(x)
-  local containertype, reftype = container_type_by_reference(x.type)
-  if containertype.is_container then
-    return reftype
+  local reftype = container_type_by_reference(x.type)
+  if not reftype then
+    return false, string.format("type '%s' is not a reference to a container", x.type)
   end
-  return false, string.format("type '%s' is not a reference to a container", x.type)
+  return reftype
 end)]#
 
 -- Macro that implements the next iterator for lists.
@@ -68,8 +59,9 @@ Where `i` is an integer determining the index of the element, and `v` its respec
 
 The container `a` must be contiguous, such as `array`, `span`, `vector` or `sequence`.
 ]]
-global function ipairs(a: contiguous_reference_concept): (auto, auto, integer) <inline>
+global function ipairs(a: container_reference_concept): (auto, auto, integer) <inline>
   ## local atype = a.type:implicit_deref_type()
+  ## if not atype.is_contiguous then static_error("container '%s' is not contiguous", atype) end
   local function ipairs_next(a: #[a.type]#, k: integer): (boolean, integer, auto) <inline>
     ## impl_ipairs_next(atype)
   end
@@ -77,8 +69,9 @@ global function ipairs(a: contiguous_reference_concept): (auto, auto, integer) <
 end
 
 -- Like `ipairs` but yields reference to elements values so that you can modify them in-place.
-global function mipairs(a: contiguous_reference_concept): (auto, auto, integer) <inline>
+global function mipairs(a: container_reference_concept): (auto, auto, integer) <inline>
   ## local atype = a.type:implicit_deref_type()
+  ## if not atype.is_contiguous then static_error("container '%s' is not contiguous", atype) end
   local function mipairs_next(a: #[a.type]#, k: integer): (boolean, integer, auto) <inline>
     ## impl_mipairs_next(atype)
   end
@@ -101,9 +94,9 @@ global function next(a: container_reference_concept, k: auto): (auto, auto, auto
     local k: #[ktype]# = nilptr
     ## end
     return a:__next(k)
-  ## else
+  ## elseif atype.is_contiguous then
     ## impl_ipairs_next(a.type:implicit_deref_type())
-  ## end
+  ## else static_error("type '%s' does not support `next`, is it missing `__next` metamethod?", atype) end
 end
 
 -- Like `next` but returns reference to the next element value, so that you can modify it in-place.
@@ -115,9 +108,9 @@ global function mnext(a: container_reference_concept, k: auto): (auto, auto, aut
     local k: #[ktype]# = nilptr
     ## end
     return a:__mnext(k)
-  ## else
-  ## impl_mipairs_next(a.type:implicit_deref_type())
-  ## end
+  ## elseif atype.is_contiguous then
+    ## impl_mipairs_next(a.type:implicit_deref_type())
+  ## else static_error("type '%s' does not support `mnext`, is it missing `__mnext` metamethod?", atype) end
 end
 
 --[[
@@ -135,9 +128,9 @@ global function pairs(a: container_reference_concept): (auto, auto, auto) <inlin
   ## local atype = a.type:implicit_deref_type()
   ## if atype.is_record and atype.metafields.__pairs then
     return a:__pairs()
-  ## else
+  ## elseif atype.is_contiguous then
     return ipairs(a)
-  ## end
+  ## else static_error("type '%s' does not support `pairs`, is it missing `__pairs` metamethod?", atype) end
 end
 
 -- Like `pairs` but yields reference to elements values so that you can modify them in-place.
@@ -145,7 +138,7 @@ global function mpairs(a: container_reference_concept): (auto, auto, auto) <inli
   ## local atype = a.type:implicit_deref_type()
   ## if atype.is_record and atype.metafields.__mpairs then
     return a:__mpairs()
-  ## else
+  ## elseif atype.is_contiguous then
     return mipairs(a)
-  ## end
+  ## else static_error("type '%s' does not support `mpairs`, is it missing `__mpairs` metamethod?", atype) end
 end
