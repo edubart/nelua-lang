@@ -1772,7 +1772,7 @@ local function visitor_Array_KeyIndex(_, node, objtype, _, indexnode)
         if bn.isneg(indexvalue) then
           indexnode:raisef("cannot index negative value %s", indexvalue)
         end
-        if objtype.is_array and objtype.length ~= 0 and not (indexvalue < bn.new(objtype.length)) then
+        if objtype.length ~= 0 and not (indexvalue < bn.new(objtype.length)) then
           indexnode:raisef("index %s is out of bounds, array maximum index is %d",
             indexvalue:todecint(), objtype.length - 1)
         end

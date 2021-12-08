@@ -107,7 +107,9 @@ end
 
 function Attr:must_define_at_runtime()
   local type = self.type
-  return not (type.is_comptime or self.comptime or (type.size == 0 and not self.refed))
+  return not (type.is_comptime or
+              self.comptime or
+              (type.size == 0 and not self.refed and not type.is_array))
 end
 
 function Attr:must_zero_initialize()
