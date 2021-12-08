@@ -787,7 +787,15 @@ function visitors.Return(context, node, emitter)
     end
   elseif numrets == 1 then -- one return
     local retnode = node[1]
-    local rettype = retscope.is_root and primtypes.cint or functype:get_return_type(1)
+    local rettype
+    if retscope.is_root then
+      rettype = retscope.rettypes and retscope.rettypes[1] or primtypes.cint
+      if rettype and not rettype.is_integral then
+        node:raisef("main cannot return value of type '%s', only integral numbers can be returned", rettype)
+      end
+    else
+      rettype = functype:get_return_type(1)
+    end
     if not deferemitter:empty() and retnode and not retnode.is_Id and not retnode.attr.comptime then
       local retname = funcscope:generate_name('_ret')
       emitter:add_indent(rettype, ' ', retname, ' = ')

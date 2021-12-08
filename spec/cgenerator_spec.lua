@@ -46,6 +46,7 @@ int nelua_main(int argc, char** argv) {
   expect.run_error_c([[
     return 1, 2
   ]], "multiple returns in main is not supported")
+  expect.run_error_c([[return 'ok']], "main cannot return value of type")
 end)
 
 it("local variable", function()
@@ -1553,16 +1554,16 @@ it("record comparisons", function()
 end)
 
 it("binary conditional operators", function()
-  expect.generate_c("local a: pointer, b: pointer; do return a or b end",  [[({
-      void* t1_ = a;
-      void* t2_ = NULL;
-      bool cond_ = (t1_ != NULL);
-      if(!cond_) {
-        t2_ = b;
-      }
-      cond_ ? t1_ : t2_;
-    })]])
-  expect.generate_c("local a: pointer, b: pointer; return a and b",  [[({
+  expect.generate_c("local a: pointer, b: pointer; local x = a or b",  [[({
+    void* t1_ = a;
+    void* t2_ = NULL;
+    bool cond_ = (t1_ != NULL);
+    if(!cond_) {
+      t2_ = b;
+    }
+    cond_ ? t1_ : t2_;
+  })]])
+  expect.generate_c("local a: pointer, b: pointer; local x = a and b",  [[({
     void* t1_ = a;
     void* t2_ = NULL;
     bool cond_ = (t1_ != NULL);
