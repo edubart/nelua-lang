@@ -362,6 +362,24 @@ it("close", function()
       local a: R <close>, b: R <close> = {3}, {4}
     end
     print('end')
+
+    do -- close for loops
+      local R: type = @record{x: integer}
+      function R:__close()
+        self.x = self.x + 1
+      end
+
+      local function upto(limit: integer, k: integer): (boolean, integer)
+        return k + 1 <= limit, k + 1
+      end
+
+      local r: R
+      local pr: *R = &r
+      for k in upto,10,0,pr do end -- first close
+      for k in upto,10,0,pr do break end -- second close
+      for k in upto,10,0,pr do continue end -- third close
+      assert(r.x == 3)
+    end
   ]], '2\n1\n4\n3\nend')
 end)
 

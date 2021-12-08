@@ -2088,8 +2088,8 @@ end
 
 function visitors.ForIn(context, node)
   local itvarnodes, inexpnodes, blocknode = node[1], node[2], node[3]
-  if #inexpnodes > 3 then
-    node:raisef("`in` statement can have at most 3 arguments")
+  if #inexpnodes > 4 then
+    node:raisef("`in` statement can have at most 4 arguments")
   end
 
   if context.generator == 'lua' then -- lua backend
@@ -2120,7 +2120,8 @@ function visitors.ForIn(context, node)
       aster.VarDecl{'local', {
           aster.IdDecl{'__fornext'},
           aster.IdDecl{'__forstate'},
-          aster.IdDecl{'__forit'}
+          aster.IdDecl{'__forit'},
+          aster.IdDecl{'__forclose', false, {aster.Annotation{'close'}}},
         },
         inexpnodes
       },
@@ -2210,6 +2211,7 @@ end
 local function visit_close(context, declnode, varnode, symbol)
   local objtype = varnode.attr.type
   if not objtype then return end
+  if objtype.is_niltype then return end
   objtype = objtype:implicit_deref_type()
   if not objtype.metafields or not objtype.metafields.__close then
     varnode:raisef(

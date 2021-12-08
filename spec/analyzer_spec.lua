@@ -1041,7 +1041,7 @@ it("for in", function()
     [[local a = 1; for i in a do end]],
     "cannot call type")
   expect.analyze_error(
-    [[for i in a,b,c,d do end]],
+    [[for i in a,b,c,d,e do end]],
     "`in` statement can have at most")
 
   --[=[

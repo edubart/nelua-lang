@@ -48,7 +48,6 @@ do -- io.popen
   ## end
   if file:isopen() then
     local s = file:read('a')
-    print(s)
     assert(s == 'test\n')
     s:destroy()
     file:close()

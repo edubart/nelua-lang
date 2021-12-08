@@ -255,7 +255,7 @@ that is, it iterates over the lines of the default input file.
 It currently never closes the file when the iteration finishes.
 In case of errors opening the file, this function raises the error, instead of returning an error code.
 ]]
-function io.lines(filename: facultative(string), fmt: overload(integer,string,niltype)): (auto, auto, string)
+function io.lines(filename: facultative(string), fmt: overload(integer,string,niltype))
   ## if filename.type.is_niltype then
     return io.stdin:lines()
   ## else
@@ -270,14 +270,9 @@ function io.lines(filename: facultative(string), fmt: overload(integer,string,ni
     }
     local function lines_next(state: LinesState, prevstr: string): (boolean, string)
       local str: string, errmsg: string, status: integer = state.file:read(state.fmt)
-      local ok: boolean = status == 0
-      if not ok then -- must close the file
-        state.file:close()
-        state.file:destroy()
-      end
-      return ok, str
+      return status == 0, str
     end
-    return lines_next, (@LinesState){file=file,fmt=fmt}, (@string){}
+    return lines_next, (@LinesState){file=file,fmt=fmt}, (@string){}, file
   ## end
 end
 
