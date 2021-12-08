@@ -2772,7 +2772,10 @@ local function visitor_function_polyevals(context, node, symbol, varnode, type)
             value = polyargtype,
           }
           local argname = '__arg'..nvarargs
-          polyargnode = aster.IdDecl{argname, aster.Id{'auto', pattr={forcesymbol=polyargtypesym}}}
+          polyargnode = aster.IdDecl{argname,
+            aster.Id{'auto', pattr={forcesymbol=polyargtypesym}},
+            pattr={value=polyargval},
+          }
           polyargnodes[j] = polyargnode
           if varargsnodes then
             varargsnodes[nvarargs] = aster.Id{argname, attr=Attr{type=polyargtype, value=polyargval}}
