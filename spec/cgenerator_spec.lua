@@ -666,7 +666,7 @@ it("poly function aliases", function()
     local Foo = @record{}
     function Foo.foo(x: auto) return x + 1 end
     local Boo = @record{}
-    global Boo.boo = Foo.foo
+    local Boo.boo = Foo.foo
     assert(Boo.boo(1) == 2)
     assert(Boo.boo(1.0) == 2.0)
   ]])

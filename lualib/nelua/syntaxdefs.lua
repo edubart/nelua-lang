@@ -50,8 +50,8 @@ localfunc  : FuncDef  <== `function` $'local' @namedecl @funcbody
 globalfunc : FuncDef  <== `function` $'global' @namedecl @funcbody
 FuncDef         <== `function` $false @funcname @funcbody
 funcbody        <-- `(` funcargs @`)` (`:` @funcrets)~? annots~? Block @`end`
-localvar   : VarDecl  <== $'local' @iddecls (`=` @exprs)?
-globalvar  : VarDecl  <== $'global' @globaldecls (`=` @exprs)?
+localvar   : VarDecl  <== $'local' @suffixeddecls (`=` @exprs)?
+globalvar  : VarDecl  <== $'global' @suffixeddecls (`=` @exprs)?
 Assign          <== vars `=` @exprs
 Preprocess      <== PREPROCESS SKIP
 
@@ -64,9 +64,9 @@ Nil             <== `nil`
 Varargs         <== `...`
 Id              <== name
 IdDecl          <== name (`:` @typeexpr)~? annots?
-typeddecl  : IdDecl <== name `:` @typeexpr annots?
-globaldecl : IdDecl <== (idsuffixed / name) (`:` @typeexpr)~? annots?
-globaldeclexpr  <-- globaldecl / PreprocessExpr
+typeddecl    : IdDecl <== name `:` @typeexpr annots?
+suffixeddecl : IdDecl <== (idsuffixed / name) (`:` @typeexpr)~? annots?
+suffixeddeclexpr  <-- suffixeddecl / PreprocessExpr
 namedecl   : IdDecl <== name
 Function        <== `function` @funcbody
 InitList        <== `{` (field (fieldsep field)* fieldsep?)? @`}`
@@ -105,7 +105,7 @@ callargs        <-| `(` (expr (`,` @expr)*)? @`)` / InitList / String
 annotargs       <-| `(` (expr (`,` @expr)*)? @`)` / InitList / String / PreprocessExpr
 iddecls         <-| iddecl (`,` @iddecl)*
 funcargs        <-| (iddecl (`,` iddecl)* (`,` VarargsType)? / VarargsType)?
-globaldecls     <-| globaldeclexpr (`,` @globaldeclexpr)*
+suffixeddecls   <-| suffixeddeclexpr (`,` @suffixeddeclexpr)*
 exprs           <-| expr (`,` @expr)*
 annots          <-| `<` @Annotation (`,` @Annotation)* @`>`
 funcrets        <-| `(` typeexpr (`,` @typeexpr)* @`)` / typeexpr

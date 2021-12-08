@@ -1351,17 +1351,17 @@ it("record methods", function()
   ]], "cannot redefine meta type field")
   expect.analyze_error([[
     local A = @record{}
-    global A.a: integer
-    global A.a: integer
+    local A.a: integer
+    local A.a: integer
   ]], "cannot redefine meta type field")
   expect.analyze_error([[ -- issue #113
     local R = @record{}
-    global R.Foo = @record{ x: integer }
+    local R.Foo = @record{ x: integer }
     local function x(): R.Fooo return R.Foo{10} end
   ]], "cannot index meta field")
   expect.analyze_error([[
     local B = @record{a: integer}
-    global B.lol: function():integer
+    local B.lol: function():integer
     function B.lol() return 1 end
   ]], "cannot redefine meta type field")
   expect.analyze_error([[
@@ -1376,21 +1376,21 @@ it("record methods", function()
   ]], 'cannot call method')
 end)
 
-it("record globals", function()
+it("record fields", function()
   expect.analyze_ast([[
     local Math = @record{}
-    global Math.PI = 3.14
+    local Math.PI = 3.14
     local a = Math.PI
   ]])
   expect.analyze_ast([[
-    local Math = @record{}
+    global Math = @record{}
     global Math.mathnumber = @number
     local mathnumber = Math.mathnumber
     local a: mathnumber = 1
   ]])
   expect.analyze_error([[
     local Math = @record{}
-    global Math.PI: integer = 3
+    local Math.PI: integer = 3
     Math.PI = 3.14
   ]], "is fractional")
 end)

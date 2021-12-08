@@ -737,10 +737,9 @@ function visitors.IdDecl(context, node)
       symbol.scope = scope
       symbol.lvalue = true
     end
-  else
-    -- global record field
+  else -- record field
     assert(namenode.is_DotIndex)
-    context:push_forked_state{inglobaldecl=node}
+    context:push_forked_state{infielddecl=node}
     symbol = context:traverse_node(namenode)
     context:pop_state()
     symbol.scope = context.rootscope
@@ -1648,7 +1647,7 @@ local function visitor_Type_MetaFieldIndex(context, node, objtype, name)
   local symbol = objtype.metafields[name]
   local parentnode = context:get_visiting_node(1)
   local infuncdef = (context.state.infuncdef == parentnode) and parentnode
-  local inglobaldecl = (context.state.inglobaldecl == parentnode) and parentnode
+  local infielddecl = (context.state.infielddecl == parentnode) and parentnode
   local inpolydef = context.state.inpolydef and symbol == context.state.inpolydef
   if inpolydef then
     symbol = attr._symbol and attr or nil
@@ -1665,9 +1664,9 @@ local function visitor_Type_MetaFieldIndex(context, node, objtype, name)
       if node.is_ColonIndex then
         symbol.metafuncselftype = types.PointerType(objtype)
       end
-    elseif inglobaldecl then -- global declaration
-      symbol:link_node(inglobaldecl)
-      -- declaration of record global variable
+    elseif infielddecl then -- meta field declaration
+      symbol:link_node(infielddecl)
+      -- declaration of record meta field variable
       symbol.metafield = true
     else
       symbol:link_node(node)
@@ -1683,7 +1682,7 @@ local function visitor_Type_MetaFieldIndex(context, node, objtype, name)
     end
     symbol.anonymous = true
     symbol.scope = context.rootscope
-  elseif (infuncdef or inglobaldecl) and not symbol.forwarddecl then
+  elseif (infuncdef or infielddecl) and not symbol.forwarddecl then
     if symbol.node ~= node then
       node:raisef("cannot redefine meta type field '%s' in record '%s'", name, objtype)
     end
@@ -1718,7 +1717,7 @@ end
 
 local function visitor_Type_FieldIndex(context, node, objtype, name)
   objtype = objtype:implicit_deref_type()
-  if objtype.is_enum and not (context.state.infuncdef or context.state.inglobaldecl) then
+  if objtype.is_enum and not (context.state.infuncdef or context.state.infielddecl) then
     return visitor_EnumType_FieldIndex(context, node, objtype, name)
   elseif objtype.metafields then
     return visitor_Type_MetaFieldIndex(context, node, objtype, name)
