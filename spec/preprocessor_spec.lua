@@ -668,6 +668,13 @@ it("expression macros", function()
       #[gen_stmt]#(#[i]#)
     ## end
     assert(res == 55)
+
+    ## local function mymacro(a)
+      in #[a]#
+    ## end
+    local function proxy(a: auto) return #[mymacro]#(a) end
+    assert(proxy(1) == 1)
+    assert(proxy(2.0) == 2.0)
   ]=])
 
   expect.analyze_error("local a = #[function() end]#", "cannot convert preprocess value of type")

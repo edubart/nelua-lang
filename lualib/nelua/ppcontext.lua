@@ -254,6 +254,7 @@ function PPContext.inject_value(self, value, dest, destpos, orignode)
         dest.origargs = argnodes
       end
       -- parse arguments to compile-time values where possible
+      argnodes = aster.clone(argnodes) -- must use clone because its attrs will be filled
       self.context:traverse_nodes(argnodes)
       local args = {}
       for i=1,#argnodes do
