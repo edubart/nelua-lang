@@ -2469,11 +2469,11 @@ end
 local function make_string_cmp_opfunc(cmpfunc)
   return function(ltype, rtype, lattr, rattr)
     if ltype.is_string and rtype.is_string then -- comparing strings?
-      local lval, rval, reval = lattr.value, rattr.value, nil
+      local lval, rval = lattr.value, rattr.value
       if lval and rval then -- both are compile time strings
-        reval = cmpfunc(lval, rval)
+        local reval = cmpfunc(lval, rval)
+        return primtypes.boolean, reval
       end
-      return primtypes.boolean, reval
     end
   end
 end
