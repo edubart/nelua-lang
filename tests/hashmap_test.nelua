@@ -117,6 +117,21 @@ do -- pairs and mpairs
   map:destroy()
 end
 
+do -- next and mnext
+  local map: hashmap(integer, integer)
+  map[1] = 10
+  map[2] = 20
+  local ok: boolean, k: integer, v: integer, mv: *integer
+  -- next
+  ok, k, v = next(map); assert(ok == true and k == 1 and v == 10)
+  ok, k, v = next(map, 1); assert(ok == true and k == 2 and v == 20)
+  ok, k, v = next(map, 2); assert(ok == false)
+  -- mnext
+  ok, k, mv = mnext(map); assert(ok == true and k == 1 and $mv == 10)
+  ok, k, mv = mnext(map, 1); assert(ok == true and k == 2 and $mv == 20)
+  ok, k, mv = mnext(map, 2); assert(ok == false)
+end
+
 do -- remove while iterating
   local map: hashmap(integer, integer)
   for i=1,8 do

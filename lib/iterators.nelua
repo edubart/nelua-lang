@@ -104,7 +104,7 @@ global function mnext(a: container_reference_concept, k: auto): (auto, auto, aut
   ## local atype = a.type:implicit_deref_type()
   ## if atype.is_record and atype.metafields.__mnext then
     ## local ktype = atype.metafields.__mnext.type.argtypes[2]
-    ## if atype.metafields.__next.type.argtypes[1].is_pointer and k.type.is_niltype then
+    ## if ktype.is_pointer and k.type.is_niltype then
     local k: #[ktype]# = nilptr
     ## end
     return a:__mnext(k)

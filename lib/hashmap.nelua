@@ -144,22 +144,22 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
 
   -- Used internally to find a value at a key returning it's node index.
   function hashmapT:_find(key: K): (usize, usize, usize) <inline>
-    local hash_index: usize = hashmod((@usize)(hash_func(key)), self.buckets.size)
+    local bucket_index: usize = hashmod((@usize)(hash_func(key)), self.buckets.size)
     local prev_node_index: usize = INVALID_INDEX
     if unlikely(self.buckets.size == 0) then -- container is empty
-      return INVALID_INDEX, prev_node_index, hash_index
+      return INVALID_INDEX, prev_node_index, bucket_index
     end
-    local node_index: usize = self.buckets[hash_index]
+    local node_index: usize = self.buckets[bucket_index]
     -- iterate until the key is found
     while node_index ~= INVALID_INDEX do
       local node: *hashnodeT = &self.nodes[node_index]
       if likely(node.key == key) then
-        return node_index, prev_node_index, hash_index
+        return node_index, prev_node_index, bucket_index
       end
       prev_node_index = node_index
       node_index = node.next
     end
-    return node_index, prev_node_index, hash_index
+    return node_index, prev_node_index, bucket_index
   end
 
   --[[
@@ -218,9 +218,9 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
     -- fill buckets and link used nodes
     for i:usize=0,<self.nodes.size do
       if self.nodes[i].filled then
-        local node_index: usize, prev_node_index: usize, hash_index: usize = self:_find(self.nodes[i].key)
+        local node_index: usize, prev_node_index: usize, bucket_index: usize = self:_find(self.nodes[i].key)
         if likely(prev_node_index == INVALID_INDEX) then
-          self.buckets[hash_index] = i
+          self.buckets[bucket_index] = i
         else
           self.nodes[prev_node_index].next = i
         end
@@ -247,7 +247,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
     if unlikely(self.buckets.size == 0) then -- no buckets, initialize it
       self:rehash(INIT_CAPACITY)
     end
-    local node_index: usize, prev_node_index: usize, hash_index: usize = self:_find(key)
+    local node_index: usize, prev_node_index: usize, bucket_index: usize = self:_find(key)
     if node_index ~= INVALID_INDEX then -- found a node
       return node_index
     else -- add a node
@@ -259,7 +259,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
       -- link the new node
       $node = {key = key, filled = true, next = INVALID_INDEX}
       if likely(prev_node_index == INVALID_INDEX) then
-        self.buckets[hash_index] = node_index
+        self.buckets[bucket_index] = node_index
       else
         self.nodes[prev_node_index].next = node_index
       end
@@ -310,13 +310,13 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   *Complexity*: Average case O(1).
   ]]
   function hashmapT:remove(key: K): V
-    local node_index: usize, prev_node_index: usize, hash_index: usize = self:_find(key)
+    local node_index: usize, prev_node_index: usize, bucket_index: usize = self:_find(key)
     if unlikely(node_index == INVALID_INDEX) then return V() end
     -- unlink the removed node
     local node: *hashnodeT = &self.nodes[node_index]
     local value: V = node.value
     if likely(prev_node_index == INVALID_INDEX) then
-      self.buckets[hash_index] = node.next
+      self.buckets[bucket_index] = node.next
     else
       self.nodes[prev_node_index].next = node.next
     end
@@ -357,12 +357,8 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
     index: usize
   }
 
-  --[[
-  Advances the container iterator returning its key and value.
-
-  *Remarks*: The input `key` is actually ignored.
-  ]]
-  function hashmap_iteratorT:next(key: K): (boolean, K, V) <inline>
+  -- Used internally by iterator `next` and `mnext`.
+  function hashmap_iteratorT:_next_node(key: K): *hashnodeT <inline>
     if unlikely(self.index == INVALID_INDEX) then
       self.index = 0
     else
@@ -371,11 +367,22 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
     while self.index < self.container.nodes.size do
       local node: *hashnodeT = &self.container.nodes[self.index]
       if node.filled then
-        return true, node.key, node.value
+        return node
       end
       self.index = self.index + 1
     end
-    return false, (@K)(), (@V)()
+    return nilptr
+  end
+
+  --[[
+  Advances the container iterator returning its key and value.
+
+  *Remarks*: The input `key` is actually ignored.
+  ]]
+  function hashmap_iteratorT:next(key: K): (boolean, K, V) <inline>
+    local node: *hashnodeT = self:_next_node(key)
+    if not node then return false, (@K)(), (@V)() end
+    return true, node.key, node.value
   end
 
   --[[
@@ -384,19 +391,9 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   *Remarks*: The input `key` is actually ignored.
   ]]
   function hashmap_iteratorT:mnext(key: K): (boolean, K, *V) <inline>
-    if unlikely(self.index == INVALID_INDEX) then
-      self.index = 0
-    else
-      self.index = self.index + 1
-    end
-    while self.index < self.container.nodes.size do
-      local node: *hashnodeT = &self.container.nodes[self.index]
-      if node.filled then
-        return true, node.key, &node.value
-      end
-      self.index = self.index + 1
-    end
-    return false, (@K)(), nilptr
+    local node: *hashnodeT = self:_next_node(key)
+    if not node then return false, (@K)(), nilptr end
+    return true, node.key, &node.value
   end
 
   -- Allow using `pairs()` to iterate the container.
@@ -407,6 +404,40 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   -- Allow using `mpairs()` to iterate the container.
   function hashmapT:__mpairs(): (auto, hashmap_iteratorT, K) <inline>
     return hashmap_iteratorT.mnext, (@hashmap_iteratorT){container=self,index=INVALID_INDEX}, (@K)()
+  end
+
+  -- Used internally by `__next` and `__mnext`.
+  function hashmapT:_next_node(key: facultative(K)): *hashnodeT <inline>
+    ## if key.type.is_niltype then
+    local next_node_index: usize = 0
+    ## else
+    local node_index: usize = self:_find(key)
+    -- TODO: next should actually work in case of removed keys (like in Lua)
+    assert(node_index ~= INVALID_INDEX, 'attempt to use next for an invalid key in hashmap')
+    local next_node_index: usize = node_index + 1
+    ## end
+    while next_node_index < self.nodes.size do
+      local node: *hashnodeT = &self.nodes[next_node_index]
+      if node.filled then
+        return node
+      end
+      next_node_index = next_node_index + 1
+    end
+    return nilptr
+  end
+
+  -- Allow using `next()` to iterate the container.
+  function hashmapT:__next(key: facultative(K)): (boolean, K, V)
+    local node: *hashnodeT = self:_next_node(key)
+    if not node then return false, (@K)(), (@V)() end
+    return true, node.key, node.value
+  end
+
+  -- Allow using `mnext()` to iterate the container.
+  function hashmapT:__mnext(key: facultative(K)): (boolean, K, *V)
+    local node: *hashnodeT = self:_next_node(key)
+    if not node then return false, (@K)(), nilptr end
+    return true, node.key, &node.value
   end
 
   ## return hashmapT

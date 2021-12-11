@@ -141,7 +141,7 @@ The functions provided here can be used with the `for in` construction.
 ### ipairs
 
 ```nelua
-global function ipairs(a: contiguous_reference_concept): (auto, auto, integer)
+global function ipairs(a: container_reference_concept): (auto, auto, integer)
 ```
 
 Returns values so that the construction
@@ -156,7 +156,7 @@ The container `a` must be contiguous, such as `array`, `span`, `vector` or `sequ
 ### mipairs
 
 ```nelua
-global function mipairs(a: contiguous_reference_concept): (auto, auto, integer)
+global function mipairs(a: container_reference_concept): (auto, auto, integer)
 ```
 
 Like `ipairs` but yields reference to elements values so that you can modify them in-place.
@@ -393,7 +393,7 @@ or `nil` if `obj` is not a file handle.
 ### io.lines
 
 ```nelua
-function io.lines(filename: facultative(string), fmt: overload(integer,string,niltype)): (auto, auto, string)
+function io.lines(filename: facultative(string), fmt: overload(integer,string,niltype))
 ```
 
 Opens the given file name in read mode
@@ -3528,6 +3528,30 @@ function hashmapT:__mpairs(): (auto, hashmap_iteratorT, K)
 ```
 
 Allow using `mpairs()` to iterate the container.
+
+### hashmapT:_next_node
+
+```nelua
+function hashmapT:_next_node(key: facultative(K)): *hashnodeT
+```
+
+Used internally by `__next` and `__mnext`.
+
+### hashmapT:__next
+
+```nelua
+function hashmapT:__next(key: facultative(K)): (boolean, K, V)
+```
+
+Allow using `next()` to iterate the container.
+
+### hashmapT:__mnext
+
+```nelua
+function hashmapT:__mnext(key: facultative(K)): (boolean, K, *V)
+```
+
+Allow using `mnext()` to iterate the container.
 
 ### hashmap
 
