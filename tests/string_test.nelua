@@ -401,6 +401,12 @@ do -- string.gmatchview
   end
 
   local i: integer = 0
+  for k in ('0123'):gmatchview('%d') do
+    assert(i == tointeger(k))
+    i = i + 1
+  end
+
+  i = 0
   for k in ('aaa;bbb;ccc'):gmatchview('[^;]+') do
     i = i + 1
     if i == 1 then assert(k == 'aaa')
