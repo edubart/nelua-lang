@@ -423,7 +423,8 @@ function visitors.InitList(_, node, emitter, untypedinit)
       emitter:dec_indent() emitter:add_indent('})')
     end
   else --luacov:disable
-    error('not implemented yet')
+    assert(type.is_table)
+    node:raisef('table literals is not implemented yet')
   end --luacov:enable
 end
 
@@ -750,7 +751,8 @@ function visitors.KeyIndex(context, node, emitter)
       emitter:add(indexnode, ']')
     end
   else --luacov:disable
-    error('not implemented yet')
+    assert(objtype.is_table)
+    node:raisef('table indexing is not implemented yet')
   end --luacov:enable
 end
 

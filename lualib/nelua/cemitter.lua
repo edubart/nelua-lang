@@ -420,7 +420,7 @@ function CEmitter:add_literal(valattr, untypedinit)
   elseif valtype.is_array then
     self:add_array_literal(value, valtype, untypedinit)
   else --luacov:disable
-    errorer.errorf('not implemented: `CEmitter:add_literal` for valtype `%s`', valtype)
+    errorer.errorf('`CEmitter:add_literal` for valtype `%s` is not implemented', valtype)
   end --luacov:enable
 end
 

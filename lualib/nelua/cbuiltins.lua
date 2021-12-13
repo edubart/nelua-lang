@@ -1433,7 +1433,7 @@ function cbuiltins.operators.len(_, node, emitter, argattr, argname)
   elseif type.is_type then
     emitter:add('sizeof(', argattr.value, ')')
   else --luacov:disable
-    node:raisef('not implemented')
+    node:raisef("length operator for type '%s' is not implemented", type)
   end --luacov:enable
 end
 
