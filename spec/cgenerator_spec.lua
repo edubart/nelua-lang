@@ -622,6 +622,14 @@ it("anonymous functions", function()
       local A = function() f('hello world') end
       A()
     end
+
+    do
+      local a = (function(): integer return 10 end)()
+      assert(a == 10)
+
+      local b = (function(): integer return 10 end)() + 10
+      assert(b == 20)
+    end
   ]], "hello")
 end)
 

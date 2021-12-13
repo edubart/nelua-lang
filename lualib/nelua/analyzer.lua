@@ -3021,6 +3021,7 @@ function visitors.Function(context, node)
     symbol.lvalue = true
     symbol.used = true
     symbol.staticstorage = true
+    symbol.anonfunc = true
     symbol.scope:add_symbol(symbol)
   end
 

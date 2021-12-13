@@ -674,7 +674,9 @@ function visitors.Call(context, node, emitter, untyped)
       local builtin = cbuiltins.calls[calleeattr.name]
       callee = builtin(context, node, emitter)
     elseif attr.calleesym then
-      callee = attr.calleesym
+      if not attr.calleesym.anonfunc then -- pass node for anon functions to force its definition
+        callee = attr.calleesym
+      end
     end
     if callee then -- call not omitted?
       visitor_Call(context, node, emitter, argnodes, callee)
