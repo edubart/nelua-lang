@@ -3064,20 +3064,6 @@ function sequenceT:capacity(): isize
 
 Returns the number of elements the sequence can store before triggering a reallocation.
 
-### sequenceT:unpack
-
-```nelua
-function sequenceT:unpack(i: isize <comptime>, j: isize <comptime>)
-```
-
-Returns the sequence elements from `i` to `j`.
-Both `i` and `j` must be known at compile-time.
-
-This function is equivalent to
-```
-return seq[i], seq[i+1], ..., seq[j]
-```
-
 ### sequenceT:__atindex
 
 ```nelua
@@ -3108,6 +3094,20 @@ function sequenceT.__convert(values: an_arrayT): sequenceT
 
 Initializes sequence elements from a fixed array.
 Used to initialize sequence elements with curly braces (`{}`).
+
+### sequenceT:unpack
+
+```nelua
+function sequenceT:unpack(i: isize <comptime>, j: isize <comptime>)
+```
+
+Returns the sequence elements from `i` to `j`.
+Both `i` and `j` must be known at compile-time.
+
+This function is equivalent to
+```
+return seq[i], seq[i+1], ..., seq[j]
+```
 
 ### sequence
 

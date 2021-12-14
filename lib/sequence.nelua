@@ -162,7 +162,7 @@ require 'iterators'
   The sequence must not be empty.
   ]]
   function sequenceT:pop(): T <inline>
-    assert(self.impl and self.impl.size > 0, 'length is 0')
+    assert(self.impl and self.impl.size > 0, 'attempt to pop an empty sequence')
     local ret: T = self.impl.data[self.impl.size]
     self.impl.size = self.impl.size - 1
     return ret
@@ -192,7 +192,7 @@ require 'iterators'
   The `pos` must be valid (within sequence bounds).
   ]]
   function sequenceT:remove(pos: usize): T
-    assert(self.impl and self.impl.size > 0, 'position out of bounds')
+    assert(self.impl and self.impl.size > 0 and pos <= self.impl.size, 'position out of bounds')
     local ret: T = self.impl.data[pos]
     if self.impl.size > pos then
       memory.move(&self.impl.data[pos], &self.impl.data[pos+1], (self.impl.size - pos) * #T)
