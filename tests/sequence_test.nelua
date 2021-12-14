@@ -179,6 +179,17 @@ do -- copy
   b:destroy()
 end
 
+do -- unpack
+  local seq: sequence(integer) = {10, 20, 30}
+  local a,b,c
+  a       = seq:unpack(1, 1)  assert(a == 10)
+  a, b    = seq:unpack(1, 2)  assert(a == 10 and b == 20)
+  a, b, c = seq:unpack(1, 3)  assert(a == 10 and b == 20 and c == 30)
+  b, c    = seq:unpack(2, 3)  assert(b == 20 and c == 30)
+  c       = seq:unpack(3, 3)  assert(c == 30)
+  seq:destroy()
+end
+
 require 'allocators.general'
 do -- custom allocator
   local seq: sequence(integer, GeneralAllocator) = {1,2,3}

@@ -1,3 +1,5 @@
+require 'iterators'
+
 do -- print
   print('hello', 'world')
 end
@@ -32,6 +34,18 @@ end
 
 do -- _VERSION
   assert(_VERSION == #[require 'nelua.version'.NELUA_VERSION]#)
+end
+
+do -- select
+  assert(select('#') == 0)
+  assert(select('#', 10) == 1)
+  assert(select('#', 10, 20) == 2)
+
+  assert(select(1, 10) == 10)
+  assert(select(1, 10, 20) == 10)
+  assert(select(2, 10, 20) == 20)
+  assert(select(-1, 10, 20) == 20)
+  assert(select(-1, 10, 20) == 20)
 end
 
 print 'builtins OK!'

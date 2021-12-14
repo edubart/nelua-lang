@@ -142,3 +142,20 @@ global function mpairs(a: container_reference_concept): (auto, auto, auto) <inli
     return mipairs(a)
   ## else static_error("type '%s' does not support `mpairs`, is it missing `__mpairs` metamethod?", atype) end
 end
+
+--[[
+If `index` is a number, returns all arguments after argument number index;
+a negative number indexes from the end (`-1` is the last argument).
+Otherwise, `index` must be the string '#',
+and select returns the total number of extra arguments it received.
+]]
+global function select(index: auto <comptime>, ...: varargs) <inline>
+  --TODO: move to builtins module
+  ## if index.type.is_string then
+    ## static_assert(index.value == '#', "bad argument #1 to 'select' (integer or '#' expected, got string)")
+    return #[select('#', ...)]#
+  ## elseif index.type.is_integral then
+    ## static_assert(math.abs(index.value) >= 1 and math.abs(index.value) <= select('#', ...), "bad argument #1 to 'select' (index out of range)")
+    return #[select(index.value, ...)]#
+  ## else static_error("bad argument #1 to 'select' (integer or '#' expected, got '%s')", what.type) end
+end

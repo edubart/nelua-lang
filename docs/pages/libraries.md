@@ -206,6 +206,17 @@ global function mpairs(a: container_reference_concept): (auto, auto, auto)
 
 Like `pairs` but yields reference to elements values so that you can modify them in-place.
 
+### select
+
+```nelua
+global function select(index: auto <comptime>, ...: varargs)
+```
+
+If `index` is a number, returns all arguments after argument number index;
+a negative number indexes from the end (`-1` is the last argument).
+Otherwise, `index` must be the string '#',
+and select returns the total number of extra arguments it received.
+
 ---
 ## io
 
@@ -3052,6 +3063,20 @@ function sequenceT:capacity(): isize
 ```
 
 Returns the number of elements the sequence can store before triggering a reallocation.
+
+### sequenceT:unpack
+
+```nelua
+function sequenceT:unpack(i: isize <comptime>, j: isize <comptime>)
+```
+
+Returns the sequence elements from `i` to `j`.
+Both `i` and `j` must be known at compile-time.
+
+This function is equivalent to
+```
+return seq[i], seq[i+1], ..., seq[j]
+```
 
 ### sequenceT:__atindex
 

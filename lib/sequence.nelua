@@ -162,7 +162,7 @@ require 'iterators'
   The sequence must not be empty.
   ]]
   function sequenceT:pop(): T <inline>
-    check(self.impl and self.impl.size > 0, 'length is 0')
+    assert(self.impl and self.impl.size > 0, 'length is 0')
     local ret: T = self.impl.data[self.impl.size]
     self.impl.size = self.impl.size - 1
     return ret
@@ -175,7 +175,7 @@ require 'iterators'
   ]]
   function sequenceT:insert(pos: usize, v: T): void
     self:_init()
-    check(pos > 0 and pos <= self.impl.size + 1, 'position out of bounds')
+    assert(pos > 0 and pos <= self.impl.size + 1, 'position out of bounds')
     if unlikely(self.impl.size + 2 >= self.impl.data.size) then
       sequenceT_grow(self)
     end
@@ -192,7 +192,7 @@ require 'iterators'
   The `pos` must be valid (within sequence bounds).
   ]]
   function sequenceT:remove(pos: usize): T
-    check(self.impl and self.impl.size > 0, 'position out of bounds')
+    assert(self.impl and self.impl.size > 0, 'position out of bounds')
     local ret: T = self.impl.data[pos]
     if self.impl.size > pos then
       memory.move(&self.impl.data[pos], &self.impl.data[pos+1], (self.impl.size - pos) * #T)
@@ -249,7 +249,7 @@ require 'iterators'
   function sequenceT:__atindex(pos: usize): *T <inline>
     self:_init()
     if unlikely(pos > self.impl.size) then
-      check(pos == self.impl.size + 1, 'position out of bounds')
+      assert(pos == self.impl.size + 1, 'position out of bounds')
       self.impl.size = self.impl.size + 1
       if unlikely(self.impl.size + 1 > self.impl.data.size) then
         sequenceT_grow(self)
@@ -283,6 +283,25 @@ require 'iterators'
       self.impl.data[i] = values[i-1]
     end
     return self
+  end
+
+  --[[
+  Returns the sequence elements from `i` to `j`.
+  Both `i` and `j` must be known at compile-time.
+
+  This function is equivalent to
+  ```
+  return seq[i], seq[i+1], ..., seq[j]
+  ```
+  ]]
+  function sequenceT:unpack(i: isize <comptime>, j: isize <comptime>) <inline>
+    ## local rets = {}
+    assert(i >= 1 and j <= #self and i <= j, 'unpack out of range')
+    ## for k=i.value,j.value do
+      local #|'v'..k|#: T = self[#[k]#]
+      ## table.insert(rets, aster.Id{'v'..k})
+    ## end
+    return #[aster.unpack(rets)]#
   end
 
   ## return sequenceT
