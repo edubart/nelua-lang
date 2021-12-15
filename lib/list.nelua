@@ -132,15 +132,11 @@ require 'iterators'
   --[[
   Inserts an element before element node `pos`.
   Returns the inserted element node reference.
-  If `pos` is not set, then the element is added at the end of the list.
+  If `pos` is `nilptr`, then the element is added at the end of the list.
 
   *Complexity*: O(1).
   ]]
-  function listT:insert(value: T, pos: facultative(*listnodeT)): *listnodeT
-    ## if pos.type.is_niltype then
-    self:pushback(value)
-    return self.back
-    ## else
+  function listT:insert(pos: *listnodeT, value: T): *listnodeT
     if not pos then
       self:pushback(value)
       return self.back
@@ -156,7 +152,6 @@ require 'iterators'
       node.value = value
       return node
     end
-    ## end
   end
 
   --[[

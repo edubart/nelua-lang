@@ -96,11 +96,11 @@ end
 
 do -- insert
   local l: list(integer)
-  local pos = l:insert(5)
-  pos = l:insert(3, pos)
-  pos = l:insert(2, pos)
-  pos = l:insert(4, l.back)
-  pos = l:insert(1, l.front)
+  local pos = l:insert(nilptr, 5)
+  pos = l:insert(pos, 3)
+  pos = l:insert(pos, 2)
+  pos = l:insert(l.back, 4)
+  pos = l:insert(l.front, 1)
   local ok, node, value = next(l) assert(ok and node ~= nilptr and value == 1)
   ok, node, value = next(l, node) assert(ok and node ~= nilptr and value == 2)
   ok, node, value = next(l, node) assert(ok and node ~= nilptr and value == 3)

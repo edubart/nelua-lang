@@ -3215,12 +3215,12 @@ Inserts an element at the end of the list.
 ### listT:insert
 
 ```nelua
-function listT:insert(value: T, pos: facultative(*listnodeT)): *listnodeT
+function listT:insert(pos: *listnodeT, value: T): *listnodeT
 ```
 
 Inserts an element before element node `pos`.
 Returns the inserted element node reference.
-If `pos` is not set, then the element is added at the end of the list.
+If `pos` is `nilptr`, then the element is added at the end of the list.
 
 *Complexity*: O(1).
 
