@@ -202,7 +202,7 @@ local function GC_markstack(self: *GC): void <noinline>
   ]]
   ## cemit '#if defined(__GNUC__) || defined(__clang__)'
   local function __builtin_frame_address(level: cint): pointer <cimport,nodecl> end
-  local sp: pointer <volatile> = __builtin_frame_address(0)
+  local sp: pointer = __builtin_frame_address(0)
   ## cemit '#endif'
   -- determine stack address
   local low: usize = self.stacktop == 0 and (@usize)(&regsbuf) or self.stacktop
