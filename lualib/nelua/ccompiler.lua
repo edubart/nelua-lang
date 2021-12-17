@@ -177,7 +177,7 @@ local function get_cc_defines(cc, cflags, ...)
   local stdout, stderr = executor.evalex(cccmd)
   fs.deletefile(cfile)
   if not stdout then --luacov:disable
-    except.raisef("failed to retrieve compiler defines: %s", stderr)
+    except.raisef("failed to retrieve C compiler defines: %s", stderr)
   end --luacov:enable
   return pegger.parse_c_defines(stdout)
 end
@@ -199,7 +199,7 @@ local function get_cc_info(cc, cflags)
   local stdout, stderr = executor.evalex(cccmd)
   fs.deletefile(cfile)
   if not stdout then
-    except.raisef("failed to retrieve compiler information: %s", stderr)
+    except.raisef("failed to retrieve C compiler information: %s", stderr)
   end
   local text = stdout:gsub('#[^\n]*\n', ''):gsub('\n%s+','\n')
   local ccinfo = {text=text}

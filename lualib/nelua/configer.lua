@@ -292,7 +292,7 @@ local function init_default_configs()
   defconfig.lualib_path = lualibpath
   defconfig.lua = fs.findluabin()
   defconfig.path = fs.makesearchpath(libpath, 'nelua')
-  defconfig.cc = fs.findcc() or 'cc'
+  defconfig.cc = fs.findcc() or 'gcc'
   defconfig.cflags = os.getenv('CFLAGS') or ''
   defconfig.ldflags = os.getenv('LDFLAGS') or ''
 
