@@ -42,6 +42,7 @@ cdefs.primitive_typenames = {
   nlclongdouble = 'long double',
   nlcclock_t    = {'clock_t', '<time.h>'},
   nlctime_t     = {'time_t', '<time.h>'},
+  nlcwchar_t    = {'wchar_t', '<stddef.h>'},
 }
 
 cdefs.builtins_headers = {
@@ -432,6 +433,9 @@ cdefs.target_info_code = [[
 #endif
 #if defined(__SIZEOF_PTRDIFF_T__)
   sizeof_ptrdiff_t = __SIZEOF_PTRDIFF_T__;
+#endif
+#if defined(__SIZEOF_WCHAR_T__)
+  sizeof_wchar_t = __SIZEOF_WCHAR_T__;
 #endif
 #if defined(__SIZEOF_SHORT__)
   sizeof_short = __SIZEOF_SHORT__;

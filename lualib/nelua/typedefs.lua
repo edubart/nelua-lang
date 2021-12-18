@@ -70,7 +70,7 @@ primtypes.cchar       = types.IntegralType('cchar', 1)
 primtypes.cschar      = types.IntegralType('cschar', 1)
 primtypes.cshort      = types.IntegralType('cshort', ccinfo.sizeof_short)
 primtypes.cint        = types.IntegralType('cint', ccinfo.sizeof_int)
-primtypes.clong       = types.IntegralType('clong', ccinfo.sizeof_long, false)
+primtypes.clong       = types.IntegralType('clong', ccinfo.sizeof_long)
 primtypes.clonglong   = types.IntegralType('clonglong', ccinfo.sizeof_long_long, false, ccinfo.alignof_long_long)
 primtypes.cptrdiff    = types.IntegralType('cptrdiff', cptrsize)
 primtypes.cuchar      = types.IntegralType('cuchar', 1, true)
@@ -86,8 +86,9 @@ primtypes.cdouble     = primtypes.float64; primtypes.cdouble.is_cdouble = true
 primtypes.cfloat      = primtypes.float32; primtypes.cfloat.is_cfloat = true
 primtypes.cvarargs    = types.CVarargsType('cvarargs')
 primtypes.cvalist     = types.CVaList('cvalist')
-primtypes.cclock_t    = types.IntegralType('cclock_t', ccinfo.sizeof_long, false)
-primtypes.ctime_t     = types.IntegralType('ctime_t', cptrsize, false)
+primtypes.cclock_t    = types.IntegralType('cclock_t', ccinfo.sizeof_long)
+primtypes.ctime_t     = types.IntegralType('ctime_t', cptrsize)
+primtypes.cwchar_t    = types.IntegralType('cwchar_t', ccinfo.sizeof_wchar_t or 4, false)
 
 -- The following types are predefined aliases, but can be customized by the user.
 if cptrsize >= 4 then
