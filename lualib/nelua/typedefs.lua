@@ -229,10 +229,22 @@ typedefs.pragmas = {
   Changes abort semantics, abort happens on failed assertions or runtime errors.
   This pragma can be one of the following values:
   * `'exit'`: the application with call system's `exit(-1)`
+  * `'hooked'`: will call abort handler defined by the application, then you must define
+  `function nelua_abort(): void`
   * `'trap'`: the application will call an invalid instruction and crash.
   * `'abort'` or unset, the application will call system's `abort()` (this is the default).
   ]]
   abort = shaper.one_of{'exit', 'trap', 'abort'}:is_optional(),
+  --[[
+  Changes how messages are written to stderr when a runtime error occur (panic, assert, check, etc).
+  This pragma can be one of the following values:
+  * `'none'`: the application with call system's `exit(-1)`
+  * `'hooked'`: will call error message handler defined by the application, then you must define
+  `function nelua_write_stderr(msg: cstring, len: usize, flush: boolean): void`
+  * `'stdout'`: messages will be printed to stdout
+  * `'stderr': messages will be printed to stderr (this is the default)
+  ]]
+  writestderr = shaper.one_of{'none', 'hooked', 'stdout', 'stderr'}:is_optional(),
   --[[
   Disables the main entry point generation.
   When set, the function `nelua_main` that initializes global variables and run code from top scope

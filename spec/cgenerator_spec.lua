@@ -3026,6 +3026,10 @@ it("assert builtin", function()
     end
     g()
   ]])
+  config.pragmas.abort = 'hooked'
+  expect.generate_c(
+    "assert(true)",
+    "nelua_abort()")
   config.pragmas.abort = 'trap'
   expect.generate_c(
     "assert(true)",
@@ -3138,6 +3142,24 @@ it("context pragmas", function()
     local function foo() <cexport>
     end
   ]], "NELUA_CEXPORT void mylib_foo(void);")
+end)
+
+it("pragma writestderr", function()
+  config.pragmas.writestderr = 'none'
+  expect.generate_c("panic('aborted')", "/* NO OP */")
+  config.pragmas.writestderr = 'hooked'
+  expect.generate_c([[
+    warn('test')
+    local function nelua_write_stderr(msg: cstring <const>, len: usize, flush: boolean) <codename'nelua_write_stderr'>
+      print(msg)
+    end
+  ]], [[
+void nelua_write_stderr(const char* msg, uintptr_t len, bool flush) {
+  nelua_print_1(msg);
+}]])
+  config.pragmas.writestderr = 'stdout'
+  expect.generate_c("panic('aborted')", "fflush(stdout)")
+  config.pragmas.writestderr = nil
 end)
 
 it("require builtin", function()

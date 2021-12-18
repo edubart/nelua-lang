@@ -356,7 +356,7 @@ function cbuiltins.nelua_abort(context)
   local abortcall
   if context.pragmas.abort == 'exit' then
     context:ensure_builtin('exit')
-    abortcall = 'exit(-1);'
+    abortcall = '  exit(-1);'
   elseif context.pragmas.abort == 'trap' then
     abortcall = [[
 #if defined(__clang__) || defined(__GNUC__)
@@ -365,38 +365,67 @@ function cbuiltins.nelua_abort(context)
   *((volatile int*)0x0) = 0;
 #endif
 ]]
+  elseif context.pragmas.abort == 'hooked' then
+    return 'nelua_abort'
   else
     context:ensure_builtin('abort')
-    abortcall = 'abort();'
+    abortcall = '  abort();'
   end
-  context:ensure_builtins('fflush', 'stderr', 'NELUA_UBSAN_UNREACHABLE')
+  context:ensure_builtins('NELUA_UBSAN_UNREACHABLE')
   context:define_function_builtin('nelua_abort',
     'NELUA_NORETURN', primtypes.void, {}, {[[{
   NELUA_UBSAN_UNREACHABLE();
-  ]],abortcall,"\n}"})
+]],abortcall,"\n}"})
+end
+
+-- Used to write to stdout.
+function cbuiltins.nelua_write_stderr(context)
+  if context.pragmas.writestderr == 'none' then
+    context:define_function_builtin('nelua_write_stderr',
+      'NELUA_INLINE', primtypes.void,
+      {{primtypes.cstring, 'msg'}, {primtypes.usize, 'len'}, {primtypes.boolean, 'flush'}},
+    [[{
+  /* NO OP */
+}]])
+  elseif context.pragmas.writestderr == 'hooked' then
+    return 'nelua_write_stderr'
+  else
+    local out = context.pragmas.writestderr == 'stdout' and 'stdout' or 'stderr'
+    context:ensure_builtins('fwrite', 'fflush', out)
+    context:define_function_builtin('nelua_write_stderr',
+      'NELUA_INLINE', primtypes.void,
+      {{'const char*', 'msg'}, {primtypes.usize, 'len'}, {primtypes.boolean, 'flush'}}, {
+    [[{
+  if(len > 0 && msg) {
+    fwrite(msg, 1, len, ]],out,[[);
+  }
+  if(flush) {
+    fwrite("\n", 1, 1, ]],out,[[);
+    fflush(]],out,[[);
+  }
+}]]})
+  end
 end
 
 -- Used with check functions.
 function cbuiltins.nelua_panic_cstring(context)
-  context:ensure_builtins('fputs', 'fputc', 'nelua_abort')
+  context:ensure_builtins('nelua_write_stderr', 'nelua_abort', 'strlen', 'true')
   context:define_function_builtin('nelua_panic_cstring',
     'NELUA_NORETURN', primtypes.void, {{'const char*', 's'}}, [[{
-  fputs(s, stderr);
-  fputc('\n', stderr);
-  fflush(stderr);
+  if(s) {
+    nelua_write_stderr(s, strlen(s), true);
+  }
   nelua_abort();
 }]])
 end
 
 -- Used by `panic` builtin.
 function cbuiltins.nelua_panic_string(context)
-  context:ensure_builtins('fwrite', 'fputc', 'nelua_abort')
+  context:ensure_builtins('nelua_write_stderr', 'nelua_abort', 'true')
   context:define_function_builtin('nelua_panic_string',
     'NELUA_NORETURN', primtypes.void, {{primtypes.string, 's'}}, [[{
   if(s.size > 0) {
-    fwrite(s.data, 1, s.size, stderr);
-    fputc('\n', stderr);
-    fflush(stderr);
+    nelua_write_stderr(s.data, s.size, true);
   }
   nelua_abort();
 }]])
@@ -404,14 +433,12 @@ end
 
 -- Used by `warn` builtin.
 function cbuiltins.nelua_warn(context)
-  context:ensure_builtins('fputs', 'fwrite', 'fputc', 'fflush')
+  context:ensure_builtins('nelua_write_stderr', 'false', 'true')
   context:define_function_builtin('nelua_warn',
     '', primtypes.void, {{primtypes.string, 's'}}, [[{
   if(s.size > 0) {
-    fputs("warning: ", stderr);
-    fwrite(s.data, 1, s.size, stderr);
-    fputc('\n', stderr);
-    fflush(stderr);
+    nelua_write_stderr("warning: ", 9, false);
+    nelua_write_stderr(s.data, s.size, true);
   }
 }]])
 end
@@ -767,7 +794,7 @@ function cbuiltins.calls.assert(context, node)
   local argattrs = builtintype.argattrs
   local funcname = context.rootscope:generate_name('nelua_assert_line')
   local emitter = CEmitter(context)
-  context:ensure_builtins('fwrite', 'stderr', 'NELUA_UNLIKELY', 'nelua_abort')
+  context:ensure_builtins('NELUA_UNLIKELY', 'nelua_write_stderr', 'nelua_abort', 'false', 'true')
   local nargs = #argattrs
   local qualifier = ''
   local assertmsg = 'assertion failed!'
@@ -782,10 +809,9 @@ function cbuiltins.calls.assert(context, node)
     local emsg1, emsg2 = pegger.double_quote_c_string(msg1), pegger.double_quote_c_string(msg2)
     emitter:add([[
   if(NELUA_UNLIKELY(!]]) emitter:add_val2boolean('cond', condtype) emitter:add([[)) {
-    fwrite(]],emsg1,[[, 1, ]],#msg1,[[, stderr);
-    fwrite(msg.data, msg.size, 1, stderr);
-    fwrite(]],emsg2,[[, 1, ]],#msg2,[[, stderr);
-    fflush(stderr);
+    nelua_write_stderr(]],emsg1,[[, ]],#msg1,[[, false);
+    nelua_write_stderr(msg.data, msg.size, false);
+    nelua_write_stderr(]],emsg2,[[, ]],#msg2,[[, true);
     nelua_abort();
   }
 ]])
@@ -793,8 +819,7 @@ function cbuiltins.calls.assert(context, node)
     local msg = pegger.double_quote_c_string(where)
     emitter:add([[
   if(NELUA_UNLIKELY(!]]) emitter:add_val2boolean('cond', condtype) emitter:add([[)) {
-    fwrite(]],msg,[[, 1, ]],#where,[[, stderr);
-    fflush(stderr);
+    nelua_write_stderr(]],msg,[[,  ]],#where,[[, true);
     nelua_abort();
   }
 ]])
@@ -802,8 +827,7 @@ function cbuiltins.calls.assert(context, node)
     local msg = pegger.double_quote_c_string(where)
     qualifier = 'NELUA_NORETURN'
     emitter:add([[
-  fwrite(]],msg,[[, 1, ]],#where,[[, stderr);
-  fflush(stderr);
+  nelua_write_stderr(]],msg,[[, ]],#where,[[, true);
   nelua_abort();
 ]])
   end
@@ -933,8 +957,8 @@ function cbuiltins.calls.print(context, node)
   for i,argtype in ipairs(argtypes) do
     defemitter:add_indent()
     if i > 1 then
-      context:ensure_builtins('fwrite', 'stdout')
-      defemitter:add_ln("fputc('\\t', stdout);")
+      context:ensure_builtins('fputs', 'stdout')
+      defemitter:add_ln('fputs("\t", stdout);')
       defemitter:add_indent()
     end
     if argtype.is_string then
@@ -1024,8 +1048,8 @@ function cbuiltins.calls.print(context, node)
       node:raisef('in print: cannot handle type "%s"', argtype)
     end --luacov:enable
   end
-  context:ensure_builtins('fputc', 'fflush', 'stdout')
-  defemitter:add_indent_ln([[fputc('\n', stdout);]])
+  context:ensure_builtins('fputs', 'fflush', 'stdout')
+  defemitter:add_indent_ln([[fputs("\n", stdout);]])
   defemitter:add_indent_ln('fflush(stdout);')
   defemitter:add_ln('}')
   context:add_definition(defemitter:generate(), funcname)

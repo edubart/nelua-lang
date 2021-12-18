@@ -53,7 +53,7 @@ cdefs.builtins_headers = {
   ["true"] = '<stdbool.h>',
   -- stdio.h
   fwrite = '<stdio.h>',
-  fputc = '<stdio.h>', fputs = '<stdio.h>',
+  fputs = '<stdio.h>',
   fprintf = '<stdio.h>', snprintf = '<stdio.h>',
   fflush = '<stdio.h>',
   stderr = '<stdio.h>', stdout = '<stdio.h>',
