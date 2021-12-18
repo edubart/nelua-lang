@@ -425,7 +425,7 @@ function cbuiltins.nelua_panic_string(context)
   context:define_function_builtin('nelua_panic_string',
     'NELUA_NORETURN', primtypes.void, {{primtypes.string, 's'}}, [[{
   if(s.size > 0) {
-    nelua_write_stderr(s.data, s.size, true);
+    nelua_write_stderr((const char*)s.data, s.size, true);
   }
   nelua_abort();
 }]])
@@ -438,7 +438,7 @@ function cbuiltins.nelua_warn(context)
     '', primtypes.void, {{primtypes.string, 's'}}, [[{
   if(s.size > 0) {
     nelua_write_stderr("warning: ", 9, false);
-    nelua_write_stderr(s.data, s.size, true);
+    nelua_write_stderr((const char*)s.data, s.size, true);
   }
 }]])
 end
@@ -810,7 +810,7 @@ function cbuiltins.calls.assert(context, node)
     emitter:add([[
   if(NELUA_UNLIKELY(!]]) emitter:add_val2boolean('cond', condtype) emitter:add([[)) {
     nelua_write_stderr(]],emsg1,[[, ]],#msg1,[[, false);
-    nelua_write_stderr(msg.data, msg.size, false);
+    nelua_write_stderr((const char*)msg.data, msg.size, false);
     nelua_write_stderr(]],emsg2,[[, ]],#msg2,[[, true);
     nelua_abort();
   }
