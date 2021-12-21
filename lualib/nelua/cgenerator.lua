@@ -1649,6 +1649,9 @@ end
 -- Emits C `main`.
 function cgenerator.emit_entrypoint(context, ast)
   local emitter = CEmitter(context)
+  if context.pragmas.nocheading then
+    context.compileopts.nocheading = true
+  end
   context:push_forked_state{funcscope = context.rootscope}
   -- if custom entry point is set while `nelua_main` is not hooked,
   -- then we can skip `nelua_main` and `main` declarations
