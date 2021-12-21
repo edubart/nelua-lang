@@ -335,6 +335,12 @@ local function GC_registerroots(self: *GC): void
     for _,childscope in ipairs(context.rootscope.children) do
       search_scope(childscope)
     end
+    for _,reqscope in ipairs(context.reqscopes) do
+      search_scope(reqscope)
+      for i,childscope in ipairs(reqscope.children) do
+        search_scope(childscope)
+      end
+    end
     emit_mark_statics(symbols)
   end)
   ]]

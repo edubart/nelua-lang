@@ -89,6 +89,10 @@ function builtins.require(context, node, argnodes)
     funcscope = context:push_forked_cleaned_scope(node)
     funcsym = funcscope.funcsym
     if not funcsym then
+      if not context.reqscopes[funcscope] then
+        context.reqscopes[funcscope] = true
+        table.insert(context.reqscopes, funcscope)
+      end
       funcsym = Symbol{
         name = attr.funcname,
         codename = attr.funcname,

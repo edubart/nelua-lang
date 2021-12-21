@@ -24,6 +24,7 @@ function VisitorContext:_init(visitors, rootscope)
   self.visitors = visitors
   -- scope
   self.rootscope = rootscope
+  self.reqscopes = {}
   self.scope = rootscope
   self.scopestack = {}
   self.rootpragmas = {}
