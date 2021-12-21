@@ -186,8 +186,12 @@ function CEmitter:add_converted_val(type, val, valtype, force, untypedinit)
     elseif valattr.comptime and type.is_scalar and valtype.is_scalar and
            (type.is_float or valtype.is_integral) then -- comptime scalar -> scalar
       self:add_scalar_literal(valattr.value, type, valattr.base, true)
-    elseif type.is_pointer and valtype.is_aggregate and valtype == type.subtype then -- auto ref
-      self:add('(&', val, ')')
+    elseif type.is_pointer and valtype.is_aggregate then -- auto ref
+      if valtype == type.subtype then
+        self:add('(&', val, ')')
+      else
+        self:add('((', type, ')(&', val, '))')
+      end
     elseif type.is_aggregate and valtype.is_pointer and valtype.subtype == type then -- auto deref
       self:add_deref(val, valtype)
     elseif valtype.is_void and type.is_niltype then

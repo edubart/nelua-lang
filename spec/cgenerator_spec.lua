@@ -2603,6 +2603,14 @@ it("automatic reference", function()
       local r = R()
       foo(r)
     end
+
+    do
+      local function f(ap: *[4]integer): integer return ap[0] end
+      local function g(ap: *[0]integer): integer return ap[1] end
+      local a: [4]integer = {1}
+      assert(f(a) == 1)
+      assert(f(a) == 1)
+    end
   ]])
 end)
 

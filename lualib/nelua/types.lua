@@ -2272,15 +2272,19 @@ end
 -- Get the desired type when converting this type from an attr.
 function PointerType:get_convertible_from_attr(attr, explicit, autoref)
   local type = attr.type
-  if not explicit and autoref and self.subtype == type and type.is_aggregate then
-    -- implicit automatic reference for records and arrays
-    if not attr.lvalue then -- can only reference l-values
-      return false, string.format(
-        'cannot automatic reference rvalue of type "%s" to pointer type "%s"',
-        type, self)
+  if not explicit and autoref and type.is_aggregate then
+    local selfsubtype = self.subtype
+    if selfsubtype == type or
+      (selfsubtype.is_unbounded_array and type.is_array and selfsubtype.subtype == type.subtype) then
+      -- implicit automatic reference for records and arrays
+      if not attr.lvalue then -- can only reference l-values
+        return false, string.format(
+          'cannot automatic reference rvalue of type "%s" to pointer type "%s"',
+          type, self)
+      end
+      attr.refed = true
+      return self, true
     end
-    attr.refed = true
-    return self, true
   end
   return Type.get_convertible_from_attr(self, attr, explicit, autoref)
 end

@@ -1583,7 +1583,11 @@ it("automatic referencing", function()
     local A = @[4]integer
     local a: A
     local function fa(x: *A) end
+    local function ga(x: *[0]integer) end
+    local function ha(x: *[4]integer) end
     fa(a)
+    ga(a)
+    ha(a)
   ]])
   expect.analyze_error(
     [[local p: pointer(integer); local a: integer; p = a]],
