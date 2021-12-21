@@ -91,6 +91,18 @@ do -- remove
   map:destroy()
 end
 
+do -- clear
+  local map: hashmap(integer, integer)
+  for i=1,10 do map[i] = i end
+  map:clear()
+  assert(#map == 0)
+  for i=10,20 do map[i] = i end
+  for i=10,20 do assert(map[i] == i) end
+  map:clear()
+  assert(#map == 0)
+  map:destroy()
+end
+
 do -- pairs and mpairs
   local map: hashmap(integer, integer)
   for i=1,100 do

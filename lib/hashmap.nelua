@@ -136,10 +136,16 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   *Complexity*: O(n).
   ]]
   function hashmapT:clear(): void
-    memory.spanset(self.buckets, INVALID_INDEX)
-    memory.spanzero(self.nodes)
     self.size = 0
-    self.free_index = 0
+    memory.spanset(self.buckets, INVALID_INDEX)
+    -- link free nodes
+    memory.spanzero(self.nodes)
+    local free_index: usize = INVALID_INDEX
+    for i:isize=(@isize)(self.nodes.size-1),0,-1 do
+      self.nodes[(@usize)(i)].next = free_index
+      free_index = (@usize)(i)
+    end
+    self.free_index = free_index
   end
 
   -- Used internally to find a value at a key returning it's node index.
