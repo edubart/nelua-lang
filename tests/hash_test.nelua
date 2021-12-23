@@ -31,6 +31,13 @@ do -- hash records
   assert(hash.hash(a) ~= hash.hash(b))
 end
 
+do -- hash arrays
+  local a: [4]integer = {1,2,3,4}
+  local b: [4]integer = {5,6,7,8}
+  assert(hash.hash(a) ~= 0 and hash.hash(b) ~= 0)
+  assert(hash.hash(a) ~= hash.hash(b))
+end
+
 do -- hash records with custom hash function
   local vec3 = @record{x: integer, y: integer, z: integer}
   function vec3:__hash(): usize

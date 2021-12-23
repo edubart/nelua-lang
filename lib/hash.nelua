@@ -84,9 +84,15 @@ function hash.hash(v: auto): usize <nosideeffect>
       h = hash.combine(h, hash.hash(v.#|field.name|#))
     ## end
     return h
+  ## elseif v.type.is_array then
+    local h: usize = 0
+    for i:isize=0,<#v do -- hash all elements
+      h = hash.combine(h, hash.hash(v[i]))
+    end
+    return h
   ## elseif v.type.is_nilptr or v.type.is_niltype then
     return 0
-  ## else static_error("cannot hash type '%s'", type) end
+  ## else static_error("cannot hash type '%s'", v.type) end
 end
 
 return hash
