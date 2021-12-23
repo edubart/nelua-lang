@@ -9,28 +9,52 @@ local Xoshiro256: type = @record{
 }
 
 -- Left bit rotation utility.
-local function rotl(x: uint64, n: int32): uint64 <inline,nosideeffect>
-  return (x << n) | (x >> (64 - n))
-end
+## local function rotl(x, n)
+  in (#[x]# << #[n]#) | (#[x]# >> (64 - #[n]#))
+## end
 
 -- Generates a random unsigned integral number.
-function Xoshiro256:nextrand(): uint64 <inline>
+function Xoshiro256:nextrand(): uint64
   local state: [4]uint64 = {
     self.state[0],
     self.state[1],
     self.state[2] ~ self.state[0],
     self.state[3] ~ self.state[1]
   }
-  local res: uint64 = rotl(state[1] * 5, 7) * 9
+  local res: uint64 = #[rotl]#(state[1] * 5, 7) * 9
   self.state[0] = state[0] ~ state[3]
   self.state[1] = state[1] ~ state[2]
   self.state[2] = state[2] ~ (state[1] << 17)
-  self.state[3] = rotl(state[3], 45)
+  self.state[3] = #[rotl]#(state[3], 45)
   return res
 end
 
--- Generates a random float number.
-function Xoshiro256:random(): number
+-- Generates a random unsigned integer in interval [0, n].
+function Xoshiro256:randomuint(n: uint64): uint64 <inline>
+  local x: uint64 = self:nextrand()
+  if n & (n + 1) == 0 then -- is 'n + 1' a power of 2?
+    x = x & n -- no bias
+  else -- project the random integer in interval is a power of 2 to maintain uniform property
+    -- compute the smallest (2^b - 1) not smaller than 'n'
+    local lim: uint64 = n
+    lim = lim | (lim >> 1)
+    lim = lim | (lim >> 2)
+    lim = lim | (lim >> 4)
+    lim = lim | (lim >> 8)
+    lim = lim | (lim >> 16)
+    lim = lim | (lim >> 32)
+    -- project 'x' into [0..lim]
+    x = x & lim
+    -- check((lim & (lim + 1)) == 0 and lim >= n and (lim >> 1) < n)
+    while x > n do -- not inside [0..n]? try again
+      x = self:nextrand() & lim
+    end
+  end
+  return x
+end
+
+-- Generates a random float number in interval [0, 1).
+function Xoshiro256:randomfloat(): number <inline>
   ## local FIGS = math.min(primtypes.number.mantdigits, 64)
   return (self:nextrand() >> #[64 - FIGS]#) * (0.5 / (1_u64 << #[FIGS-1]#))
 end
