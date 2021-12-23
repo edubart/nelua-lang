@@ -60,10 +60,13 @@ function CEmitter:add_zeroed_type_literal(type, typed)
     if typed then
       self:add('(', type, ')')
     end
-    if type.is_empty and typedefs.emptysize == 0 then
-      s = '{}'
-    else -- should initialize almost anything in C
-      s = '{0}'
+    s = '{0}' -- should initialize almost anything in C
+    if typedefs.emptysize == 0 then
+      if type.is_empty then -- empty record/array
+        s = '{}'
+      elseif type.is_record and type.fields[1].type.is_empty then -- first field is an empty record
+        s = '{{}}'
+      end
     end
   end
   self:add_text(s)

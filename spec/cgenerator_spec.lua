@@ -2191,6 +2191,15 @@ it("records", function()
 
     local r: record {x: array(integer, 1)} =  {x={1}}
     assert(r.x[0] == 1)
+
+    local R0 = @record{}
+    local R = @record{a: R0, b: byte}
+    local r: R
+    assert(r.b == 0)
+    do
+      local r: R
+      assert(r.b == 0)
+    end
   ]])
 end)
 
