@@ -200,6 +200,7 @@ Type.shape = shaper.shape {
   is_array_pointer = shaper.optional_boolean,
   is_bytearray_pointer = shaper.optional_boolean,
   is_unbounded_pointer = shaper.optional_boolean,
+  is_bounded_pointer = shaper.optional_boolean,
   is_unbounded_array = shaper.optional_boolean,
   is_cvalist = shaper.optional_boolean,
 
@@ -1983,6 +1984,11 @@ function RecordType:update_fields()
       elseif fieldtype.is_comptime then
         ASTNode.raisef(self.node, "record field '%s' cannot be of compile-time type '%s'",
           field.name, fieldtype)
+      elseif fieldtype == self or
+            (fieldtype.is_array and fieldtype.subtype == self) or
+            (fieldtype.is_bounded_pointer and fieldtype.subtype.subtype == self) then
+        ASTNode.raisef(self.node, "record field '%s' cannot nest record type '%s'",
+          field.name, fieldtype)
       end
       field.index = i
       fields[field.name] = field
@@ -2260,6 +2266,8 @@ function PointerType:_init(subtype)
     end
     if subtype.length == 0 then
       self.is_unbounded_pointer = true
+    else
+      self.is_bounded_pointer = true
     end
     self.is_array_pointer = true
   elseif subtype.is_integral and subtype.size == 1 then

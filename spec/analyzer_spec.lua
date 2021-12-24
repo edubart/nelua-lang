@@ -1237,6 +1237,15 @@ it("records", function()
   expect.analyze_error([[
     local A = @record{x: type}
   ]], "cannot be of compile-time type")
+  expect.analyze_error([[
+    local Node = @record{x: integer, leafs: Node}
+  ]], "cannot nest")
+  expect.analyze_error([[
+    local Node = @record{x: integer, leafs: [4]Node}
+  ]], "cannot nest")
+  expect.analyze_error([[
+    local Node = @record{x: integer, leafs: *[4]Node}
+  ]], "cannot nest")
 end)
 
 it("records metamethods", function()
