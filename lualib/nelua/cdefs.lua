@@ -502,7 +502,7 @@ cdefs.target_info_code = [[
 #if defined(__BIGGEST_ALIGNMENT__)
   biggest_alignment = __BIGGEST_ALIGNMENT__;
 #endif
-#if defined(__EMSCRIPTEN__)
+#if defined(__wasm__)
   alignof_long_long = 8;
   alignof_double = 8;
   alignof_long_double = 8;
