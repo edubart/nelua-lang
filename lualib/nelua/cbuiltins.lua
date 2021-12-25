@@ -363,8 +363,7 @@ function cbuiltins.nelua_abort(context)
   __builtin_trap();
 #else
   *((volatile int*)0x0) = 0;
-#endif
-]]
+#endif]]
   elseif context.pragmas.abort == 'hooked' then
     return 'nelua_abort'
   else

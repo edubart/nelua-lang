@@ -97,6 +97,9 @@ end
   The internal buffer is not freed, and it may be reused.
   ]]
   function stringbuilderT:clear(): void
+    if self.size > 0 then
+      memory.zero(&self.data[0], self.size)
+    end
     self.size = 0
   end
 
@@ -160,7 +163,7 @@ end
     check(self.size >= n, 'not enough space in string buffer')
     local newsize: usize = self.size - n
     self.size = newsize
-    memory.set(&self.data[newsize], 0, n)
+    memory.zero(&self.data[newsize], n)
   end
 
   --[[
@@ -171,6 +174,9 @@ end
   function stringbuilderT:resize(n: usize): boolean
     if not stringbuilderT_grow(self, n) then
       return false
+    end
+    if n < self.size then
+      memory.zero(&self.data[n], self.size - n)
     end
     self.size = n
     return true

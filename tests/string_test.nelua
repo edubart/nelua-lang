@@ -432,7 +432,7 @@ do -- string.gsub
   map['hello'] = 'HI'
   map['world'] = 'EARTH'
   sub, n = string.gsub('$hello $great $world', '$(%w+)', map)
-  print(sub == 'HI $great EARTH' and n == 3)
+  assert(sub == 'HI $great EARTH' and n == 3)
   map:destroy()
   sub:destroy()
 end
