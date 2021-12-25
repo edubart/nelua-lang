@@ -53,7 +53,7 @@ local MAX_LOAD_FACTOR: usize <comptime> = 75
 -- When the maximum load factor is reached the container capacity grows by this factor.
 local GROW_RATE: usize <comptime> = 200
 -- Initial bucket capacity to reserve when inserting an element for the first time in a container.
-local INIT_CAPACITY: usize <comptime> = 16
+local INIT_CAPACITY: usize <comptime> = 8
 -- Constant used to test invalid index.
 local INVALID_INDEX: usize <comptime> = (@usize)(-1)
 

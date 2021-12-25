@@ -224,8 +224,10 @@ local function GC_mark(self: *GC): void
   GC_unmarkall(self)
   GC_markroot(self)
 ## if not ccinfo.is_wasm then
-  local markstack: auto <volatile> = GC_markstack -- avoid inline
-  markstack(self)
+  if self.stackbottom ~= 0 then
+    local markstack: auto <volatile> = GC_markstack -- avoid inline
+    markstack(self)
+  end
 ## end
 end
 
@@ -347,11 +349,13 @@ local function GC_registerroots(self: *GC): void
 end
 
 -- Trigger a collection cycle when the memory has grown above pause threshold.
-local function GC_maybecollect(self: *GC): void
-  if self.running and not self.collecting and
+function GC:step(): boolean
+  if not self.collecting and
      self.membytes * 100 >= self.lastmembytes * self.pause then
     self:collect()
+    return true
   end
+  return false
 end
 
 --[[
@@ -383,7 +387,9 @@ function GC:register(ptr: pointer, size: usize, flags: usize,
     if addr < self.minaddr then self.minaddr = addr end
     -- add memory
     self.membytes = self.membytes + size
-    GC_maybecollect(self)
+    if self.running then
+      self:step()
+    end
   end
 end
 
@@ -402,7 +408,9 @@ function GC:reregister(oldptr: pointer, newptr: pointer, newsize: usize): boolea
     if likely(not hasflag(item.flags, GCFlags.ROOT)) then
       if newsize > oldsize then -- memory growing
         self.membytes = self.membytes + (newsize - oldsize)
-        GC_maybecollect(self)
+        if self.running then
+          self:step()
+        end
       elseif newsize < oldsize then -- memory shrinking
         self.membytes = self.membytes - (oldsize - newsize)
       end
@@ -468,7 +476,7 @@ end
 
 -- Restarts the garbage collector.
 function GC:restart(): void
-## if not ccinfo.is_wasm then -- cannot run automatically on emscripten
+## if not ccinfo.is_wasm then -- cannot run automatically in WebAssembly
   self.running = true
 ## end
 end
@@ -525,6 +533,10 @@ The collector will run only when explicitly invoked, until a call to restart it.
 - `"restart"`: Restarts automatic execution of the garbage collector.
 - `"count"`: Returns the total memory being tracked by the collector in Kbytes.
 The value has a fractional part, so that it multiplied by 1024 gives the exact number of bytes.
+- `"step"`: Performs a garbage-collection step. The collector will perform a full
+collection cycle only if the memory has grown above pause threshold.
+Returns `true` if a collection cycle was run.
+Calling this is only useful when the GC is stopped.
 - `"setpause"`: Sets `arg` as the new value for the pause of the collector.
 Returns the previous value for pause.
 - `"isrunning"`: Returns a boolean that tells whether the collector is running (i.e., not stopped).
@@ -541,6 +553,8 @@ global function collectgarbage(opt: overload(string,number,niltype) <comptime>,
     return gc:setpause(tointeger(arg))
   ## elseif opt.value == 'count' then
     return gc:count()
+  ## elseif opt.value == 'step' then
+    return gc:step()
   ## elseif opt.value == 'isrunning' then
     return gc:isrunning()
   ## else static_error('invalid collect garbage argument %s', opt.value) end

@@ -4007,6 +4007,14 @@ This halts the application until a the collection is finished.
 All collected items are finalized and deallocated.
 The finalization or deallocation order is random
 
+### GC:step
+
+```nelua
+function GC:step(): boolean
+```
+
+Trigger a collection cycle when the memory has grown above pause threshold.
+
 ### GC:register
 
 ```nelua
@@ -4116,6 +4124,10 @@ The collector will run only when explicitly invoked, until a call to restart it.
 - `"restart"`: Restarts automatic execution of the garbage collector.
 - `"count"`: Returns the total memory being tracked by the collector in Kbytes.
 The value has a fractional part, so that it multiplied by 1024 gives the exact number of bytes.
+- `"step"`: Performs a garbage-collection step. The collector will perform a full
+collection cycle only if the memory has grown above pause threshold.
+Returns `true` if a collection cycle was run.
+Calling this is only useful when the GC is stopped.
 - `"setpause"`: Sets `arg` as the new value for the pause of the collector.
 Returns the previous value for pause.
 - `"isrunning"`: Returns a boolean that tells whether the collector is running (i.e., not stopped).
