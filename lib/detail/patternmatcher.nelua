@@ -27,7 +27,7 @@ function PatternMatcherCapture:is_position(): boolean
 end
 
 -- Record holding the matching state.
-global PatternMatcher: type = @record{
+local PatternMatcher: type = @record{
   source: string,
   pattern: string,
   depth: isize, -- control for recursive depth (to avoid stack overflow)

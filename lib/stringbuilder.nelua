@@ -12,7 +12,7 @@ object creation, and garbage collection overhead.
 require 'span'
 require 'memory'
 
-local function snprintf(s: cstring, maxlen: csize, format: cstring, ...: cvarargs): cint <cimport,cinclude'<stdio.h>'> end
+local printf: type = require 'detail.printf'
 
 local MAX_FORMAT: usize <comptime> = 32
 local MAX_ITEM: usize <comptime> = 128
@@ -247,7 +247,7 @@ end
     ## if primtypes.cint:is_convertible_from(arg1.type) then
       if c == 'c'_byte then
         local n: cint = (@cint)(arg1)
-        nb = snprintf((@cstring)(buf.data), MAX_ITEM, &form[0], n)
+        nb = printf.snprintf((@cstring)(buf.data), MAX_ITEM, &form[0], n)
         goto next
       end
     ## end if primtypes.clonglong:is_convertible_from(arg1.type) then
@@ -255,7 +255,7 @@ end
         local lenmod: cstring = 'lli'
         addlenmod(form, lenmod, #lenmod - 1)
         local n: clonglong = (@clonglong)(arg1)
-        nb = snprintf((@cstring)(buf.data), MAX_ITEM, &form[0], n)
+        nb = printf.snprintf((@cstring)(buf.data), MAX_ITEM, &form[0], n)
         goto next
       end
     ## end if primtypes.culonglong:is_convertible_from(arg1.type) then
@@ -269,7 +269,7 @@ end
         ## else
         local n: culonglong = (@culonglong)(arg1)
         ## end
-        nb = snprintf((@cstring)(buf.data), MAX_ITEM, &form[0], n)
+        nb = printf.snprintf((@cstring)(buf.data), MAX_ITEM, &form[0], n)
         goto next
       end
     ## end if primtypes.number:is_convertible_from(arg1.type) then
@@ -280,7 +280,7 @@ end
         ## if arg1.type.is_clongdouble then
         local lenmod: cstring = 'Lf'
         addlenmod(form, lenmod, #lenmod - 1)
-        nb = snprintf((@cstring)(buf.data), MAX_ITEM, &form[0], arg1)
+        nb = printf.snprintf((@cstring)(buf.data), MAX_ITEM, &form[0], arg1)
         ## elseif arg1.type.is_float128 then
         ## linklib 'quadmath'
         local function quadmath_snprintf(s: cstring, maxlen: csize, format: cstring, ...: cvarargs): cint <cimport,cinclude'<quadmath.h>'> end
@@ -289,7 +289,7 @@ end
         nb = quadmath_snprintf((@cstring)(buf.data), MAX_ITEM, &form[0], arg1)
         ## else
         local n: float64 = (@float64)(arg1)
-        nb = snprintf((@cstring)(buf.data), MAX_ITEM, &form[0], n)
+        nb = printf.snprintf((@cstring)(buf.data), MAX_ITEM, &form[0], n)
         ## end
         goto next
       end
@@ -302,7 +302,7 @@ end
           nb = 6
         else
           local n: culonglong = (@culonglong)((@usize)(p))
-          nb = snprintf((@cstring)(buf.data), MAX_ITEM, '0x%llx', n)
+          nb = printf.snprintf((@cstring)(buf.data), MAX_ITEM, '0x%llx', n)
         end
         goto next
       end
@@ -335,7 +335,7 @@ end
         ## end
         local cs: cstring = (@cstring)(s.data)
         if s.size == 0 then cs = ''_cstring end
-        nb = snprintf((@cstring)(buf.data), buf.size, &form[0], cs)
+        nb = printf.snprintf((@cstring)(buf.data), buf.size, &form[0], cs)
         ## if arg1.type.is_string then
         s:destroy()
         ## end
