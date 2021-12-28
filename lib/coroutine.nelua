@@ -345,6 +345,14 @@ function coroutine.status(co: coroutine): string
   end
 end
 
+local coroutine.State = @enum{
+  DEAD=1
+}
+
+function coroutine.state(co: coroutine): boolean
+  return false
+end
+
 -- TODO: coroutine.wrap
 
 -- Bundle minicoro, for details check the project URL at https://github.com/edubart/minicoro

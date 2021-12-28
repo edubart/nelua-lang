@@ -521,12 +521,13 @@ The operation may not be supported by all systems, or may fail in some systems,
 in that case false is returned.
 ]]
 function os.sleep(secs: number): boolean
-  local us: uint64 <nodce> = (@uint64)(secs * 1000000)
+  if secs < 0 then return false end
   local ok: boolean
   ## cinclude '@unistd.h'
   ## cinclude '@windows.h'
   ## cemit '#if defined(_WIN32)'
     local function Sleep(ms: culong): void <cimport,cinclude'@windows.h'> end
+    local us: uint64 <nodce> = (@uint64)(secs * 1000000)
     local ms: cuint = (@cuint)((us + 999) // 1000)
     if ms > 0 then
       Sleep(ms)
@@ -536,10 +537,10 @@ function os.sleep(secs: number): boolean
     local function nanosleep(requested_time: *timespec, remaining: *timespec): cint <cimport,cinclude'<time.h>'> end
     local EINTR: cint <cimport,cinclude'<errno.h>'>
     local res: cint
-    if us > 0 then
+    if secs > 0 then
       local ts: timespec = {
-        tv_sec = (@ctime_t)(us // 1000000),
-        tv_nsec = (@clong)((us % 1000000) * 1000)
+        tv_sec = (@ctime_t)(secs // 1),
+        tv_nsec = (@clong)((secs % 1) * 1e9)
       }
       repeat
         errno = 0
@@ -549,6 +550,7 @@ function os.sleep(secs: number): boolean
     end
   ## cemit '#elif defined(_POSIX_VERSION)'
     local function usleep(usec: cuint): cint <cimport,cinclude'@unistd.h'> end
+    local us: uint64 <nodce> = (@uint64)(secs * 1000000)
     if us > 0 then
       ok = usleep(us) == 0
     else

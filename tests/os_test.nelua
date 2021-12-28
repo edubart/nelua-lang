@@ -77,6 +77,7 @@ do -- os.now/os.sleep
   local start = os.now()
   if start >= 0 then -- os.now is supported
     assert(start == 0.0)
+    assert(os.sleep(-1) == false)
     if os.sleep(0.02) then -- os.sleep succeeded
       assert(os.now() >= 0.01)
     end
