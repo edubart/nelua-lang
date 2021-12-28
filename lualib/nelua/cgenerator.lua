@@ -961,7 +961,7 @@ function visitors.DoExpr(context, node, emitter)
     emitter:add_indent()
   end
   local blocknode = node[1]
-  if blocknode[1].is_In then -- single statement
+  if blocknode[1] and blocknode[1].is_In then -- single statement
     emitter:add(blocknode[1][1])
   elseif not attr.type then
     assert(isstatement)

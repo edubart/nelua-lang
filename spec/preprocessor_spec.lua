@@ -675,6 +675,9 @@ it("expression macros", function()
     local function proxy(a: auto) return #[mymacro]#(a) end
     assert(proxy(1) == 1)
     assert(proxy(2.0) == 2.0)
+
+    ## local function noop() end
+    noop!()
   ]=])
 
   expect.analyze_error("local a = #[function() end]#", "cannot convert preprocess value of type")
