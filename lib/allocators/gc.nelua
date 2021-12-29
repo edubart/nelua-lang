@@ -116,10 +116,10 @@ global gc: GC <nogcscan>
 Unregister pointer `ptr` from the GC.
 If `finalize` is `true` and the pointer has a finalizer, then it's called.
 ]]
-function GC:unregister(ptr: pointer, finalize: facultative(boolean)): boolean
-  if unlikely(not ptr) then return false end
+function GC:unregister(ptr: pointer, finalize: facultative(boolean)): void
+  if unlikely(not ptr) then return end
   local item: GCItem = self.items:remove(ptr)
-  if unlikely(item.ptr ~= ptr) then return false end -- not found
+  assert(item.ptr == ptr, 'invalid unregister pointer')
   if not hasflag(item.flags, GCFlags.ROOT) then
     self.membytes = self.membytes - item.size -- update memory
     -- remove from to be free items
@@ -136,7 +136,6 @@ function GC:unregister(ptr: pointer, finalize: facultative(boolean)): boolean
     item.finalizer(ptr, item.userdata)
   end
   ## end
-  return true
 end
 
 -- Scan and mark pointers between `low` and `high` addresses.
@@ -250,7 +249,7 @@ local function GC_sweep(self: *GC): void <noinline>
       local ptr: pointer = self.frees[i]
       if ptr then -- it's possible that the item was removed while iterating
         local item: *GCItem = self.items:peek(ptr)
-        check(item, 'gc item not found to finalize')
+        check(item ~= nilptr, 'gc item not found to finalize')
         if item and item.finalizer then
           local finalizer: GCFinalizerCallback = item.finalizer
           item.finalizer = nilptr -- avoid finalizing again
@@ -397,12 +396,12 @@ end
 Register pointer that moved from `oldptr` to `newptr` with new size `newsize`.
 Called when reallocating a pointers.
 ]]
-function GC:reregister(oldptr: pointer, newptr: pointer, newsize: usize): boolean
-  check(oldptr and newptr and newsize > 0, 'invalid pointer reregister arguments')
+function GC:reregister(oldptr: pointer, newptr: pointer, newsize: usize): void
+  check(oldptr and newptr and newsize > 0, 'invalid reregister arguments')
   local oldsize: usize
   if newptr == oldptr then
     local item: *GCItem = self.items:peek(oldptr)
-    if unlikely(not item) then return false end -- not found
+    assert(item ~= nilptr, 'invalid reregister pointer')
     oldsize = item.size
     item.size = newsize -- just update the size
     if likely(not hasflag(item.flags, GCFlags.ROOT)) then
@@ -417,7 +416,7 @@ function GC:reregister(oldptr: pointer, newptr: pointer, newsize: usize): boolea
     end
   else -- moved, remove and insert item again
     local item: GCItem = self.items:remove(oldptr)
-    if unlikely(item.ptr ~= oldptr) then return false end -- not found
+    assert(item ~= nilptr, 'invalid reregister pointer')
     oldsize = item.size
     if likely(not hasflag(item.flags, GCFlags.ROOT)) then
       self.membytes = self.membytes - oldsize -- update memory
@@ -432,7 +431,6 @@ function GC:reregister(oldptr: pointer, newptr: pointer, newsize: usize): boolea
     -- register again
     self:register(newptr, newsize, item.flags, item.finalizer, item.userdata)
   end
-  return true
 end
 
 -- Retrieve pointer for the top of the stack.
