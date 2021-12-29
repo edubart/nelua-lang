@@ -258,7 +258,7 @@ local READ_CHUNK_SIZE: usize <comptime> = 1024
 -- Read a line from file.
 local function readline(sb: *stringbuilder, fp: *FILE, chop: boolean): (boolean, string)
   -- TODO: lock file on POSIX?
-  local NL: byte <comptime> = '\n'_byte
+  local NL: byte <comptime> = '\n'_b
   local c: cint
   repeat
     local nr: uint32 = 0
@@ -337,15 +337,15 @@ function filestream:read(fmt: overload(integer,string,niltype)): (string, string
     success, errmsg = readchars(&sb, fp, fmt)
   ## elseif fmt.type.is_string then
     local c: byte = fmt.data[0]
-    if c == '*'_byte then -- skip optional '*' (for compatibility)
+    if c == '*'_b then -- skip optional '*' (for compatibility)
       c = fmt.data[1]
     end
     -- TODO: handle 'n' to read number
-    if c == 'l'_byte then -- line
+    if c == 'l'_b then -- line
       success, errmsg = readline(&sb, fp, true)
-    elseif c == 'L'_byte then -- line with end-of-line
+    elseif c == 'L'_b then -- line with end-of-line
       success, errmsg = readline(&sb, fp, false)
-    elseif c == 'a'_byte then -- entire file
+    elseif c == 'a'_b then -- entire file
       success, errmsg = readall(&sb, fp)
     else
       error('invalid format')

@@ -19,9 +19,10 @@ Note that all string methods are 1-indexed (like Lua).
 require 'memory'
 require 'span'
 require 'sequence'
-require 'stringbuilder'
 require 'allocators.default'
-local PatternMatcher: type = require 'detail.patternmatcher'
+require 'stringbuilder'
+
+local strchar: type = require 'detail.strchar'
 
 --[[
 Allocate a new string to be filled with length `size`.
@@ -51,11 +52,6 @@ function string:destroy(): void
   default_allocator:dealloc(self.data)
   self.data = nilptr
   self.size = 0
-end
-
--- Effectively the same as `destroy`, called when a to-be-closed variable goes out of scope.
-function string:__close(): void
-  self:destroy()
 end
 
 --[[
@@ -143,300 +139,6 @@ function string.subview(s: string, i: isize, j: facultative(isize)): string
 end
 
 --[[
-Look for the first match of pattern in the string.
-
-Returns the indices of where this occurrence starts and ends.
-
-The indices will be positive if a match is found, zero otherwise.
-A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
-A value of true as a fourth, optional argument plain turns off the pattern matching facilities.
-]]
-function string.find(s: string, pattern: string, init: facultative(isize), plain: facultative(boolean)): (isize, isize)
-  ## if init.type.is_niltype then
-  local init: isize = 1
-  ## else
-  if init < 0 then init = (@isize)(s.size) + init + 1 end
-  if init <= 0 then init = 1 end
-  ## end
-  ## if plain.type.is_niltype then
-  local plain: boolean = false
-  ## end
-  local ms: PatternMatcher = PatternMatcher.create(s, pattern, plain)
-  local startpos: isize, endpos: isize = ms:match(init-1)
-  if endpos ~= -1 then -- matched
-    return startpos+1, endpos
-  else -- no match
-    return 0, 0
-  end
-end
-
---[[
-Returns an iterator function that, each time it is called, returns the whole match plus a span of captures.
-A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
-]]
-function string.gmatch(s: string, pattern: string, init: facultative(isize)): (auto, auto, string)
-  ## if init.type.is_niltype then
-  local init: isize = 1
-  ## else
-  if init < 0 then init = (@isize)(s.size) + init + 1 end
-  if init <= 0 then init = 1 end
-  ## end
-  local MAX_CAPTURES <comptime> = 8
-  local GMatchState: type = @record{
-    ms: PatternMatcher,
-    init: isize,
-    captures: [MAX_CAPTURES]string
-  }
-  local function gmatch_next(state: *GMatchState, it: string): (boolean, string, span(string))
-    -- volatile is used to force returns to be aligned (due to GC issue on MinGW 8.1)
-    local ok: boolean, matched: string <volatile>, captures: span(string)
-    local startpos: isize, endpos: isize = state.ms:match(state.init)
-    if endpos ~= -1 then -- matched
-      ok = true
-      state.init = endpos
-      matched = string.copy((@string){data=&state.ms.source.data[startpos], size=(@usize)(endpos-startpos)})
-      assert(state.ms.numcaptures <= MAX_CAPTURES, 'too many captures')
-      for i:isize=0,<state.ms.numcaptures do
-        local ok: boolean, capstr: string, capture: auto = state.ms:get_capture(i)
-        assert(ok, capstr)
-        assert(not capture:is_position(), 'position capture not supported yet')
-        state.captures[i] = string.copy(capstr)
-      end
-      captures = (@span(string)){data=&state.captures[0], size=(@usize)(state.ms.numcaptures)}
-    end
-    return ok, matched, captures
-  end
-  local state: GMatchState = {ms = PatternMatcher.create(s, pattern, false), init = init-1}
-  return gmatch_next, state, (@string){}
-end
-
--- Like `string.gmatch` but uses sub string views (see also `string.subview`).
-function string.gmatchview(s: string, pattern: string, init: facultative(isize)): (auto, auto, string)
-  ## if init.type.is_niltype then
-  local init: isize = 1
-  ## else
-  if init < 0 then init = (@isize)(s.size) + init + 1 end
-  if init <= 0 then init = 1 end
-  ## end
-  local MAX_CAPTURES <comptime> = 8
-  local GMatchState: type = @record{
-    ms: PatternMatcher,
-    init: isize,
-    captures: [MAX_CAPTURES]string
-  }
-  local function gmatch_next(state: *GMatchState, it: string): (boolean, string, span(string))
-    -- volatile is used to force returns to be aligned (due to GC issue on MinGW 8.1)
-    local ok: boolean, matched: string <volatile>, captures: span(string)
-    local startpos: isize, endpos: isize = state.ms:match(state.init)
-    if endpos ~= -1 then -- matched
-      ok = true
-      state.init = endpos
-      matched = (@string){data=&state.ms.source.data[startpos], size=(@usize)(endpos-startpos)}
-      assert(state.ms.numcaptures <= MAX_CAPTURES, 'too many captures')
-      for i:isize=0,<state.ms.numcaptures do
-        local ok: boolean, capstr: string, capture: auto = state.ms:get_capture(i)
-        assert(ok, capstr)
-        assert(not capture:is_position(), 'position capture not supported yet')
-        state.captures[i] = capstr
-      end
-      captures = (@span(string)){data=&state.captures[0], size=(@usize)(state.ms.numcaptures)}
-    end
-    return ok, matched, captures
-  end
-  local state: GMatchState = {ms = PatternMatcher.create(s, pattern, false), init = init-1}
-  return gmatch_next, state, (@string){}
-end
-
---[[
-Returns a copy of `s` in which all (or the first `n`, if given) occurrences of the pattern
-have been replaced by a replacement string specified by `repl`,
-which can be a string, a string hashmap, or a function.
-`gsub` also returns, as its second value, the total number of matches that occurred.
-
-The name `gsub` comes from Global SUBstitution.
-
-* If `repl` is a string, then its value is used for replacement.
-The character '% works as an escape character: any sequence in `repl` of the form '%d',
-with d between 1 and 9, stands for the value of the d-th captured substring;
-the sequence '%0' stands for the whole match; the sequence '%%' stands for a single %.
-
-If `repl` is a hashmap of strings, then it is queried for every match,
-using the first capture as the key and its hashmap value as the replacement string,
-if the.
-
-If `repl` is a function, then this function is called every time a match occurs
-with all captured substrings passed as arguments, in order.
-In any case, if the pattern specifies no captures,
-then it behaves as if the whole pattern was inside a capture.
-
-If the value returned by the table query or by the function call is a string or a number,
-then it is used as the replacement string;
-otherwise, if it is false or nil, then there is no replacement (that is, the original match is kept in the string).
-]]
-function string.gsub(s: string, pattern: string, repl: auto, maxn: facultative(isize)): (string, isize)
-  ## if maxn.type.is_niltype then
-  local maxn: isize = (@isize)(s.size) + 1
-  ## end
-  local n: isize = 0 -- replacement count
-  local sb: stringbuilder
-  local pos: isize = 0
-  local ms: PatternMatcher = PatternMatcher.create(s, pattern, false)
-  local lastmatch: isize = -1
-  while n < maxn do
-    local startpos: isize, endpos: isize = ms:match(pos)
-    if endpos ~= -1 and endpos ~= lastmatch then -- matched
-      lastmatch = endpos
-      n = n + 1
-      local skip: string = (@string){data=&s.data[pos], size=(@usize)(startpos-pos)}
-      sb:write(skip)
-      local match: string = (@string){data=&s.data[startpos], size=(@usize)(endpos-startpos)}
-      local matchrepl: string
-      local ri: usize = 0
-      ## if repl.type.is_hashmap then
-        local ok: boolean, capstr: string, capture: auto = ms:get_capture(0)
-        local key: string
-        if not ok and ms.numcaptures == 0 then
-          key = match
-        else
-          assert(ok, capstr)
-          assert(not capture:is_position(), 'position capture not supported yet')
-          key = capstr
-        end
-        local it: *string = repl:peek(key)
-        if it then
-          matchrepl = $it
-        else
-          matchrepl = match
-        end
-      ## else
-        ## if repl.type.is_stringy then -- string replacement
-          matchrepl = repl
-        ## elseif repl.type.is_function then -- callback replacement
-          local capindex: isize, capstr: string
-          ## local args = {}
-          ## for i=1,#repl.type.argtypes do
-            capindex = #[i-1]#
-            local ok: boolean, capstr: string, capture: auto = ms:get_capture(capindex)
-            if not ok and capindex == 0 and ms.numcaptures == 0 then
-              capstr = string.copy(match)
-            else
-              assert(ok, capstr)
-              if capture:is_position() then
-                capstr = tostring(capture.init+1)
-              else
-                capstr = string.copy(capstr)
-              end
-            end
-            local #|'a'..i|#: string = capstr
-            ## table.insert(args, aster.Id{'a'..i})
-          ## end
-          ## if repl.type:get_return_type(1).is_string then -- function that returns the replacement
-            matchrepl = repl(#[aster.unpack(args)]#)
-            defer matchrepl:destroy() end
-          ## else -- call function and replace original match
-            matchrepl = match
-            repl(#[aster.unpack(args)]#)
-          ## end
-        ## else
-          ## static_error('invalid replacement argument')
-        ## end
-        --TODO: handle numbers
-        while true do -- replace captures
-          local found = memory.scan(&matchrepl.data[ri], '%'_b, matchrepl.size - ri)
-          if not found then break end
-          local advance: usize = (@usize)(found) - (@usize)(&matchrepl.data[ri])
-          sb:write((@string){&matchrepl.data[ri], advance})
-          local c: byte = matchrepl.data[ri + advance + 1]
-          if c == '%'_b then -- %%
-            sb:writebyte('%'_b)
-          elseif c == '0'_b then -- %0
-            sb:write(match)
-          elseif c >= '1'_b and c <= '9'_b then -- should be a digit
-            local capindex: isize = c - '1'_b
-            local ok: boolean, capstr: string, capture: auto = ms:get_capture(capindex)
-            if not ok and capindex == 0 and ms.numcaptures == 0 then
-              sb:write(match)
-            else
-              assert(ok, capstr)
-              if capture:is_position() then
-                local s: string = tostring(capture.init+1)
-                sb:write(s)
-                s:destroy()
-              else
-                sb:write(capstr)
-              end
-            end
-          else
-            error "invalid use of '%' in replacement string"
-          end
-          ri = ri + advance + 2
-        end
-      ## end
-      sb:write((@string){&matchrepl.data[ri], matchrepl.size - ri})
-      pos = endpos
-    elseif pos < s.size then -- otherwise, skip one character
-      sb:writebyte(s.data[pos])
-      pos = pos + 1
-    else -- end of subject
-      break
-    end
-    if ms.anchor then break end
-  end
-  sb:write((@string){&s.data[pos], s.size - pos})
-  return sb:promote(), n
-end
-
--- Helper used by `string.match` and `string.matchview`.
-local function string_match(s: string, pattern: string, init: facultative(isize)): (boolean, sequence(string))
-  ## if init.type.is_niltype then
-  local init: isize = 1
-  ## else
-  if init < 0 then init = (@isize)(s.size) + init + 1 end
-  if init <= 0 then init = 1 end
-  ## end
-  local ms: PatternMatcher = PatternMatcher.create(s, pattern, false)
-  local startpos: isize, endpos: isize = ms:match(init-1)
-  local captures: sequence(string)
-  if endpos ~= -1 then -- matched
-    if ms.numcaptures > 0 then -- has captures
-      captures:resize((@usize)(ms.numcaptures))
-      for i:isize=0,<ms.numcaptures do
-        local ok: boolean, capstr: string, capture: auto = ms:get_capture(i)
-        assert(ok, capstr)
-        assert(not capture:is_position(), 'position capture not supported yet')
-        captures[(@usize)(i+1)] = capstr
-      end
-      return true, captures
-    else -- nothing captured, then capture whole match
-      captures[1] = ms.source:subview(startpos+1, endpos)
-      return true, captures
-    end
-  else -- no match
-    return false, captures
-  end
-end
-
---[[
-Look for the first match of pattern in the string.
-If it finds one, then returns true plus a sequence with the captured values,
-otherwise it returns false plus an empty sequence.
-If pattern specifies no captures, then the whole match is captured.
-A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
-]]
-function string.match(s: string, pattern: string, init: facultative(isize)): (boolean, sequence(string))
-  local ok: boolean, seq: sequence(string) = string_match(s, pattern, init)
-  for i: isize = 1, #seq do
-    seq[i] = string.copy(seq[i])
-  end
-  return ok, seq
-end
-
--- Like `string.match` but uses sub string views (see also `string.subview`).
-function string.matchview(s: string, pattern: string, init: facultative(isize)): (boolean, sequence(string))
-  return string_match(s, pattern, init)
-end
-
---[[
 Returns a string that is the concatenation of `n` copies of the string `s` separated by the string `sep`.
 The default value for `sep` is the empty string (that is, no separator).
 Returns the empty string if `n` is not positive.
@@ -480,18 +182,13 @@ end
 Receives a string and returns a copy of this string with all lowercase letters changed to uppercase.
 All other characters are left unchanged.
 The definition of what a lowercase letter is depends on the current locale
-only if pragma `nobuiltincharclass` is set.
+only if pragma `useclocale` is set.
 ]]
 function string.upper(s: string): string
-  ## if pragmas.nobuiltincharclass then
-  local function toupper(c: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
-  ## else
-  local function toupper(c: cint): cint <inline> return (@cuint)(c)-'a'_b < 26 and c & 0x5f or c end
-  ## end
   if unlikely(s.size == 0) then return s end
   local ret: string = string.create(s.size)
   for i:usize=0,<s.size do
-    ret.data[i] = (@byte)(toupper(s.data[i]))
+    ret.data[i] = (@byte)(strchar.toupper(s.data[i]))
   end
   return ret
 end
@@ -500,18 +197,13 @@ end
 Receives a string and returns a copy of this string with all uppercase letters changed to lowercase.
 All other characters are left unchanged.
 The definition of what an uppercase letter is depends on the current locale
-only if pragma `nobuiltincharclass` is set.
+only if pragma `useclocale` is set.
 ]]
 function string.lower(s: string): string
-  ## if pragmas.nobuiltincharclass then
-  local function tolower(c: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
-  ## else
-  local function tolower(c: cint): cint <inline> return (@cuint)(c)-'A'_b < 26 and c | 32 or c end
-  ## end
   if unlikely(s.size == 0) then return s end
   local ret: string = string.create(s.size)
   for i:usize=0,<s.size do
-    ret.data[i] = (@byte)(tolower(s.data[i]))
+    ret.data[i] = (@byte)(strchar.tolower(s.data[i]))
   end
   return ret
 end
@@ -550,12 +242,35 @@ function string.len(s: string): isize <inline>
 end
 
 --[[
+Fills a `cstring` buffer.
+This is mainly used to ensure the string is zero terminated.
+
+Returns `true` in case of success, otherwise `false` when the `buflen` is not enough.
+]]
+function string.fillcstring(s: string, buf: *[0]cchar, buflen: usize): boolean
+  if buf and buflen >= s.size + 1 then
+    memory.copy(buf, s.data, s.size)
+    buf[s.size] = 0
+    return true
+  end
+  return false
+end
+
+--[[
 Converts a string to a span of bytes.
 
 Remarks: Similar to `subview` a reference of the current string data is returned.
 ]]
 function string.span(s: string): span(byte) <inline>
   return (@span(byte)){data=s.data, size=s.size}
+end
+
+----------------------------------------------------------------------------------------------------
+-- String metamethods
+
+-- Effectively the same as `destroy`, called when a to-be-closed variable goes out of scope.
+function string:__close(): void
+  self:destroy()
 end
 
 --[[
@@ -572,18 +287,6 @@ end
 function string.__len(a: string): isize <inline>
   return (@isize)(a.size)
 end
-
--- Concept to check if a value can possibly be a number.
-local scalar_coercion_concept: type = #[concept(function(x)
-  if x.type.is_stringy then
-    return primtypes.string
-  elseif x.type.is_integral then
-    return primtypes.integer
-  elseif x.type.is_float then
-    return primtypes.number
-  end
-  return false, string.format("type '%s' is not convertible to a scalar", x.type)
-end)]#
 
 -- Concatenate two strings. Used by the concatenation operator (`..`).
 function string.__concat(a: auto, b: auto): string
@@ -605,6 +308,9 @@ function string.__concat(a: auto, b: auto): string
   memory.copy(&s.data[a.size], b.data, b.size)
   return s
 end
+
+----------------------------------------------------------------------------------------------------
+-- String comparison
 
 -- Compare two strings. Used by the equality operator (`==`).
 function string.__eq(a: string, b: string): boolean
@@ -642,6 +348,21 @@ function string.__le(a: string, b: string): boolean
     end
   end
 end
+
+----------------------------------------------------------------------------------------------------
+-- String arithmetic operators
+
+-- Concept to check if a value can possibly be a number.
+local scalar_coercion_concept: type = #[concept(function(x)
+  if x.type.is_stringy then
+    return primtypes.string
+  elseif x.type.is_integral then
+    return primtypes.integer
+  elseif x.type.is_float then
+    return primtypes.number
+  end
+  return false, string.format("type '%s' is not convertible to a scalar", x.type)
+end)]#
 
 --[[
 Converts input strings to numbers and returns the result of addition.
@@ -796,357 +517,350 @@ function string.__bnot(a: scalar_coercion_concept): integer
   return ~a
 end
 
--- Helper to check if a byte is a space.
-local function isspace(c: byte): boolean <inline>
-  return c == ' '_b or (c - '\t'_b < 5)
-end
+----------------------------------------------------------------------------------------------------
+-- String pattern matching
 
--- Helper to check if a byte is a digit.
-local function getdigit(c: byte): byte <inline>
-  return c - '0'_b
-end
+local StrPatt: type = require 'detail.strpatt'
 
--- Helper to convert a character to a digit number.
-local function getbasedigit(c: byte): byte <inline>
-  local d: byte = c - '0'_b
-  if d < 10 then return d end
-  d = c - 'a'_b
-  if d < 26 then return d + 10 end
-  d = c - 'A'_b
-  if d < 26 then return d + 10 end
-  return 255
-end
+--[[
+Look for the first match of pattern in the string.
 
--- Convert a string to an integer in the desired base.
-local function str2int(s: string, base: uinteger): (boolean, integer)
-  if s.size == 0 then return false, 0 end
-  local pos: usize = 0
-  while pos < s.size and isspace(s.data[pos]) do pos = pos + 1 end -- skip initial spaces
-  if pos >= s.size then return false, 0 end
-  local neg: boolean = false
-  if s.data[pos] == '-'_b then -- negative sign
-    pos = pos + 1
-    neg = true
-  elseif s.data[pos] == '+'_b then -- skip positive sign
-    pos = pos + 1
-  end
-  if base == 0 then -- detect base
-    base = 10 -- default to base 10
-    if s.data[pos] == '0'_b and pos + 1 < s.size then -- has base prefix
-      local bc: byte = s.data[pos+1]
-      if bc == 'b'_b or bc == 'B'_b then -- binary
-        base = 2
-        pos = pos + 2
-      elseif bc == 'x'_b or bc == 'X'_b then -- hexadecimal
-        base = 16
-        pos = pos + 2
-      end
-    end
-  end
-  assert(base >= 2 and base <= 36, "base out of range")
-  local n: uinteger = 0
-  while pos < s.size do
-    local x: uinteger = getbasedigit(s.data[pos])
-    if x >= base then break end
-    n = n * base + (@uinteger)(x)
-    pos = pos + 1
-  end
-  while pos < s.size and isspace(s.data[pos]) do pos = pos + 1 end -- skip trailing spaces
-  if pos ~= s.size then return false, 0 end
-  if neg then n = -n end -- negate
-  return true, (@integer)(n)
-end
+Returns the indices of where this occurrence starts and ends.
 
-##[[
-local function choose_long(xtype)
-  if xtype.is_float32 then
-    return primtypes.float64, primtypes.uint32, 7
-  elseif xtype.is_float64 then
-    return primtypes.clongdouble, primtypes.uint64, 14
-  elseif xtype.is_clongdouble and (ccinfo.has_float128 and ccinfo.has_int128) then
-    return primtypes.float128, primtypes.uint128, 19
-  elseif xtype.is_float128 and (ccinfo.has_float128 and ccinfo.has_int128) then
-    return primtypes.float128, primtypes.uint128, 32
-  end
-  return primtypes.clongdouble, primtypes.uint64, 19
-end
+The indices will be positive if a match is found, zero otherwise.
+A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
+A value of true as a fourth, optional argument plain turns off the pattern matching facilities.
 ]]
-
--- Convert a decimal string to a float number.
-local function str2num(s: string): (boolean, number)
-  ## local longfloatT, longuintT = choose_long(primtypes.number)
-  local longfloat: type = #[longfloatT]#
-  local num: longfloat, basenum: longfloat = 0, 10
-  local base: int32, exp: int32 = 10, 0
-  local pos: usize, len: usize = 0, s.size
-  -- skip white spaces
-  while pos < len and isspace(s.data[pos]) do pos = pos + 1 end
-  if pos >= len then return false, 0 end
-  -- sign
-  local c: byte = s.data[pos]
-  local neg: boolean = c == '-'_b
-  local gotdigit: boolean, gotfrac: boolean
-  if neg or c == '+'_b then pos = pos + 1 end
-  -- detect base
-  if pos+1 < len and s.data[pos] == '0'_b then
-    c = s.data[pos+1]
-    if c == 'x'_b or c == 'X'_b then -- hexadecimal
-      pos = pos + 2
-      base = 16; basenum = 16
-    elseif c == 'b'_b or c == 'B'_b then -- binary
-      pos = pos + 2
-      base = 2; basenum = 2
-    end
-  end
-  -- skip leading zeros
-  while pos < len do
-    c = s.data[pos]
-    if c ~= '0'_b then break end
-    pos = pos + 1
-    gotdigit = true
-  end
-  -- mantissa part
-  while pos < len do
-    c = s.data[pos]
-    local d: int32 = getbasedigit(c)
-    if d < base then
-      num = num * basenum + (@longfloat)(d)
-      gotdigit = true
-      pos = pos + 1
-      if gotfrac then exp = exp - (base == 16 and 4_i32 or 1_i32) end
-    elseif c == '.'_b then
-      if gotfrac then return false, 0 end
-      gotfrac = true
-      pos = pos + 1
-    else
-      break
-    end
-  end
-  if not gotdigit then return false, 0 end
-  -- exponent part
-  if pos < len and (base == 10 and (c == 'e'_b or c == 'E'_b)) or
-                   (base ~= 10 and (c == 'p'_b or c == 'P'_b)) then
-    pos = pos + 1
-    if pos >= len then return false, 0 end
-    c = s.data[pos]
-    local negexp: boolean = c == '-'_b
-    if negexp or c == '+'_b then pos = pos + 1 end
-    if pos >= len or getdigit(s.data[pos]) >= 10 then return false, 0 end
-    local e: int32 = 0
-    while pos < len do
-      local d: int32 = getdigit(s.data[pos])
-      if d >= 10 then break end
-      pos = pos + 1
-      e = e * 10 + (@int32)(d)
-      -- exponent too large? 2^-16500/10^-5000 is enough for float128
-      if e > 16500 and base == 2 then e = 16500
-      elseif e > 5000 and base == 10 then e = 5000 end
-    end
-    if negexp then e = -e end
-    exp = exp + e
-  end
-  -- skip white spaces
-  while pos < len and isspace(s.data[pos]) do pos = pos + 1 end
-  if pos ~= len then return false, 0 end
-  -- exponent scale
-  if exp ~= 0 then
-    local invscale: boolean = exp < 0
-    local scale: longfloat = 1
-    if invscale then exp = -exp end
-    if base == 10 then
-      while exp >= 256 do
-        scale = scale * (@longfloat)(1e256)
-        exp = exp - 256
-      end
-      ## for _,i in ipairs{128,64,32,16,8,4,2,1} do
-        if exp >= #[i]# then
-          scale = scale * (@longfloat)(#[tonumber('1e'..i)]#)
-          exp = exp - #[i]#
-        end
-      ## end
-    else -- base 2
-      local te: longfloat = 2
-      while true do
-        if exp & 1 == 1 then scale = scale * te end
-        exp = exp >>> 1
-        if exp == 0 then break end
-        te = te * te
-      end
-    end
-    if invscale then scale = 1/scale end
-    num = num * scale
-  end
-  if neg then num = -num end
-  return true, (@number)(num)
-end
-
--- Convert an integer to a string.
-local function int2str(x: auto, base: int32 <comptime>): string
-  if x == 0 then return string.copy('0') end
-  local T: type = #[x.type]#
-  local buf: [48]byte <noinit>
-  local pos: usize = #buf-1
-  local neg: boolean = x < 0
-  while x ~= 0 do
-    local quot: T = x /// (@T)(base)
-    local rema: T = x - quot*(@T)(base)
-    ## if T.value.is_signed then
-    if rema < 0 then rema = -rema end
-    ## end
-    x = quot
-    ## if base.value > 10 then
-      buf[pos] = (@byte)(rema + (rema >= 10 and 'a'_i8 - 10 or '0'_i8))
-    ## else
-      buf[pos] = (@byte)(rema + '0'_i8)
-    ## end
-    pos = pos - 1
-  end
-  ## if base.value == 16 then
-    buf[pos] = 'x'_b
-    buf[pos-1] = '0'_b
-    pos = pos - 2
-  ## end
-  if neg then
-    buf[pos] = '-'_b
-    pos = pos - 1
-  end
-  buf[pos] = 0
-  return string.copy((@string){data=&buf[pos+1], size=#buf-pos-1})
-end
-
--- Convert a float number to a decimal string.
-local function num2str(x: auto): string
-  ## local longfloatT, longuintT, DIGITS = choose_long(x.type)
-  local longfloat: type = #[longfloatT]#
-  local longuint: type = #[longuintT]#
-  -- volatile is used so the code can also work with '-ffast-math' on Clang
-  local n: longfloat <volatile> = x
-  do -- arbitrary way to check nan/inf/negative zero without relying much on float format
-    local UF2I: type = @union{f: float32, i: uint32}
-    local pinf: UF2I = {f=#[math.huge]#}
-    local ninf: UF2I = {f=#[-math.huge]#}
-    local huge: longfloat <volatile> = #[math.huge]#
-    local ux: UF2I = {f=n}
-    if ux.i & ninf.i == ninf.i and ux.i ~= ninf.i then -- negative nan
-      return string.copy('-nan')
-    elseif ux.i & pinf.i == pinf.i and ux.i ~= pinf.i and ux.i ~= ninf.i then -- nan
-      return string.copy('nan')
-    elseif n == 0 then
-      return string.copy(ux.i ~= 0 and '-0.0' or '0.0')
-    elseif n == huge then
-      return string.copy('inf')
-    elseif n == -huge then
-      return string.copy('-inf')
-    end
-  end
-  local buf: [64]byte <noinit>
-  local pos: usize = #buf-1
-  local gotdigit: boolean, gotexpo: boolean
-  local neg: boolean = n < 0
-  if neg then n = -n end
-  local expo: int32 = #[DIGITS - 1]#
-  -- scale n to range [10^(DIGITS-1),10^DIGITS] while computing base-10 exponent
-  while n <= (@longfloat)(#[tonumber('1e'..-(256-DIGITS))]#) do
-    n = n * (@longfloat)(1e256)
-    expo = expo - 256
-  end
-  ## for _,i in ipairs{128,64,32,16,8,4,2,1} do
-    if n <= (@longfloat)(#[tonumber('1e'..-(i-DIGITS))]#) then
-      n = n * (@longfloat)(#[tonumber('1e'..i)]#)
-      expo = expo - #[i]#
-    end
-  ## end
-  while n >= (@longfloat)(#[tonumber('1e'..(256+DIGITS))]#) do
-    n = n * (@longfloat)(1e-256)
-    expo = expo + 256
-  end
-  ## for _,i in ipairs{128,64,32,16,8,4,2,1,0} do
-    if n >= (@longfloat)(#[tonumber('1e'..(i+DIGITS))]#) then
-      n = n * (@longfloat)(#[tonumber('1e-'..math.max(i,1))]#)
-      expo = expo + #[math.max(i,1)]#
-    end
-  ## end
-  -- round n after scaling
-  ## if DIGITS < longfloatT.decimaldigits then
-    n = n + (@longfloat)(0.5)
+function string.find(s: string, pattern: string, init: facultative(isize), plain: facultative(boolean)): (isize, isize)
+  ## if init.type.is_niltype then
+  local init: isize = 1
   ## else
-    if expo ~= #[DIGITS - 1]# then -- round only when n was actually scaled
-      n = n + (@longfloat)(0.5)
-    end
+  if init < 0 then init = (@isize)(s.size) + init + 1 end
+  if init <= 0 then init = 1 end
   ## end
-  -- extract fractional digits
-  local frac: longuint = (@longuint)(n)
-  local fracmax: longuint = 1
-  for i=0,<#[DIGITS]# do fracmax = fracmax * 10 end
-  while frac >= fracmax do
-    frac = frac // 10
-    expo = expo + 1
+  ## if plain.type.is_niltype then
+  local plain: boolean = false
+  ## end
+  local ms: StrPatt = StrPatt.create(s, pattern, plain)
+  local startpos: isize, endpos: isize = ms:match(init-1)
+  if endpos ~= -1 then -- matched
+    return startpos+1, endpos
+  else -- no match
+    return 0, 0
   end
-  -- fill exponent
-  if expo < -4 or expo >= #[DIGITS]# then
-    local negexpo: boolean = expo < 0
-    if negexpo then expo = -expo end
-    local expozero: boolean = expo < 10
-    while expo ~= 0 do
-      buf[pos] = (@byte)(expo %%% 10) + '0'_b
-      expo = expo /// 10
-      pos = pos - 1
-    end
-    if expozero then
-      buf[pos] = '0'_b
-      pos = pos - 1
-    end
-    buf[pos] = negexpo and '-'_b or '+'_b
-    buf[pos-1] = 'e'_b
-    pos = pos - 2
-    gotexpo = true
-  end
-  -- fill digits
-  for i:int32=#[DIGITS-1]#,expo <= 0 and expo or 0,-1 do
-    if i == expo and not (gotexpo and not gotdigit) then -- add decimal separator
-      if not gotdigit then -- add trailing zero
-        buf[pos] = '0'_b
-        pos = pos - 1
-        gotdigit = true
-      end
-      buf[pos] = '.'_b
-      pos = pos - 1
-    end
-    local rema: longuint = frac % 10
-    frac = frac // 10
-    if gotdigit or rema ~= 0 then -- add digit
-      buf[pos] = (@byte)(rema) + '0'_b
-      pos = pos - 1
-      gotdigit = true
-    end
-  end
-  -- trim leading zeros
-  while pos < #buf and buf[pos+1] == '0'_b and buf[pos+2] ~= '.'_b do
-    pos = pos + 1
-  end
-  -- fill sign
-  if neg then
-    buf[pos] = '-'_b
-    pos = pos - 1
-  end
-  buf[pos] = 0
-  return string.copy((@string){data=&buf[pos+1], size=#buf-pos-1})
 end
 
 --[[
-Fills a `cstring` buffer.
-This is mainly used to ensure the string is zero terminated.
-
-Returns `true` in case of success, otherwise `false` when the `buflen` is not enough.
+Returns an iterator function that, each time it is called, returns the whole match plus a span of captures.
+A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
 ]]
-function string.fillcstring(s: string, buf: *[0]cchar, buflen: usize): boolean
-  if buf and buflen >= s.size + 1 then
-    memory.copy(buf, s.data, s.size)
-    buf[s.size] = 0
-    return true
+function string.gmatch(s: string, pattern: string, init: facultative(isize)): (auto, auto, string)
+  ## if init.type.is_niltype then
+  local init: isize = 1
+  ## else
+  if init < 0 then init = (@isize)(s.size) + init + 1 end
+  if init <= 0 then init = 1 end
+  ## end
+  local MAX_CAPTURES <comptime> = 8
+  local GMatchState: type = @record{
+    ms: StrPatt,
+    init: isize,
+    captures: [MAX_CAPTURES]string
+  }
+  local function gmatch_next(state: *GMatchState, it: string): (boolean, string, span(string))
+    -- volatile is used to force returns to be aligned (due to GC issue on MinGW 8.1)
+    local ok: boolean, matched: string <volatile>, captures: span(string)
+    local startpos: isize, endpos: isize = state.ms:match(state.init)
+    if endpos ~= -1 then -- matched
+      ok = true
+      state.init = endpos
+      matched = string.copy((@string){data=&state.ms.source.data[startpos], size=(@usize)(endpos-startpos)})
+      assert(state.ms.numcaptures <= MAX_CAPTURES, 'too many captures')
+      for i:isize=0,<state.ms.numcaptures do
+        local ok: boolean, capstr: string, capture: auto = state.ms:get_capture(i)
+        assert(ok, capstr)
+        assert(not capture:is_position(), 'position capture not supported yet')
+        state.captures[i] = string.copy(capstr)
+      end
+      captures = (@span(string)){data=&state.captures[0], size=(@usize)(state.ms.numcaptures)}
+    end
+    return ok, matched, captures
   end
-  return false
+  local state: GMatchState = {ms = StrPatt.create(s, pattern, false), init = init-1}
+  return gmatch_next, state, (@string){}
 end
+
+-- Like `string.gmatch` but uses sub string views (see also `string.subview`).
+function string.gmatchview(s: string, pattern: string, init: facultative(isize)): (auto, auto, string)
+  ## if init.type.is_niltype then
+  local init: isize = 1
+  ## else
+  if init < 0 then init = (@isize)(s.size) + init + 1 end
+  if init <= 0 then init = 1 end
+  ## end
+  local MAX_CAPTURES <comptime> = 8
+  local GMatchState: type = @record{
+    ms: StrPatt,
+    init: isize,
+    captures: [MAX_CAPTURES]string
+  }
+  local function gmatch_next(state: *GMatchState, it: string): (boolean, string, span(string))
+    -- volatile is used to force returns to be aligned (due to GC issue on MinGW 8.1)
+    local ok: boolean, matched: string <volatile>, captures: span(string)
+    local startpos: isize, endpos: isize = state.ms:match(state.init)
+    if endpos ~= -1 then -- matched
+      ok = true
+      state.init = endpos
+      matched = (@string){data=&state.ms.source.data[startpos], size=(@usize)(endpos-startpos)}
+      assert(state.ms.numcaptures <= MAX_CAPTURES, 'too many captures')
+      for i:isize=0,<state.ms.numcaptures do
+        local ok: boolean, capstr: string, capture: auto = state.ms:get_capture(i)
+        assert(ok, capstr)
+        assert(not capture:is_position(), 'position capture not supported yet')
+        state.captures[i] = capstr
+      end
+      captures = (@span(string)){data=&state.captures[0], size=(@usize)(state.ms.numcaptures)}
+    end
+    return ok, matched, captures
+  end
+  local state: GMatchState = {ms = StrPatt.create(s, pattern, false), init = init-1}
+  return gmatch_next, state, (@string){}
+end
+
+--[[
+Returns a copy of `s` in which all (or the first `n`, if given) occurrences of the pattern
+have been replaced by a replacement string specified by `repl`,
+which can be a string, a string hashmap, or a function.
+`gsub` also returns, as its second value, the total number of matches that occurred.
+
+The name `gsub` comes from Global SUBstitution.
+
+* If `repl` is a string, then its value is used for replacement.
+The character '% works as an escape character: any sequence in `repl` of the form '%d',
+with d between 1 and 9, stands for the value of the d-th captured substring;
+the sequence '%0' stands for the whole match; the sequence '%%' stands for a single %.
+
+If `repl` is a hashmap of strings, then it is queried for every match,
+using the first capture as the key and its hashmap value as the replacement string,
+if the.
+
+If `repl` is a function, then this function is called every time a match occurs
+with all captured substrings passed as arguments, in order.
+In any case, if the pattern specifies no captures,
+then it behaves as if the whole pattern was inside a capture.
+
+If the value returned by the table query or by the function call is a string or a number,
+then it is used as the replacement string;
+otherwise, if it is false or nil, then there is no replacement (that is, the original match is kept in the string).
+]]
+function string.gsub(s: string, pattern: string, repl: auto, maxn: facultative(isize)): (string, isize)
+  ## if maxn.type.is_niltype then
+  local maxn: isize = (@isize)(s.size) + 1
+  ## end
+  local n: isize = 0 -- replacement count
+  local sb: stringbuilder
+  local pos: isize = 0
+  local ms: StrPatt = StrPatt.create(s, pattern, false)
+  local lastmatch: isize = -1
+  while n < maxn do
+    local startpos: isize, endpos: isize = ms:match(pos)
+    if endpos ~= -1 and endpos ~= lastmatch then -- matched
+      lastmatch = endpos
+      n = n + 1
+      local skip: string = (@string){data=&s.data[pos], size=(@usize)(startpos-pos)}
+      sb:write(skip)
+      local match: string = (@string){data=&s.data[startpos], size=(@usize)(endpos-startpos)}
+      local matchrepl: string
+      local ri: usize = 0
+      ## if repl.type.is_hashmap then
+        local ok: boolean, capstr: string, capture: auto = ms:get_capture(0)
+        local key: string
+        if not ok and ms.numcaptures == 0 then
+          key = match
+        else
+          assert(ok, capstr)
+          assert(not capture:is_position(), 'position capture not supported yet')
+          key = capstr
+        end
+        local it: *string = repl:peek(key)
+        if it then
+          matchrepl = $it
+        else
+          matchrepl = match
+        end
+      ## else
+        ## if repl.type.is_stringy then -- string replacement
+          matchrepl = repl
+        ## elseif repl.type.is_function then -- callback replacement
+          local capindex: isize, capstr: string
+          ## local args = {}
+          ## for i=1,#repl.type.argtypes do
+            capindex = #[i-1]#
+            local ok: boolean, capstr: string, capture: auto = ms:get_capture(capindex)
+            if not ok and capindex == 0 and ms.numcaptures == 0 then
+              capstr = string.copy(match)
+            else
+              assert(ok, capstr)
+              if capture:is_position() then
+                capstr = tostring(capture.init+1)
+              else
+                capstr = string.copy(capstr)
+              end
+            end
+            local #|'a'..i|#: string = capstr
+            ## table.insert(args, aster.Id{'a'..i})
+          ## end
+          ## if repl.type:get_return_type(1).is_string then -- function that returns the replacement
+            matchrepl = repl(#[aster.unpack(args)]#)
+            defer matchrepl:destroy() end
+          ## else -- call function and replace original match
+            matchrepl = match
+            repl(#[aster.unpack(args)]#)
+          ## end
+        ## else
+          ## static_error('invalid replacement argument')
+        ## end
+        --TODO: handle numbers
+        while true do -- replace captures
+          local found = memory.scan(&matchrepl.data[ri], '%'_b, matchrepl.size - ri)
+          if not found then break end
+          local advance: usize = (@usize)(found) - (@usize)(&matchrepl.data[ri])
+          sb:write((@string){&matchrepl.data[ri], advance})
+          local c: byte = matchrepl.data[ri + advance + 1]
+          if c == '%'_b then -- %%
+            sb:writebyte('%'_b)
+          elseif c == '0'_b then -- %0
+            sb:write(match)
+          elseif c >= '1'_b and c <= '9'_b then -- should be a digit
+            local capindex: isize = c - '1'_b
+            local ok: boolean, capstr: string, capture: auto = ms:get_capture(capindex)
+            if not ok and capindex == 0 and ms.numcaptures == 0 then
+              sb:write(match)
+            else
+              assert(ok, capstr)
+              if capture:is_position() then
+                local s: string = tostring(capture.init+1)
+                sb:write(s)
+                s:destroy()
+              else
+                sb:write(capstr)
+              end
+            end
+          else
+            error "invalid use of '%' in replacement string"
+          end
+          ri = ri + advance + 2
+        end
+      ## end
+      sb:write((@string){&matchrepl.data[ri], matchrepl.size - ri})
+      pos = endpos
+    elseif pos < s.size then -- otherwise, skip one character
+      sb:writebyte(s.data[pos])
+      pos = pos + 1
+    else -- end of subject
+      break
+    end
+    if ms.anchor then break end
+  end
+  sb:write((@string){&s.data[pos], s.size - pos})
+  return sb:promote(), n
+end
+
+-- Helper used by `string.match` and `string.matchview`.
+local function string_match(s: string, pattern: string, init: facultative(isize)): (boolean, sequence(string))
+  ## if init.type.is_niltype then
+  local init: isize = 1
+  ## else
+  if init < 0 then init = (@isize)(s.size) + init + 1 end
+  if init <= 0 then init = 1 end
+  ## end
+  local ms: StrPatt = StrPatt.create(s, pattern, false)
+  local startpos: isize, endpos: isize = ms:match(init-1)
+  local captures: sequence(string)
+  if endpos ~= -1 then -- matched
+    if ms.numcaptures > 0 then -- has captures
+      captures:resize((@usize)(ms.numcaptures))
+      for i:isize=0,<ms.numcaptures do
+        local ok: boolean, capstr: string, capture: auto = ms:get_capture(i)
+        assert(ok, capstr)
+        assert(not capture:is_position(), 'position capture not supported yet')
+        captures[(@usize)(i+1)] = capstr
+      end
+      return true, captures
+    else -- nothing captured, then capture whole match
+      captures[1] = ms.source:subview(startpos+1, endpos)
+      return true, captures
+    end
+  else -- no match
+    return false, captures
+  end
+end
+
+--[[
+Look for the first match of pattern in the string.
+If it finds one, then returns true plus a sequence with the captured values,
+otherwise it returns false plus an empty sequence.
+If pattern specifies no captures, then the whole match is captured.
+A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
+]]
+function string.match(s: string, pattern: string, init: facultative(isize)): (boolean, sequence(string))
+  local ok: boolean, seq: sequence(string) = string_match(s, pattern, init)
+  for i: isize = 1, #seq do
+    seq[i] = string.copy(seq[i])
+  end
+  return ok, seq
+end
+
+-- Like `string.match` but uses sub string views (see also `string.subview`).
+function string.matchview(s: string, pattern: string, init: facultative(isize)): (boolean, sequence(string))
+  return string_match(s, pattern, init)
+end
+
+----------------------------------------------------------------------------------------------------
+-- String packing
+
+local strpack: type = require 'detail.strpack'
+
+--[[
+Returns a binary string containing the values in `...`,
+serialized in binary form (packed) according to the format string `fmt`.
+
+For description of the format options,
+see [Lua's format strings for pack](https://www.lua.org/manual/5.4/manual.html#6.4.2).
+]]
+function string.pack(fmt: string, ...: varargs): string
+  return strpack.pack(fmt, ...)
+end
+
+--[[
+Returns the values packed in string `s` (see `string.pack`) according to the format string `fmt`.
+An optional `init` marks where to start reading in `s` (default is `1`).
+After the read values, this function also returns the index of the first unread byte in `s`.
+
+For description of the format options,
+see [Lua's format strings for pack](https://www.lua.org/manual/5.4/manual.html#6.4.2).
+
+Remarks: `fmt` must be a compile-time string.
+]]
+function string.unpack(fmt: string <comptime>, s: string, init: facultative(isize))
+  return strpack.unpack(fmt, s, init)
+end
+
+--[[
+Returns the size of a string resulting from string.pack with the given format.
+The format string cannot have the variable-length options 's' or 'z'.
+
+For description of the format options,
+see [Lua's format strings for pack](https://www.lua.org/manual/5.4/manual.html#6.4.2).
+]]
+function string.packsize(fmt: string): isize
+  return strpack.packsize(fmt)
+end
+
+local strconv: type = require 'detail.strconv'
+
+----------------------------------------------------------------------------------------------------
+-- String conversion
 
 --[[
 Convert a value to a string.
@@ -1170,16 +884,16 @@ global function tostring(x: auto): string
     return string.copy((@string){data=x.data, size=x.size})
   ## elseif xtype.is_integral then
     ## if xtype.size <= primtypes.isize.size then
-      return int2str((@#[xtype.is_signed and primtypes.isize or primtypes.usize]#)(x), 10)
+      return strconv.int2str((@#[xtype.is_signed and primtypes.isize or primtypes.usize]#)(x), 10)
     ## else -- probably a large integer like int128
-      return int2str(x, 10)
+      return strconv.int2str(x, 10)
     ## end
   ## elseif xtype.is_pointer or xtype.is_function then
     local s: string <noinit>
     if x == nilptr then
       s = string.copy('(null)')
     else
-      s = int2str((@usize)((@pointer)(x)), 16)
+      s = strconv.int2str((@usize)((@pointer)(x)), 16)
     end
     ## if xtype.is_function then
       local ns: string = 'function: '..s
@@ -1188,7 +902,7 @@ global function tostring(x: auto): string
     ## end
     return s
   ## elseif xtype.is_float then
-    return num2str(x)
+    return strconv.num2str(x)
   ## elseif xtype.is_boolean then
     return string.copy(x == true and 'true' or 'false')
   ## elseif xtype.is_niltype then
@@ -1207,7 +921,7 @@ global function tonumber(x: auto, base: facultative(integer)): auto
   -- TODO: return nil in case of fail (like lua)
   ## if not base.type.is_niltype then
     ## static_assert(x.type.is_stringy, "string expected, got something else")
-    local ok: boolean, i: integer = str2int(x, base)
+    local ok: boolean, i: integer = strconv.str2int(x, base)
     assert(ok, 'malformed integral number')
     return i
   ## elseif x.type.is_integral then
@@ -1215,7 +929,7 @@ global function tonumber(x: auto, base: facultative(integer)): auto
   ## elseif x.type.is_float then
     return (@number)(x)
   ## elseif x.type.is_stringy then
-    local ok: boolean, n: number = str2num(x)
+    local ok: boolean, n: number = strconv.str2num(x)
     assert(ok, 'malformed number')
     return n
   ## else static_error("unable to convert value of type '%s' to a number", x.type) end
@@ -1225,415 +939,16 @@ end
 global function tointeger(x: auto, base: facultative(integer)): integer
   ## if not base.type.is_niltype then
     ## static_assert(x.type.is_stringy, "string expected, got something else")
-    local ok: boolean, i: integer = str2int(x, base)
+    local ok: boolean, i: integer = strconv.str2int(x, base)
     assert(ok, 'malformed integer')
     return i
   ## elseif x.type.is_scalar then
     return (@integer)(x)
   ## elseif x.type.is_stringy then
-    local ok: boolean, i: integer = str2int(x, 0)
+    local ok: boolean, i: integer = strconv.str2int(x, 0)
     assert(ok, 'malformed integer')
     return i
   ## else static_error("unable to convert value of type '%s' to an integer", x.type) end
-end
-
--- Max alignment for pack.
-local PACKMAXALIGN: usize <comptime> =
-  #[math.max(primtypes.float64.align, primtypes.pointer.align, primtypes.integer.align, primtypes.number.align)]#
-
--- Helper to get native endianness.
-local function isnativelittle(): boolean <inline>
-  local u: union{dummy: int32, little: uint8} = {dummy=1}
-  return u.little == 1
-end
-
--- Aligns forward `addr` to the minimum of `align` and `maxalign` bytes.
-local function packalignforward(addr: usize, align: usize, maxalign: usize): usize <inline>
-  if align > maxalign then align = maxalign end
-  if align <= 1 then return addr end
-  local alignbits: usize = align - 1
-  assert(align & alignbits == 0, "format asks for alignment not power of 2")
-  return (addr + alignbits) & ~alignbits
-end
-
---[[
-Pack integer `n` with `size` bytes and `islittle` endianness.
-The final 'if' handles the case when `size` is larger than the size of a uint64,
-correcting the extra sign-extension bytes if necessary (by default they would be zeros).
-]]
-local function packint(sb: *stringbuilder, a: auto, size: usize, maxalign: usize, islittle: boolean): boolean
-  ## if a.type.is_integral then
-  local neg: boolean = a < 0
-  local n: uint64 = (@uint64)(a)
-  ## else
-  local i: integer = tointeger(a)
-  local neg: boolean = i < 0
-  local n: uint64 = (@uint64)(i)
-  ## end
-  -- TODO: we could do overflow checks here (like Lua does)
-  local pads: usize = packalignforward(sb.size, size, maxalign) - sb.size
-  if not sb:writebyte(0, pads) then return false end
-  local buff: span(byte) = sb:prepare(size)
-  if buff:empty() then return false end
-  buff[islittle and 0 or size - 1] = n & 0xff -- first byte
-  for i: usize=1,<size do
-    n = n >> 8
-    buff[islittle and i or size-1-i] = n & 0xff
-  end
-  if size > #@uint64 and neg then -- negative number, need sign extension?
-    for i: usize=#@uint64,<size do
-      buff[islittle and i or size-1-i] = 0xff
-    end
-  end
-  sb:commit(size)
-  return true
-end
-
---[[
-Unpack an integer with `size` bytes and `islittle` endianness.
-If size is smaller than the size of a uint64 and integer is signed,
-must do sign extension (propagating the sign to the higher bits).
-If size is larger than the size of a uint64,
-it must check the unread bytes to see whether they do not cause an overflow.
-]]
-local function unpackint(s: string, pos: *usize, size: usize, maxalign: usize, islittle: boolean, issigned: boolean): uint64
-  local pads: usize = packalignforward($pos, size, maxalign) - $pos
-  assert($pos + pads + size <= s.size, 'data string too short')
-  local buff: *[0]byte = &s.data[$pos + pads]
-  local n: uint64 = 0
-  local limit: isize = size <= #@uint64 and (@isize)(size) or #@uint64
-  for i: isize=limit-1,0,-1 do
-    n = (n << 8) | (@uint64)(buff[islittle and (@usize)(i) or size-(@usize)(i+1)])
-  end
-  if size < #@uint64 then -- real size smaller than uint64
-    if issigned then -- needs sign extension?
-      local mask: uint64 = 1_uint64 << (size*8 - 1)
-      n = (n ~ mask) - mask -- do sign extension
-    end
-  elseif size > #@uint64 then -- must check unread bytes
-    local mask: uint64 = (not issigned or (@int64)(n) >= 0) and 0_u64 or 0xff_u64
-    for i: usize=(@usize)(limit),<size do
-      assert(buff[islittle and i or size-1-i] == mask, 'integer does not fit into int64')
-    end
-  end
-  $pos = $pos + pads + size
-  return n
-end
-
--- Copy `size` bytes from `src` into `dest`, respecting system endiness.
-local function packcopy(dest: pointer, src: *[0]byte, size: usize, islittle: boolean): void <inline>
-  if likely(islittle == isnativelittle()) then -- same endianess
-    memory.copy(dest, src, size)
-  else -- different endianess, copy bytes in reverse order
-    local buff: *[0]byte = (@*[0]byte)(dest)
-    for i:usize=0,<size do
-      buff[size-1-i] = src[i]
-    end
-  end
-end
-
--- Copy `size` bytes from `src` to `dest`, correcting endianness if `keependian` is false.
-local function packnum(sb: *stringbuilder, a: auto, T: type, maxalign: usize, islittle: boolean): boolean
-  local pads: usize = packalignforward(sb.size, #@T, maxalign) - sb.size
-  if not sb:writebyte(0, pads) then return false end
-  local buff: span(byte) = sb:prepare(#@T)
-  if buff:empty() then return false end
-  ## if T.value.is_float and not a.type.is_float then
-  local v: T = (@T)(tonumber(a))
-  ## elseif T.value.is_integral and not a.type.is_integral then
-  local v: T = (@T)(tointeger(a))
-  ## else
-  local v: T = (@T)(a)
-  ## end
-  packcopy(buff.data, (@*[0]byte)(&v), #@T, islittle)
-  sb:commit(#@T)
-  return true
-end
-
--- Read an integer from string `fmt` starting at `pos`, returns `def` if there is no number.
-local function packgetnum(fmt: string, pos: *usize, def: usize): usize
-  local init: usize = $pos
-  local n: usize = 0
-  while $pos < fmt.size do
-    local d: usize = getdigit(fmt.data[$pos])
-    if d >= 10 then break end
-    n = n*10 + d
-    $pos = $pos + 1
-  end
-  return $pos ~= init and n or def
-end
-
--- Like `packgetnum` but checks if the number is in range [1,16].
-local function packgetnumlimit(fmt: string, pos: *usize, def: usize): usize
-  local n: usize = packgetnum(fmt, pos, def)
-  assert(n > 0 and n <= 16, 'integral size out of limits [1,16]')
-  return n
-end
-
--- Get size of the option following 'X' option.
-local function packgetoptalign(fmt: string, pos: *usize): usize
-  local align: usize = 0
-  if $pos < fmt.size then
-    local c: byte = fmt.data[$pos]
-    $pos = $pos + 1
-    switch c
-    case 's'_b then align = packgetnumlimit(fmt, pos, #@usize)
-    case 'i'_b, 'I'_b then align = packgetnumlimit(fmt, pos, #@cint)
-    case 'b'_b, 'B'_b, 'x'_b then align = #@byte
-    case 'h'_b, 'H'_b then align = #@cshort
-    case 'l'_b, 'L'_b then align = #@clong
-    case 'j'_b, 'J'_b then align = #@integer
-    case 't'_b, 'T'_b then align = #@usize
-    case 'f'_b then align = #@float32
-    case 'd'_b then align = #@float64
-    case 'n'_b then align = #@number
-    end
-  end
-  assert(align > 0, "invalid next option for pack option 'X'")
-  return align
-end
-
--- Packs an argument.
-local function packarg(a: auto, c: byte, sb: *stringbuilder, fmt: string, pos: *usize, maxalign: usize, islittle: boolean): boolean
-  switch c
-  case 'z'_b then -- zero-terminated string
-    local ok: boolean, written: usize = sb:write(a)
-    if not ok then return false end
-    assert(written == 0 or not memory.scan(&sb.data[sb.size - written], 0, written), 'string contains zeros')
-    return sb:writebyte(0) -- zero at the end
-  case 'c'_b then -- fixed-size string
-    local n: usize = packgetnum(fmt, pos, 0)
-    local ok: boolean, written: usize = sb:write(a)
-    if not ok then return false end
-    assert(n >= written, 'string longer than given size')
-    return sb:writebyte(0, n - written)
-  case 's'_b then -- string preceded by its length
-    local n: usize = packgetnumlimit(fmt, pos, #@usize)
-    ## if a.type.is_stringy then
-    local s: string = a
-    ## else
-    local s: string = tostring(a)
-    defer s:destroy() end
-    ## end
-    assert(n >= #@usize or s.size < 1_usize << (n * 8), 'length does not fit in given size')
-    return packint(sb, s.size, n, maxalign, islittle) and sb:write(s)
-  case 'i'_b, 'I'_b then return packint(sb, a, packgetnumlimit(fmt, pos, #@cint), maxalign, islittle)
-  case 'b'_b, 'B'_b then return packnum(sb, a, @byte, maxalign, islittle)
-  case 'h'_b, 'H'_b then return packnum(sb, a, @cushort, maxalign, islittle)
-  case 'l'_b, 'L'_b then return packnum(sb, a, @culong, maxalign, islittle)
-  case 'j'_b, 'J'_b then return packnum(sb, a, @uinteger, maxalign, islittle)
-  case 't'_b, 'T'_b then return packnum(sb, a, @usize, maxalign, islittle)
-  case 'f'_b then return packnum(sb, a, @float32, maxalign, islittle)
-  case 'd'_b then return packnum(sb, a, @float64, maxalign, islittle)
-  case 'n'_b then return packnum(sb, a, @number, maxalign, islittle)
-  else return assert(false, #[string.format("invalid pack format option")]#) end
-end
-
---[[
-Returns a binary string containing the values in `...`,
-serialized in binary form (packed) according to the format string `fmt`.
-
-For description of the format options,
-see [Lua's format strings for pack](https://www.lua.org/manual/5.4/manual.html#6.4.2).
-]]
-function string.pack(fmt: string, ...: varargs): string
-  local sb: stringbuilder
-  local pos: usize, argi: usize, maxalign: usize = 0, 0, 1
-  local ok: boolean, islittle: boolean = true, isnativelittle()
-  while pos < fmt.size do
-    local c: byte = fmt.data[pos]
-    pos = pos + 1
-    switch c
-    case ' '_b then -- ignore
-    case '<'_b then islittle = true
-    case '>'_b then islittle = false
-    case '='_b then islittle = isnativelittle()
-    case '!'_b then maxalign = packgetnumlimit(fmt, &pos, PACKMAXALIGN)
-    case 'X'_b then ok = sb:writebyte(0, packalignforward(sb.size, packgetoptalign(fmt, &pos), maxalign) - sb.size)
-    case 'x'_b then ok = sb:writebyte(0)
-    else
-      argi = argi + 1
-      ## for i=1,select('#', ...) do
-      if argi == #[i]# then
-        ok = packarg(#[select(i, ...)]#, c, &sb, fmt, &pos, maxalign, islittle)
-        goto next
-      end
-      ## end
-      assert(false, "missing argument in pack format")
-      ::next::
-    end
-    assert(ok, 'out of memory')
-  end
-  return sb:promote()
-end
-
---[[
-Returns the values packed in string `s` (see `string.pack`) according to the format string `fmt`.
-An optional `init` marks where to start reading in `s` (default is `1`).
-After the read values, this function also returns the index of the first unread byte in `s`.
-
-For description of the format options,
-see [Lua's format strings for pack](https://www.lua.org/manual/5.4/manual.html#6.4.2).
-
-Remarks: `fmt` must be a compile-time string.
-]]
-function string.unpack(fmt: string <comptime>, s: string, init: facultative(isize))
-  ## if init.type.is_niltype then
-  local pos: usize = 0
-  ## else
-  if unlikely(init < 0) then init = (@usize)(s.size) + init + 1 end
-  if unlikely(init <= 0) then init = 1 end
-  local pos: usize = (@usize)(init - 1)
-  ## end
-  local islittle: boolean, maxalign: usize = isnativelittle(), 1
-  ##[[
-  local formattypes = {
-    b = primtypes.int8, B = primtypes.uint8,
-    h = primtypes.cshort, H = primtypes.cushort,
-    l = primtypes.clong, L = primtypes.culong,
-    i = primtypes.cint, I = primtypes.cuint,
-    j = primtypes.integer, J = primtypes.uinteger,
-    t = primtypes.isize, T = primtypes.usize,
-    f = primtypes.float32, d = primtypes.float64, n = primtypes.number,
-  }
-  local inttypes = {
-    i1 = primtypes.int8, i2 = primtypes.int16, i4 = primtypes.int32, i8 = primtypes.int64,
-    I1 = primtypes.uint8, I2 = primtypes.uint16, I4 = primtypes.uint32, I8 = primtypes.uint64,
-  }
-  local fmt, fpos, iarg, retargs = fmt.value, 1, 0, {}
-  local function unpackgetopt()
-    local c = fmt:sub(fpos, fpos)
-    fpos = fpos + 1
-    return c
-  end
-  local function unpackgetnum(req, lim)
-    local n = fmt:match('^[0-9]+', fpos)
-    if n then
-      fpos = fpos + #n
-      n = tonumber(n)
-      if lim then
-        static_assert(n > 0 and n <= 16, 'integral size out of limits [1,16]')
-      end
-    end
-    static_assert(n or not req, 'missing number in format pack option')
-    return n
-  end
-  local function unpackgetoptalign()
-    local align
-    local c = unpackgetopt()
-    if c == 's' then align = unpackgetnum(false, true) or primtypes.usize
-    elseif c == 'i' or c == 'I' then align = unpackgetnum(false, true) or primtypes.cint
-    elseif c == 'b' or c == 'B' or c == 'x' then align = primtypes.byte
-    elseif c == 'h' or c == 'H' then align = primtypes.cshort
-    elseif c == 'l' or c == 'L' then align = primtypes.clong
-    elseif c == 'j' or c == 'J' then align = primtypes.integer
-    elseif c == 't' or c == 'T' then align = primtypes.usize
-    elseif c == 'f' then align = primtypes.float32
-    elseif c == 'd' then align = primtypes.float64
-    elseif c == 'n' then align = primtypes.number
-    end
-    static_assert(align, "invalid next option for pack option 'X'")
-    return align
-  end
-  while fpos <= #fmt do
-    local c = unpackgetopt()
-    iarg = iarg + 1
-    local argname = 'a'..iarg
-    ]]
-    ## if c == ' ' then -- space is ignored
-    ## elseif c == '<' then -- sets little endian
-      islittle = true
-    ## elseif c == '>' then -- sets big endian
-      islittle = false
-    ## elseif c == '=' then -- sets native endian
-      islittle = isnativelittle()
-    ## elseif c == '!' then -- sets maximum alignment
-      ## local align = unpackgetnum(false, true)
-      maxalign = #[align or PACKMAXALIGN]#
-    ## elseif c == 'X' then -- aligns according to option
-      ## local align = unpackgetoptalign()
-      ## if math.type(align) == 'integer' then
-      pos = packalignforward(pos, #[align]#, maxalign)
-      ## else
-      pos = packalignforward(pos, # #[align]#, maxalign)
-      ## end
-    ## elseif c == 'x' then -- one byte of padding
-      assert(pos + #@byte <= s.size, 'data string too short')
-      pos = pos + #@byte
-    ## elseif c == 'z' then -- zero-terminated string
-      local zptr: pointer = memory.scan(&s.data[pos], 0, s.size - pos)
-      assert(zptr, 'string zero termination not found')
-      local len: usize = (@usize)(zptr) - (@usize)(&s.data[pos])
-      local #|argname|#: string = string.copy((@string){data=&s.data[pos], size=len})
-      pos = pos + len + 1
-      ## retargs[#retargs+1] = aster.Id{argname}
-    ## elseif c == 'c' then -- fixed-size string
-      local len: usize = #[unpackgetnum(true)]#
-      assert(pos + len <= s.size, 'data string too short')
-      local #|argname|#: string = string.copy((@string){data=&s.data[pos], size=len})
-      pos = pos + len
-      ## retargs[#retargs+1] = aster.Id{argname}
-    ## elseif c == 's' then -- string preceded by its length
-      ## local n = unpackgetnum(false, true)
-      ## if n then
-      local lensize: usize = #[n]#
-      ## else
-      local lensize: usize = #@usize
-      ## end
-      local len: usize = unpackint(s, &pos, lensize, maxalign, islittle, false)
-      assert(pos + len <= s.size, 'data string too short')
-      local #|argname|#: string = string.copy((@string){data=&s.data[pos], size=len})
-      pos = pos + len
-      ## retargs[#retargs+1] = aster.Id{argname}
-    ## elseif (c == 'i' or c == 'I') and fmt:find('^[0-9]+', fpos) then -- sized signed integer
-      ## local n = unpackgetnum(nil, true)
-      ## local argtype = inttypes[c..n] or (c == 'i' and primtypes.int64 or primtypes.uint64)
-      local #|argname|#: #[argtype]# = (@#[argtype]#)(unpackint(s, &pos, #[n]#, maxalign, islittle, #[c == 'i']#))
-      ## retargs[#retargs+1] = aster.Id{argname}
-    ## elseif formattypes[c] then -- primitive type
-      local T: type = #[ formattypes[c] ]#
-      local #|argname|#: T
-      local pads: usize = packalignforward(pos, #@T, maxalign) - pos
-      assert(pos + pads + #@T <= s.size, 'data string too short')
-      packcopy(&#|argname|#, &s.data[pos + pads], #@T, islittle)
-      pos = pos + pads + #@T
-      ## retargs[#retargs+1] = aster.Id{argname}
-    ## else static_error("invalid pack format option '"..c.."'") end
-  ## end
-  local lastindex: isize = (@isize)(pos + 1)
-  ## retargs[#retargs+ 1] = aster.Id{'lastindex'}
-  return #[aster.unpack(retargs)]#
-end
-
---[[
-Returns the size of a string resulting from string.pack with the given format.
-The format string cannot have the variable-length options 's' or 'z'.
-
-For description of the format options,
-see [Lua's format strings for pack](https://www.lua.org/manual/5.4/manual.html#6.4.2).
-]]
-function string.packsize(fmt: string): isize
-  local pos: usize, len: usize, n: usize, maxalign: usize = 0, 0, 0, 1
-  while pos < fmt.size do
-    local c: byte = fmt.data[pos]
-    pos = pos + 1
-    switch c
-    case ' '_b, '<'_b, '>'_b, '='_b then -- ignore
-    case '!'_b then maxalign = packgetnumlimit(fmt, &pos, PACKMAXALIGN)
-    case 'X'_b then len = packalignforward(len, packgetoptalign(fmt, &pos), maxalign)
-    case 'x'_b, 'b'_b, 'B'_b then len = len + #@byte
-    case 'c'_b then len = len + packgetnum(fmt, &pos, 0)
-    case 'i'_b, 'I'_b then n = packgetnumlimit(fmt, &pos, #@cint) len = packalignforward(len, n, maxalign) + n
-    case 'h'_b, 'H'_b then len = packalignforward(len, #@cshort, maxalign) + #@cshort
-    case 'l'_b, 'L'_b then len = packalignforward(len, #@clong, maxalign) + #@clong
-    case 'j'_b, 'J'_b then len = packalignforward(len, #@integer, maxalign) + #@integer
-    case 't'_b, 'T'_b then len = packalignforward(len, #@usize, maxalign) + #@usize
-    case 'f'_b then len = packalignforward(len, #@float32, maxalign) + #@float32
-    case 'd'_b then len = packalignforward(len, #@float64, maxalign) + #@float64
-    case 'n'_b then len = packalignforward(len, #@number, maxalign) + #@number
-    else assert(false, 'invalid pack format option') end
-  end
-  return (@isize)(len)
 end
 
 return string

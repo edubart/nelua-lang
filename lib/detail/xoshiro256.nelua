@@ -4,6 +4,7 @@ Pseudo Random Number Generator based on Xoshiro256.
 Used internally by the math library.
 ]]
 
+-- Module class.
 local Xoshiro256: type = @record{
   state: [4]uint64
 }

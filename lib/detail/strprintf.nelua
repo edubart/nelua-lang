@@ -7,11 +7,12 @@ Here we bring own `snprintf` implementation, by bundling two snprintf alternativ
 * nanoprintf (enabled via pragma `usenanoprintf`)
 ]]
 
-local printf: type = @record{}
+-- Module namespace.
+local strprintf: type = @record{}
 
 ## if pragmas.usestbsprintf then
 
-function printf.snprintf(s: cstring, maxlen: csize, format: cstring, ...: cvarargs): cint <cimport'stbsp_snprintf',cinclude'@stb_sprintf.h'> end
+function strprintf.snprintf(s: cstring, maxlen: csize, format: cstring, ...: cvarargs): cint <cimport'stbsp_snprintf',cinclude'@stb_sprintf.h'> end
 
 ##[=[
 local stb_sprintf_code = [==[
@@ -1942,7 +1943,7 @@ cdefs.include_hooks['@stb_sprintf.h'] = stb_sprintf_code
 
 ## elseif pragmas.usenanoprintf then
 
-function printf.snprintf(s: cstring, maxlen: csize, format: cstring, ...: cvarargs): cint <cimport'npf_snprintf',cinclude'@nanoprintf.h'> end
+function strprintf.snprintf(s: cstring, maxlen: csize, format: cstring, ...: cvarargs): cint <cimport'npf_snprintf',cinclude'@nanoprintf.h'> end
 
 ##[=[
 local nanoprintf_code =
@@ -1953,6 +1954,7 @@ local nanoprintf_code =
 #define NANOPRINTF_USE_PRECISION_FORMAT_SPECIFIERS 1
 #define NANOPRINTF_USE_FLOAT_FORMAT_SPECIFIERS 1
 #define NANOPRINTF_USE_LARGE_FORMAT_SPECIFIERS 1
+#define NANOPRINTF_USE_BINARY_FORMAT_SPECIFIERS 0
 #define NANOPRINTF_USE_WRITEBACK_FORMAT_SPECIFIERS 0
 ]==]..[==[
 /*
@@ -1988,13 +1990,9 @@ local nanoprintf_code =
   For more information, please refer to <http://unlicense.org>
 */
 
-#undef NANOPRINTF_IMPLEMENTATION
-#define NANOPRINTF_EXPOSE_INTERNALS
-//#ifndef NANOPRINTF_IMPLEMENTATION
-
-/* The interface of nanoprintf begins here, to be compiled only if
-   NANOPRINTF_IMPLEMENTATION is not defined. In a multi-file library what
-   follows would be the public-facing nanoprintf.h. */
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef NANOPRINTF_H_INCLUDED
 #define NANOPRINTF_H_INCLUDED
@@ -2009,7 +2007,6 @@ local nanoprintf_code =
   #define NPF_VISIBILITY extern
 #endif
 
-// Compilers can warn when printf formatting strings are incorrect.
 #if defined(__clang__)
   #define NPF_PRINTF_ATTR(FORMAT_INDEX, VARGS_INDEX) \
     __attribute__((__format__(__printf__, FORMAT_INDEX, VARGS_INDEX)))
@@ -2018,10 +2015,6 @@ local nanoprintf_code =
     __attribute__((format(printf, FORMAT_INDEX, VARGS_INDEX)))
 #else
   #define NPF_PRINTF_ATTR(FORMAT_INDEX, VARGS_INDEX)
-#endif
-
-#ifdef __cplusplus
-extern "C" {
 #endif
 
 // Public API
@@ -2039,20 +2032,32 @@ NPF_VISIBILITY int npf_pprintf(npf_putc pc, void *pc_ctx, char const *format,
 NPF_VISIBILITY int npf_vpprintf(npf_putc pc, void *pc_ctx, char const *format,
                                 va_list vlist) NPF_PRINTF_ATTR(3, 0);
 
-#ifdef NANOPRINTF_EXPOSE_INTERNALS
+#endif // NANOPRINTF_H_INCLUDED
 
-// Configuration
+/* The implementation of nanoprintf begins here, to be compiled only if
+   NANOPRINTF_IMPLEMENTATION is defined. In a multi-file library what follows would
+   be nanoprintf.c. */
+
+#ifdef NANOPRINTF_IMPLEMENTATION
+
+#ifndef NANOPRINTF_IMPLEMENTATION_INCLUDED
+#define NANOPRINTF_IMPLEMENTATION_INCLUDED
+
+#include <inttypes.h>
+#include <stdint.h>
 
 // Pick reasonable defaults if nothing's been configured.
 #if !defined(NANOPRINTF_USE_FIELD_WIDTH_FORMAT_SPECIFIERS) && \
-    !defined(NANOPRINTF_USE_PRECISION_FORMAT_SPECIFIERS) &&   \
-    !defined(NANOPRINTF_USE_FLOAT_FORMAT_SPECIFIERS) &&       \
-    !defined(NANOPRINTF_USE_LARGE_FORMAT_SPECIFIERS) &&       \
+    !defined(NANOPRINTF_USE_PRECISION_FORMAT_SPECIFIERS) && \
+    !defined(NANOPRINTF_USE_FLOAT_FORMAT_SPECIFIERS) && \
+    !defined(NANOPRINTF_USE_LARGE_FORMAT_SPECIFIERS) && \
+    !defined(NANOPRINTF_USE_BINARY_FORMAT_SPECIFIERS) && \
     !defined(NANOPRINTF_USE_WRITEBACK_FORMAT_SPECIFIERS)
 #define NANOPRINTF_USE_FIELD_WIDTH_FORMAT_SPECIFIERS 1
 #define NANOPRINTF_USE_PRECISION_FORMAT_SPECIFIERS 1
 #define NANOPRINTF_USE_FLOAT_FORMAT_SPECIFIERS 1
 #define NANOPRINTF_USE_LARGE_FORMAT_SPECIFIERS 0
+#define NANOPRINTF_USE_BINARY_FORMAT_SPECIFIERS 0
 #define NANOPRINTF_USE_WRITEBACK_FORMAT_SPECIFIERS 0
 #endif
 
@@ -2065,12 +2070,16 @@ NPF_VISIBILITY int npf_vpprintf(npf_putc pc, void *pc_ctx, char const *format,
   #error NANOPRINTF_USE_PRECISION_FORMAT_SPECIFIERS must be #defined to 0 or 1
 #endif
 
+#ifndef NANOPRINTF_USE_FLOAT_FORMAT_SPECIFIERS
+  #error NANOPRINTF_USE_FLOAT_FORMAT_SPECIFIERS must be #defined to 0 or 1
+#endif
+
 #ifndef NANOPRINTF_USE_LARGE_FORMAT_SPECIFIERS
   #error NANOPRINTF_USE_LARGE_FORMAT_SPECIFIERS must be #defined to 0 or 1
 #endif
 
-#ifndef NANOPRINTF_USE_FLOAT_FORMAT_SPECIFIERS
-  #error NANOPRINTF_USE_FLOAT_FORMAT_SPECIFIERS must be #defined to 0 or 1
+#ifndef NANOPRINTF_USE_BINARY_FORMAT_SPECIFIERS
+  #error NANOPRINTF_USE_BINARY_FORMAT_SPECIFIERS must be #defined to 0 or 1
 #endif
 
 #ifndef NANOPRINTF_USE_WRITEBACK_FORMAT_SPECIFIERS
@@ -2084,22 +2093,19 @@ NPF_VISIBILITY int npf_vpprintf(npf_putc pc, void *pc_ctx, char const *format,
 #endif
 
 // intmax_t / uintmax_t require stdint from c99 / c++11
-#ifndef _MSC_VER
-  #ifdef __cplusplus
-    #if __cplusplus < 201103L
-      #error nanoprintf requires C++11 or later.
-    #endif
-  #else
-    #if __STDC_VERSION__ < 199409L
-      #error nanoprintf requires C99 or later.
+#if NANOPRINTF_USE_LARGE_FORMAT_SPECIFIERS == 1
+  #ifndef _MSC_VER
+    #ifdef __cplusplus
+      #if __cplusplus < 201103L
+        #error large format specifier support requires C++11 or later.
+      #endif
+    #else
+      #if __STDC_VERSION__ < 199409L
+        #error nanoprintf requires C99 or later.
+      #endif
     #endif
   #endif
 #endif
-
-// Implementation Details (prototype / config helper functions)
-
-#include <inttypes.h>
-#include <stdint.h>
 
 #if NANOPRINTF_USE_FIELD_WIDTH_FORMAT_SPECIFIERS == 1
 typedef enum {
@@ -2142,12 +2148,13 @@ typedef enum {
   NPF_FMT_SPEC_CONV_UNSIGNED_INT, /* 'u' */
   NPF_FMT_SPEC_CONV_POINTER       /* 'p' */
 #if NANOPRINTF_USE_WRITEBACK_FORMAT_SPECIFIERS == 1
-  ,
-  NPF_FMT_SPEC_CONV_WRITEBACK /* 'n' */
+  , NPF_FMT_SPEC_CONV_WRITEBACK /* 'n' */
 #endif
 #if NANOPRINTF_USE_FLOAT_FORMAT_SPECIFIERS == 1
-  ,
-  NPF_FMT_SPEC_CONV_FLOAT_DECIMAL /* 'f', 'F' */
+  , NPF_FMT_SPEC_CONV_FLOAT_DECIMAL /* 'f', 'F' */
+#endif
+#if NANOPRINTF_USE_BINARY_FORMAT_SPECIFIERS == 1
+  , NPF_FMT_SPEC_CONV_BINARY /* 'b' */
 #endif
 } npf_format_spec_conversion_t;
 
@@ -2192,7 +2199,7 @@ typedef struct {
   typedef uintmax_t npf_uint_t;
 #endif
 
-NPF_VISIBILITY int npf_parse_format_spec(char const *format, npf_format_spec_t *out_spec);
+static int npf_parse_format_spec(char const *format, npf_format_spec_t *out_spec);
 
 typedef struct {
   char *dst;
@@ -2200,36 +2207,30 @@ typedef struct {
   size_t cur;
 } npf_bufputc_ctx_t;
 
-NPF_VISIBILITY void npf_bufputc(int c, void *ctx);
-NPF_VISIBILITY void npf_bufputc_nop(int c, void *ctx);
-NPF_VISIBILITY int npf_itoa_rev(char *buf, npf_int_t i);
-NPF_VISIBILITY int npf_utoa_rev(char *buf, npf_uint_t i, unsigned base,
-                                npf_format_spec_conversion_case_t cc);
+static void npf_bufputc(int c, void *ctx);
+static void npf_bufputc_nop(int c, void *ctx);
+static int npf_itoa_rev(char *buf, npf_int_t i);
+static int npf_utoa_rev(char *buf,
+                        npf_uint_t i,
+                        unsigned base,
+                        npf_format_spec_conversion_case_t cc);
+
 #if NANOPRINTF_USE_FLOAT_FORMAT_SPECIFIERS == 1
-NPF_VISIBILITY int npf_fsplit_abs(float f, uint64_t *out_int_part,
-                                  uint64_t *out_frac_part,
-                                  int *out_frac_base10_neg_e);
-NPF_VISIBILITY int npf_ftoa_rev(char *buf, float f, unsigned base,
-                                npf_format_spec_conversion_case_t cc,
-                                int *out_frac_chars);
+static int npf_fsplit_abs(float f,
+                          uint64_t *out_int_part,
+                          uint64_t *out_frac_part,
+                          int *out_frac_base10_neg_e);
+
+static int npf_ftoa_rev(char *buf,
+                        float f,
+                        unsigned base,
+                        npf_format_spec_conversion_case_t cc,
+                        int *out_frac_chars);
 #endif
 
-#endif // NANOPRINTF_EXPOSE_INTERNALS
-
-#ifdef __cplusplus
-}
+#if NANOPRINTF_USE_BINARY_FORMAT_SPECIFIERS == 1
+static int npf_bin_len(npf_uint_t i);
 #endif
-
-#endif // NANOPRINTF_H_INCLUDED
-
-//#else // NANOPRINTF_IMPLEMENTATION
-
-/* The implementation of nanoprintf begins here, to be compiled only if
-   NANOPRINTF_IMPLEMENTATION is defined. In a multi-file library what follows would
-   be nanoprintf.c. */
-
-#undef NANOPRINTF_EXPOSE_INTERNALS
-#define NANOPRINTF_IMPLEMENTATION
 
 #if NANOPRINTF_USE_FLOAT_FORMAT_SPECIFIERS == 1
   #include <math.h>
@@ -2244,8 +2245,8 @@ NPF_VISIBILITY int npf_ftoa_rev(char *buf, float f, unsigned base,
   #endif
 #endif
 
-#define NPF_MIN(x, y) ((x) < (y) ? (x) : (y))
-#define NPF_MAX(x, y) ((x) > (y) ? (x) : (y))
+static int npf_min(int x, int y) { return (x < y) ? x : y; }
+static int npf_max(int x, int y) { return (x > y) ? x : y; }
 
 int npf_parse_format_spec(char const *format, npf_format_spec_t *out_spec) {
   char const *cur = format;
@@ -2318,9 +2319,7 @@ int npf_parse_format_spec(char const *format, npf_format_spec_t *out_spec) {
       /* ignore negative precision */
       out_spec->precision_type = NPF_FMT_SPEC_PRECISION_NONE;
       ++cur;
-      while ((*cur >= '0') && (*cur <= '9')) {
-        ++cur;
-      }
+      while ((*cur >= '0') && (*cur <= '9')) { ++cur; }
     } else {
       out_spec->precision = 0;
       out_spec->precision_type = NPF_FMT_SPEC_PRECISION_LITERAL;
@@ -2410,6 +2409,7 @@ int npf_parse_format_spec(char const *format, npf_format_spec_t *out_spec) {
     case 'u':
       out_spec->conv_spec = NPF_FMT_SPEC_CONV_UNSIGNED_INT;
       break;
+
 #if NANOPRINTF_USE_FLOAT_FORMAT_SPECIFIERS == 1
     case 'f':
       out_spec->conv_spec = NPF_FMT_SPEC_CONV_FLOAT_DECIMAL;
@@ -2418,22 +2418,35 @@ int npf_parse_format_spec(char const *format, npf_format_spec_t *out_spec) {
       out_spec->conv_spec = NPF_FMT_SPEC_CONV_FLOAT_DECIMAL;
       out_spec->conv_spec_case = NPF_FMT_SPEC_CONV_CASE_UPPER;
       break;
-#endif
+#endif // NANOPRINTF_USE_FLOAT_FORMAT_SPECIFIERS
+
 #if NANOPRINTF_USE_WRITEBACK_FORMAT_SPECIFIERS == 1
     case 'n':
       /* todo: reject string if flags or width or precision exist */
       out_spec->conv_spec = NPF_FMT_SPEC_CONV_WRITEBACK;
 #if NANOPRINTF_USE_PRECISION_FORMAT_SPECIFIERS == 1
       out_spec->precision_type = NPF_FMT_SPEC_PRECISION_NONE;
-#endif
+#endif // NANOPRINTF_USE_PRECISION_FORMAT_SPECIFIERS
       break;
-#endif
+#endif // NANOPRINTF_USE_WRITEBACK_FORMAT_SPECIFIERS
+
     case 'p':
       out_spec->conv_spec = NPF_FMT_SPEC_CONV_POINTER;
 #if NANOPRINTF_USE_PRECISION_FORMAT_SPECIFIERS == 1
       out_spec->precision_type = NPF_FMT_SPEC_PRECISION_NONE;
 #endif
       break;
+
+#if NANOPRINTF_USE_BINARY_FORMAT_SPECIFIERS == 1
+    case 'b':
+      out_spec->conv_spec = NPF_FMT_SPEC_CONV_BINARY;
+      break;
+    case 'B':
+      out_spec->conv_spec = NPF_FMT_SPEC_CONV_BINARY;
+      out_spec->conv_spec_case = NPF_FMT_SPEC_CONV_CASE_UPPER;
+      break;
+#endif
+
     default:
       return 0;
   }
@@ -2441,20 +2454,15 @@ int npf_parse_format_spec(char const *format, npf_format_spec_t *out_spec) {
 #if NANOPRINTF_USE_PRECISION_FORMAT_SPECIFIERS == 1
   if ((out_spec->precision_type == NPF_FMT_SPEC_PRECISION_NONE) ||
       (out_spec->precision_type == NPF_FMT_SPEC_PRECISION_STAR)) {
+    out_spec->precision = 0;
     switch (out_spec->conv_spec) {
-      case NPF_FMT_SPEC_CONV_PERCENT:
-      case NPF_FMT_SPEC_CONV_CHAR:
-      case NPF_FMT_SPEC_CONV_STRING:
-      case NPF_FMT_SPEC_CONV_POINTER:
-#if NANOPRINTF_USE_WRITEBACK_FORMAT_SPECIFIERS == 1
-      case NPF_FMT_SPEC_CONV_WRITEBACK:
-#endif
-        out_spec->precision = 0;
-        break;
       case NPF_FMT_SPEC_CONV_SIGNED_INT:
       case NPF_FMT_SPEC_CONV_OCTAL:
       case NPF_FMT_SPEC_CONV_HEX_INT:
       case NPF_FMT_SPEC_CONV_UNSIGNED_INT:
+#if NANOPRINTF_USE_BINARY_FORMAT_SPECIFIERS == 1
+      case NPF_FMT_SPEC_CONV_BINARY:
+#endif
         out_spec->precision = 1;
         break;
 #if NANOPRINTF_USE_FLOAT_FORMAT_SPECIFIERS == 1
@@ -2473,9 +2481,7 @@ int npf_parse_format_spec(char const *format, npf_format_spec_t *out_spec) {
 
 void npf_bufputc(int c, void *ctx) {
   npf_bufputc_ctx_t *bpc = (npf_bufputc_ctx_t *)ctx;
-  if (bpc->cur < bpc->len - 1) {
-    bpc->dst[bpc->cur++] = (char)c;
-  }
+  if (bpc->cur < bpc->len - 1) { bpc->dst[bpc->cur++] = (char)c; }
 }
 
 void npf_bufputc_nop(int c, void *ctx) {
@@ -2485,30 +2491,21 @@ void npf_bufputc_nop(int c, void *ctx) {
 
 int npf_itoa_rev(char *buf, npf_int_t i) {
   char *dst = buf;
-  if (i == 0) {
-    *dst++ = '0';
-  } else {
-    int const neg = (i < 0) ? -1 : 1;
-    while (i) {
-      *dst++ = (char)('0' + (neg * (i % 10)));
-      i /= 10;
-    }
-  }
+  if (i == 0) { *dst++ = '0'; }
+  int const neg = (i < 0) ? -1 : 1;
+  while (i) { *dst++ = (char)('0' + (neg * (i % 10))); i /= 10; }
   return (int)(dst - buf);
 }
 
 int npf_utoa_rev(char *buf, npf_uint_t i, unsigned base,
                  npf_format_spec_conversion_case_t cc) {
   char *dst = buf;
-  if (i == 0) {
-    *dst++ = '0';
-  } else {
-    unsigned const base_c = (cc == NPF_FMT_SPEC_CONV_CASE_LOWER) ? 'a' : 'A';
-    while (i) {
-      unsigned const d = (unsigned)(i % base);
-      i /= base;
-      *dst++ = (d < 10) ? (char)('0' + d) : (char)(base_c + (d - 10));
-    }
+  if (i == 0) { *dst++ = '0'; }
+  unsigned const base_c = (cc == NPF_FMT_SPEC_CONV_CASE_LOWER) ? 'a' : 'A';
+  while (i) {
+    unsigned const d = (unsigned)(i % base);
+    *dst++ = (d < 10) ? (char)('0' + d) : (char)(base_c + (d - 10));
+    i /= base;
   }
   return (int)(dst - buf);
 }
@@ -2649,6 +2646,51 @@ int npf_ftoa_rev(char *buf, float f, unsigned base,
 }
 #endif
 
+#if NANOPRINTF_USE_BINARY_FORMAT_SPECIFIERS == 1
+int npf_bin_len(npf_uint_t u) {
+  // Return the length of the string representation of 'u', preferring intrinsics.
+
+#ifdef _MSC_VER // Win64, use _BSR64 for everything. If x86, use _BSR when non-large.
+  #ifdef _M_X64
+    #define NPF_HAVE_BUILTIN_CLZ
+    unsigned long idx;
+    _BitScanReverse64(&idx, u);
+    return u ? (idx + 1) : 1;
+  #elif NANOPRINTF_USE_LARGE_FORMAT_SPECIFIERS == 0
+    #define NPF_HAVE_BUILTIN_CLZ
+    unsigned long idx;
+    _BitScanReverse(&idx, u);
+    return u ? (idx + 1) : 1;
+  #endif
+#else
+  #if defined(__clang__) || \
+    (defined(__GNUC__) && ((__GNUC__ > 4) || ((__GNUC__ == 4) && (__GNUC_MINOR__ > 6))))
+    #define NPF_HAVE_BUILTIN_CLZ
+  #endif
+
+  #ifdef NPF_HAVE_BUILTIN_CLZ // modern gcc or any clang
+    #if NANOPRINTF_USE_LARGE_FORMAT_SPECIFIERS == 1
+      #define NANOPRINTF_CLZ(X) ((sizeof(long long) * 8) - (size_t)__builtin_clzll(X))
+    #else
+      #define NANOPRINTF_CLZ(X) ((sizeof(long) * 8) - (size_t)__builtin_clzl(X))
+    #endif
+    return u ? (int)NANOPRINTF_CLZ(u) : 1;
+    #undef NANOPRINTF_CLZ
+  #endif
+#endif
+
+#ifndef NPF_HAVE_BUILTIN_CLZ // slow but small software fallback
+  int n;
+  for (n = u ? 0 : 1; u; ++n, u >>= 1);
+  return n;
+#endif
+
+#ifdef NPF_HAVE_BUILTIN_CLZ
+  #undef NPF_HAVE_BUILTIN_CLZ
+#endif
+}
+#endif
+
 #define NPF_PUTC(VAL) do { pc((VAL), pc_ctx); ++n; } while (0)
 
 #define NPF_EXTRACT(MOD, CAST_TO, EXTRACT_AS) \
@@ -2676,7 +2718,8 @@ int npf_vpprintf(npf_putc pc, void *pc_ctx, char const *format, va_list vlist) {
     }
 
     // Format specifier, convert and write argument
-    char cbuf_mem[32], *cbuf = cbuf_mem, sign_c;
+    union { char cbuf_mem[32]; npf_uint_t binval; } u;
+    char *cbuf = u.cbuf_mem, sign_c;
     int cbuf_len = 0, need_0x = 0;
 #if NANOPRINTF_USE_FIELD_WIDTH_FORMAT_SPECIFIERS == 1
     int field_pad = 0;
@@ -2714,7 +2757,7 @@ int npf_vpprintf(npf_putc pc, void *pc_ctx, char const *format, va_list vlist) {
         fs.precision_type = NPF_FMT_SPEC_PRECISION_LITERAL;
         fs.precision = precision;
       } else { // Negative precision is ignored.
-      fs.precision_type = NPF_FMT_SPEC_PRECISION_NONE;
+        fs.precision_type = NPF_FMT_SPEC_PRECISION_NONE;
       }
     }
 #endif
@@ -2734,12 +2777,12 @@ int npf_vpprintf(npf_putc pc, void *pc_ctx, char const *format, va_list vlist) {
       case NPF_FMT_SPEC_CONV_STRING: { // 's'
         char *s = va_arg(vlist, char *);
         cbuf = s;
-        while (*s) ++s;
+        while (*s) { ++s; }
         cbuf_len = (int)(s - cbuf);
 #if NANOPRINTF_USE_PRECISION_FORMAT_SPECIFIERS == 1
         if (fs.precision_type == NPF_FMT_SPEC_PRECISION_LITERAL) {
           // precision modifier truncates strings
-          cbuf_len = NPF_MIN(fs.precision, cbuf_len);
+          cbuf_len = npf_min(fs.precision, cbuf_len);
         }
 #endif
       } break;
@@ -2777,6 +2820,9 @@ int npf_vpprintf(npf_putc pc, void *pc_ctx, char const *format, va_list vlist) {
         { cbuf_len = npf_itoa_rev(cbuf, val); }
       } break;
 
+#if NANOPRINTF_USE_BINARY_FORMAT_SPECIFIERS == 1
+      case NPF_FMT_SPEC_CONV_BINARY:         // 'b'
+#endif
       case NPF_FMT_SPEC_CONV_OCTAL:          // 'o'
       case NPF_FMT_SPEC_CONV_HEX_INT:        // 'x', 'X'
       case NPF_FMT_SPEC_CONV_UNSIGNED_INT: { // 'u'
@@ -2803,28 +2849,38 @@ int npf_vpprintf(npf_putc pc, void *pc_ctx, char const *format, va_list vlist) {
 
 #if NANOPRINTF_USE_PRECISION_FORMAT_SPECIFIERS == 1
 #if NANOPRINTF_USE_FIELD_WIDTH_FORMAT_SPECIFIERS == 1
-        zero = !val;
+        zero = (val == 0);
 #endif
-        if (!val && !fs.precision) {
+        if ((val == 0) && (fs.precision == 0) &&
+            (fs.precision_type == NPF_FMT_SPEC_PRECISION_LITERAL)) {
+          // Zero value and explicitly-requested zero precision means "print nothing".
           if ((fs.conv_spec == NPF_FMT_SPEC_CONV_OCTAL) && fs.alternative_form) {
             fs.precision = 1; // octal special case, print a single '0'
-          } else if (fs.precision_type == NPF_FMT_SPEC_PRECISION_LITERAL) {
-            cbuf_len = 0; // 0 value + 0 precision, print nothing
           }
+        } else
+#endif
+#if NANOPRINTF_USE_BINARY_FORMAT_SPECIFIERS == 1
+        if (fs.conv_spec == NPF_FMT_SPEC_CONV_BINARY) {
+          cbuf_len = npf_bin_len(val); u.binval = val; (void)base;
         } else
 #endif
         { cbuf_len = npf_utoa_rev(cbuf, val, base, fs.conv_spec_case); }
 
         // alt form adds '0' octal, ok to add immediately
         if (val && fs.alternative_form) {
-          if (fs.conv_spec == NPF_FMT_SPEC_CONV_OCTAL) {
-            cbuf[cbuf_len++] = '0';
-          }
+          if (fs.conv_spec == NPF_FMT_SPEC_CONV_OCTAL) { cbuf[cbuf_len++] = '0'; }
         }
 
-        // alt form adds '0x' hex but can't write it yet.
-        if (val && fs.alternative_form && (fs.conv_spec == NPF_FMT_SPEC_CONV_HEX_INT)) {
-          need_0x = (fs.conv_spec_case == NPF_FMT_SPEC_CONV_CASE_LOWER) ? 'x' : 'X';
+        // alt form adds '0x' or '0b' but can't write it yet.
+        if (val && fs.alternative_form) {
+          if (fs.conv_spec == NPF_FMT_SPEC_CONV_HEX_INT) {
+            need_0x = (fs.conv_spec_case == NPF_FMT_SPEC_CONV_CASE_LOWER) ? 'x' : 'X';
+          }
+#if NANOPRINTF_USE_BINARY_FORMAT_SPECIFIERS == 1
+          else if (fs.conv_spec == NPF_FMT_SPEC_CONV_BINARY) {
+            need_0x = (fs.conv_spec_case == NPF_FMT_SPEC_CONV_CASE_LOWER) ? 'b' : 'B';
+          }
+#endif
         }
       } break;
 
@@ -2909,9 +2965,7 @@ int npf_vpprintf(npf_putc pc, void *pc_ctx, char const *format, va_list vlist) {
 #endif
           { pad_c = '0'; }
         }
-      } else {
-        pad_c = ' ';
-      }
+      } else { pad_c = ' '; }
     }
 #endif
 
@@ -2921,10 +2975,10 @@ int npf_vpprintf(npf_putc pc, void *pc_ctx, char const *format, va_list vlist) {
       if (!inf_or_nan) { // float precision is after the decimal point
         int const precision_start =
           (fs.conv_spec == NPF_FMT_SPEC_CONV_FLOAT_DECIMAL) ? frac_chars : cbuf_len;
-        prec_pad = NPF_MAX(0, fs.precision - precision_start);
+        prec_pad = npf_max(0, fs.precision - precision_start);
       }
 #elif NANOPRINTF_USE_PRECISION_FORMAT_SPECIFIERS == 1
-      prec_pad = NPF_MAX(0, fs.precision - cbuf_len);
+      prec_pad = npf_max(0, fs.precision - cbuf_len);
 #endif
     }
 
@@ -2941,7 +2995,7 @@ int npf_vpprintf(npf_putc pc, void *pc_ctx, char const *format, va_list vlist) {
 #if NANOPRINTF_USE_PRECISION_FORMAT_SPECIFIERS == 1
     field_pad -= prec_pad;
 #endif // NANOPRINTF_USE_PRECISION_FORMAT_SPECIFIERS
-    field_pad = NPF_MAX(0, field_pad);
+    field_pad = npf_max(0, field_pad);
 #endif // NANOPRINTF_USE_FIELD_WIDTH_FORMAT_SPECIFIERS
 
 #if NANOPRINTF_USE_FIELD_WIDTH_FORMAT_SPECIFIERS == 1
@@ -2986,8 +3040,13 @@ int npf_vpprintf(npf_putc pc, void *pc_ctx, char const *format, va_list vlist) {
         }
       }
 #endif
-      // *toa_rev leaves payloads reversed
-      while (cbuf_len-- > 0) { NPF_PUTC(cbuf[cbuf_len]); }
+
+#if NANOPRINTF_USE_BINARY_FORMAT_SPECIFIERS == 1
+      if (fs.conv_spec == NPF_FMT_SPEC_CONV_BINARY) {
+        while (cbuf_len) { NPF_PUTC('0' + ((u.binval >> (cbuf_len-- - 1)) & 1)); }
+      } else
+#endif
+      { while (cbuf_len-- > 0) { NPF_PUTC(cbuf[cbuf_len]); } } // payload is reversed
 
 #if NANOPRINTF_USE_FLOAT_FORMAT_SPECIFIERS == 1
       // real precision comes after the number.
@@ -3016,18 +3075,16 @@ int npf_vpprintf(npf_putc pc, void *pc_ctx, char const *format, va_list vlist) {
 
 int npf_pprintf(npf_putc pc, void *pc_ctx, char const *format, ...) {
   va_list val;
-  int rv;
   va_start(val, format);
-  rv = npf_vpprintf(pc, pc_ctx, format, val);
+  int const rv = npf_vpprintf(pc, pc_ctx, format, val);
   va_end(val);
   return rv;
 }
 
 int npf_snprintf(char *buffer, size_t bufsz, const char *format, ...) {
   va_list val;
-  int rv;
   va_start(val, format);
-  rv = npf_vsnprintf(buffer, bufsz, format, val);
+  int const rv = npf_vsnprintf(buffer, bufsz, format, val);
   va_end(val);
   return rv;
 }
@@ -3043,7 +3100,12 @@ int npf_vsnprintf(char *buffer, size_t bufsz, char const *format, va_list vlist)
     npf_vpprintf(buffer ? npf_bufputc : npf_bufputc_nop, &bufputc_ctx, format, vlist);
 }
 
-//#endif // NANOPRINTF_IMPLEMENTATION
+#endif // NANOPRINTF_IMPLEMENTATION_INCLUDED
+#endif // NANOPRINTF_IMPLEMENTATION
+
+#ifdef __cplusplus
+}
+#endif
 ]==]
 
 -- minify the code removing comments and spaces
@@ -3060,8 +3122,8 @@ cdefs.include_hooks['@nanoprintf.h'] = nanoprintf_code
 ## else
 
 -- Use standard C `snprintf`.
-function printf.snprintf(s: cstring, maxlen: csize, format: cstring, ...: cvarargs): cint <cimport,cinclude'<stdio.h>'> end
+function strprintf.snprintf(s: cstring, maxlen: csize, format: cstring, ...: cvarargs): cint <cimport,cinclude'<stdio.h>'> end
 
 ## end
 
-return printf
+return strprintf

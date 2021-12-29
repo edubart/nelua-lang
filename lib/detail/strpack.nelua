@@ -1,0 +1,390 @@
+--[[
+Auxiliary module implementing Lua style string packing.
+
+Used internally by the string library.
+]]
+
+require 'string' -- for string.copy
+
+-- Module namespace.
+local strpack: type = @record{}
+
+-- Max alignment for pack.
+local PACKMAXALIGN: usize <comptime> =
+  #[math.max(primtypes.float64.align, primtypes.pointer.align, primtypes.integer.align, primtypes.number.align)]#
+
+-- Helper to get native endianness.
+local function isnativelittle(): boolean <inline>
+  local u: union{dummy: int32, little: uint8} = {dummy=1}
+  return u.little == 1
+end
+
+-- Aligns forward `addr` to the minimum of `align` and `maxalign` bytes.
+local function packalignforward(addr: usize, align: usize, maxalign: usize): usize <inline>
+  if align > maxalign then align = maxalign end
+  if align <= 1 then return addr end
+  local alignbits: usize = align - 1
+  assert(align & alignbits == 0, "format asks for alignment not power of 2")
+  return (addr + alignbits) & ~alignbits
+end
+
+--[[
+Pack integer `n` with `size` bytes and `islittle` endianness.
+The final 'if' handles the case when `size` is larger than the size of a uint64,
+correcting the extra sign-extension bytes if necessary (by default they would be zeros).
+]]
+local function packint(sb: *stringbuilder, a: auto, size: usize, maxalign: usize, islittle: boolean): boolean
+  ## if a.type.is_integral then
+  local neg: boolean = a < 0
+  local n: uint64 = (@uint64)(a)
+  ## else
+  local i: integer = tointeger(a)
+  local neg: boolean = i < 0
+  local n: uint64 = (@uint64)(i)
+  ## end
+  -- TODO: we could do overflow checks here (like Lua does)
+  local pads: usize = packalignforward(sb.size, size, maxalign) - sb.size
+  if not sb:writebyte(0, pads) then return false end
+  local buff: span(byte) = sb:prepare(size)
+  if buff:empty() then return false end
+  buff[islittle and 0 or size - 1] = n & 0xff -- first byte
+  for i: usize=1,<size do
+    n = n >> 8
+    buff[islittle and i or size-1-i] = n & 0xff
+  end
+  if size > #@uint64 and neg then -- negative number, need sign extension?
+    for i: usize=#@uint64,<size do
+      buff[islittle and i or size-1-i] = 0xff
+    end
+  end
+  sb:commit(size)
+  return true
+end
+
+--[[
+Unpack an integer with `size` bytes and `islittle` endianness.
+If size is smaller than the size of a uint64 and integer is signed,
+must do sign extension (propagating the sign to the higher bits).
+If size is larger than the size of a uint64,
+it must check the unread bytes to see whether they do not cause an overflow.
+]]
+local function unpackint(s: string, pos: *usize, size: usize, maxalign: usize, islittle: boolean, issigned: boolean): uint64
+  local pads: usize = packalignforward($pos, size, maxalign) - $pos
+  assert($pos + pads + size <= s.size, 'data string too short')
+  local buff: *[0]byte = &s.data[$pos + pads]
+  local n: uint64 = 0
+  local limit: isize = size <= #@uint64 and (@isize)(size) or #@uint64
+  for i: isize=limit-1,0,-1 do
+    n = (n << 8) | (@uint64)(buff[islittle and (@usize)(i) or size-(@usize)(i+1)])
+  end
+  if size < #@uint64 then -- real size smaller than uint64
+    if issigned then -- needs sign extension?
+      local mask: uint64 = 1_uint64 << (size*8 - 1)
+      n = (n ~ mask) - mask -- do sign extension
+    end
+  elseif size > #@uint64 then -- must check unread bytes
+    local mask: uint64 = (not issigned or (@int64)(n) >= 0) and 0_u64 or 0xff_u64
+    for i: usize=(@usize)(limit),<size do
+      assert(buff[islittle and i or size-1-i] == mask, 'integer does not fit into int64')
+    end
+  end
+  $pos = $pos + pads + size
+  return n
+end
+
+-- Copy `size` bytes from `src` into `dest`, respecting system endiness.
+local function packcopy(dest: pointer, src: *[0]byte, size: usize, islittle: boolean): void <inline>
+  if likely(islittle == isnativelittle()) then -- same endianess
+    memory.copy(dest, src, size)
+  else -- different endianess, copy bytes in reverse order
+    local buff: *[0]byte = (@*[0]byte)(dest)
+    for i:usize=0,<size do
+      buff[size-1-i] = src[i]
+    end
+  end
+end
+
+-- Copy `size` bytes from `src` to `dest`, correcting endianness if `keependian` is false.
+local function packnum(sb: *stringbuilder, a: auto, T: type, maxalign: usize, islittle: boolean): boolean
+  local pads: usize = packalignforward(sb.size, #@T, maxalign) - sb.size
+  if not sb:writebyte(0, pads) then return false end
+  local buff: span(byte) = sb:prepare(#@T)
+  if buff:empty() then return false end
+  ## if T.value.is_float and not a.type.is_float then
+  local v: T = (@T)(tonumber(a))
+  ## elseif T.value.is_integral and not a.type.is_integral then
+  local v: T = (@T)(tointeger(a))
+  ## else
+  local v: T = (@T)(a)
+  ## end
+  packcopy(buff.data, (@*[0]byte)(&v), #@T, islittle)
+  sb:commit(#@T)
+  return true
+end
+
+-- Read an integer from string `fmt` starting at `pos`, returns `def` if there is no number.
+local function packgetnum(fmt: string, pos: *usize, def: usize): usize
+  local init: usize = $pos
+  local n: usize = 0
+  while $pos < fmt.size do
+    local d: usize = (fmt.data[$pos] - '0'_b)
+    if d >= 10 then break end
+    n = n*10 + d
+    $pos = $pos + 1
+  end
+  return $pos ~= init and n or def
+end
+
+-- Like `packgetnum` but checks if the number is in range [1,16].
+local function packgetnumlimit(fmt: string, pos: *usize, def: usize): usize
+  local n: usize = packgetnum(fmt, pos, def)
+  assert(n > 0 and n <= 16, 'integral size out of limits [1,16]')
+  return n
+end
+
+-- Get size of the option following 'X' option.
+local function packgetoptalign(fmt: string, pos: *usize): usize
+  local align: usize = 0
+  if $pos < fmt.size then
+    local c: byte = fmt.data[$pos]
+    $pos = $pos + 1
+    switch c
+    case 's'_b then align = packgetnumlimit(fmt, pos, #@usize)
+    case 'i'_b, 'I'_b then align = packgetnumlimit(fmt, pos, #@cint)
+    case 'b'_b, 'B'_b, 'x'_b then align = #@byte
+    case 'h'_b, 'H'_b then align = #@cshort
+    case 'l'_b, 'L'_b then align = #@clong
+    case 'j'_b, 'J'_b then align = #@integer
+    case 't'_b, 'T'_b then align = #@usize
+    case 'f'_b then align = #@float32
+    case 'd'_b then align = #@float64
+    case 'n'_b then align = #@number
+    end
+  end
+  assert(align > 0, "invalid next option for pack option 'X'")
+  return align
+end
+
+-- Packs an argument.
+local function packarg(a: auto, c: byte, sb: *stringbuilder, fmt: string, pos: *usize, maxalign: usize, islittle: boolean): boolean
+  switch c
+  case 'z'_b then -- zero-terminated string
+    local ok: boolean, written: usize = sb:write(a)
+    if not ok then return false end
+    assert(written == 0 or not memory.scan(&sb.data[sb.size - written], 0, written), 'string contains zeros')
+    return sb:writebyte(0) -- zero at the end
+  case 'c'_b then -- fixed-size string
+    local n: usize = packgetnum(fmt, pos, 0)
+    local ok: boolean, written: usize = sb:write(a)
+    if not ok then return false end
+    assert(n >= written, 'string longer than given size')
+    return sb:writebyte(0, n - written)
+  case 's'_b then -- string preceded by its length
+    local n: usize = packgetnumlimit(fmt, pos, #@usize)
+    ## if a.type.is_stringy then
+    local s: string = a
+    ## else
+    local s: string = tostring(a)
+    defer s:destroy() end
+    ## end
+    assert(n >= #@usize or s.size < 1_usize << (n * 8), 'length does not fit in given size')
+    return packint(sb, s.size, n, maxalign, islittle) and sb:write(s)
+  case 'i'_b, 'I'_b then return packint(sb, a, packgetnumlimit(fmt, pos, #@cint), maxalign, islittle)
+  case 'b'_b, 'B'_b then return packnum(sb, a, @byte, maxalign, islittle)
+  case 'h'_b, 'H'_b then return packnum(sb, a, @cushort, maxalign, islittle)
+  case 'l'_b, 'L'_b then return packnum(sb, a, @culong, maxalign, islittle)
+  case 'j'_b, 'J'_b then return packnum(sb, a, @uinteger, maxalign, islittle)
+  case 't'_b, 'T'_b then return packnum(sb, a, @usize, maxalign, islittle)
+  case 'f'_b then return packnum(sb, a, @float32, maxalign, islittle)
+  case 'd'_b then return packnum(sb, a, @float64, maxalign, islittle)
+  case 'n'_b then return packnum(sb, a, @number, maxalign, islittle)
+  else return assert(false, #[string.format("invalid pack format option")]#) end
+end
+
+-- Returns a binary string containing the values in `...` according to the format string `fmt`.
+function strpack.pack(fmt: string, ...: varargs): string
+  local sb: stringbuilder
+  local pos: usize, argi: usize, maxalign: usize = 0, 0, 1
+  local ok: boolean, islittle: boolean = true, isnativelittle()
+  while pos < fmt.size do
+    local c: byte = fmt.data[pos]
+    pos = pos + 1
+    switch c
+    case ' '_b then -- ignore
+    case '<'_b then islittle = true
+    case '>'_b then islittle = false
+    case '='_b then islittle = isnativelittle()
+    case '!'_b then maxalign = packgetnumlimit(fmt, &pos, PACKMAXALIGN)
+    case 'X'_b then ok = sb:writebyte(0, packalignforward(sb.size, packgetoptalign(fmt, &pos), maxalign) - sb.size)
+    case 'x'_b then ok = sb:writebyte(0)
+    else
+      argi = argi + 1
+      ## for i=1,select('#', ...) do
+      if argi == #[i]# then
+        ok = packarg(#[select(i, ...)]#, c, &sb, fmt, &pos, maxalign, islittle)
+        goto next
+      end
+      ## end
+      assert(false, "missing argument in pack format")
+      ::next::
+    end
+    assert(ok, 'out of memory')
+  end
+  return sb:promote()
+end
+
+-- Unpacks string `s` using format string `fmt` starting at `init`.
+function strpack.unpack(fmt: string <comptime>, s: string, init: facultative(isize))
+  ## if init.type.is_niltype then
+  local pos: usize = 0
+  ## else
+  if unlikely(init < 0) then init = (@usize)(s.size) + init + 1 end
+  if unlikely(init <= 0) then init = 1 end
+  local pos: usize = (@usize)(init - 1)
+  ## end
+  local islittle: boolean, maxalign: usize = isnativelittle(), 1
+  ##[[
+  local formattypes = {
+    b = primtypes.int8, B = primtypes.uint8,
+    h = primtypes.cshort, H = primtypes.cushort,
+    l = primtypes.clong, L = primtypes.culong,
+    i = primtypes.cint, I = primtypes.cuint,
+    j = primtypes.integer, J = primtypes.uinteger,
+    t = primtypes.isize, T = primtypes.usize,
+    f = primtypes.float32, d = primtypes.float64, n = primtypes.number,
+  }
+  local inttypes = {
+    i1 = primtypes.int8, i2 = primtypes.int16, i4 = primtypes.int32, i8 = primtypes.int64,
+    I1 = primtypes.uint8, I2 = primtypes.uint16, I4 = primtypes.uint32, I8 = primtypes.uint64,
+  }
+  local fmt, fpos, iarg, retargs = fmt.value, 1, 0, {}
+  local function unpackgetopt()
+    local c = fmt:sub(fpos, fpos)
+    fpos = fpos + 1
+    return c
+  end
+  local function unpackgetnum(req, lim)
+    local n = fmt:match('^[0-9]+', fpos)
+    if n then
+      fpos = fpos + #n
+      n = tonumber(n)
+      if lim then
+        static_assert(n > 0 and n <= 16, 'integral size out of limits [1,16]')
+      end
+    end
+    static_assert(n or not req, 'missing number in format pack option')
+    return n
+  end
+  local function unpackgetoptalign()
+    local align
+    local c = unpackgetopt()
+    if c == 's' then align = unpackgetnum(false, true) or primtypes.usize
+    elseif c == 'i' or c == 'I' then align = unpackgetnum(false, true) or primtypes.cint
+    elseif c == 'b' or c == 'B' or c == 'x' then align = primtypes.byte
+    elseif c == 'h' or c == 'H' then align = primtypes.cshort
+    elseif c == 'l' or c == 'L' then align = primtypes.clong
+    elseif c == 'j' or c == 'J' then align = primtypes.integer
+    elseif c == 't' or c == 'T' then align = primtypes.usize
+    elseif c == 'f' then align = primtypes.float32
+    elseif c == 'd' then align = primtypes.float64
+    elseif c == 'n' then align = primtypes.number
+    end
+    static_assert(align, "invalid next option for pack option 'X'")
+    return align
+  end
+  while fpos <= #fmt do
+    local c = unpackgetopt()
+    iarg = iarg + 1
+    local argname = 'a'..iarg
+    ]]
+    ## if c == ' ' then -- space is ignored
+    ## elseif c == '<' then -- sets little endian
+      islittle = true
+    ## elseif c == '>' then -- sets big endian
+      islittle = false
+    ## elseif c == '=' then -- sets native endian
+      islittle = isnativelittle()
+    ## elseif c == '!' then -- sets maximum alignment
+      ## local align = unpackgetnum(false, true)
+      maxalign = #[align or PACKMAXALIGN]#
+    ## elseif c == 'X' then -- aligns according to option
+      ## local align = unpackgetoptalign()
+      ## if math.type(align) == 'integer' then
+      pos = packalignforward(pos, #[align]#, maxalign)
+      ## else
+      pos = packalignforward(pos, # #[align]#, maxalign)
+      ## end
+    ## elseif c == 'x' then -- one byte of padding
+      assert(pos + #@byte <= s.size, 'data string too short')
+      pos = pos + #@byte
+    ## elseif c == 'z' then -- zero-terminated string
+      local zptr: pointer = memory.scan(&s.data[pos], 0, s.size - pos)
+      assert(zptr, 'string zero termination not found')
+      local len: usize = (@usize)(zptr) - (@usize)(&s.data[pos])
+      local #|argname|#: string = string.copy((@string){data=&s.data[pos], size=len})
+      pos = pos + len + 1
+      ## retargs[#retargs+1] = aster.Id{argname}
+    ## elseif c == 'c' then -- fixed-size string
+      local len: usize = #[unpackgetnum(true)]#
+      assert(pos + len <= s.size, 'data string too short')
+      local #|argname|#: string = string.copy((@string){data=&s.data[pos], size=len})
+      pos = pos + len
+      ## retargs[#retargs+1] = aster.Id{argname}
+    ## elseif c == 's' then -- string preceded by its length
+      ## local n = unpackgetnum(false, true)
+      ## if n then
+      local lensize: usize = #[n]#
+      ## else
+      local lensize: usize = #@usize
+      ## end
+      local len: usize = unpackint(s, &pos, lensize, maxalign, islittle, false)
+      assert(pos + len <= s.size, 'data string too short')
+      local #|argname|#: string = string.copy((@string){data=&s.data[pos], size=len})
+      pos = pos + len
+      ## retargs[#retargs+1] = aster.Id{argname}
+    ## elseif (c == 'i' or c == 'I') and fmt:find('^[0-9]+', fpos) then -- sized signed integer
+      ## local n = unpackgetnum(nil, true)
+      ## local argtype = inttypes[c..n] or (c == 'i' and primtypes.int64 or primtypes.uint64)
+      local #|argname|#: #[argtype]# = (@#[argtype]#)(unpackint(s, &pos, #[n]#, maxalign, islittle, #[c == 'i']#))
+      ## retargs[#retargs+1] = aster.Id{argname}
+    ## elseif formattypes[c] then -- primitive type
+      local T: type = #[ formattypes[c] ]#
+      local #|argname|#: T
+      local pads: usize = packalignforward(pos, #@T, maxalign) - pos
+      assert(pos + pads + #@T <= s.size, 'data string too short')
+      packcopy(&#|argname|#, &s.data[pos + pads], #@T, islittle)
+      pos = pos + pads + #@T
+      ## retargs[#retargs+1] = aster.Id{argname}
+    ## else static_error("invalid pack format option '"..c.."'") end
+  ## end
+  local lastindex: isize = (@isize)(pos + 1)
+  ## retargs[#retargs+ 1] = aster.Id{'lastindex'}
+  return #[aster.unpack(retargs)]#
+end
+
+-- Returns the packing size for the format string `fmt`.
+function strpack.packsize(fmt: string): isize
+  local pos: usize, len: usize, n: usize, maxalign: usize = 0, 0, 0, 1
+  while pos < fmt.size do
+    local c: byte = fmt.data[pos]
+    pos = pos + 1
+    switch c
+    case ' '_b, '<'_b, '>'_b, '='_b then -- ignore
+    case '!'_b then maxalign = packgetnumlimit(fmt, &pos, PACKMAXALIGN)
+    case 'X'_b then len = packalignforward(len, packgetoptalign(fmt, &pos), maxalign)
+    case 'x'_b, 'b'_b, 'B'_b then len = len + #@byte
+    case 'c'_b then len = len + packgetnum(fmt, &pos, 0)
+    case 'i'_b, 'I'_b then n = packgetnumlimit(fmt, &pos, #@cint) len = packalignforward(len, n, maxalign) + n
+    case 'h'_b, 'H'_b then len = packalignforward(len, #@cshort, maxalign) + #@cshort
+    case 'l'_b, 'L'_b then len = packalignforward(len, #@clong, maxalign) + #@clong
+    case 'j'_b, 'J'_b then len = packalignforward(len, #@integer, maxalign) + #@integer
+    case 't'_b, 'T'_b then len = packalignforward(len, #@usize, maxalign) + #@usize
+    case 'f'_b then len = packalignforward(len, #@float32, maxalign) + #@float32
+    case 'd'_b then len = packalignforward(len, #@float64, maxalign) + #@float64
+    case 'n'_b then len = packalignforward(len, #@number, maxalign) + #@number
+    else assert(false, 'invalid pack format option') end
+  end
+  return (@isize)(len)
+end
+
+return strpack

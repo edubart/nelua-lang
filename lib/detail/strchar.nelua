@@ -1,0 +1,106 @@
+--[[
+This provides utilities to detect types of string byte characters.
+
+By default Nelua follows ASCII character table,
+but it respect C locale in case pragma `useclocale` is enabled.
+]]
+
+-- Module namespace.
+local strchar = @record{}
+
+## if pragmas.useclocale then
+
+local function tolower(c: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
+local function toupper(c: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
+local function isalpha(x: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
+local function islower(x: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
+local function isupper(x: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
+local function isdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
+local function isxdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
+local function iscntrl(x: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
+local function isgraph(x: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
+local function isspace(x: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
+local function isalnum(x: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
+local function ispunct(x: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
+function strchar.tolower(c: byte): byte <inline> return (@byte)(tolower(c)) end
+function strchar.toupper(c: byte): byte <inline> return (@byte)(toupper(c)) end
+function strchar.isalpha(c: byte): boolean <inline> return isalpha(c) ~= 0 end
+function strchar.islower(c: byte): boolean <inline> return islower(c) ~= 0 end
+function strchar.isupper(c: byte): boolean <inline> return isupper(c) ~= 0 end
+function strchar.isdigit(c: byte): boolean <inline> return isdigit(c) ~= 0 end
+function strchar.isxdigit(c: byte): boolean <inline> return isxdigit(c) ~= 0 end
+function strchar.iscntrl(c: byte): boolean <inline> return iscntrl(c) ~= 0 end
+function strchar.isgraph(c: byte): boolean <inline> return isgraph(c) ~= 0 end
+function strchar.isspace(c: byte): boolean <inline> return isspace(c) ~= 0 end
+function strchar.isalnum(c: byte): boolean <inline> return isalnum(c) ~= 0 end
+function strchar.ispunct(c: byte): boolean <inline> return ispunct(c) ~= 0 end
+
+## else
+
+function strchar.tolower(c: byte): byte <inline>
+  return (@uint32)(c)-'A'_b < 26 and c | 32 or c
+end
+
+function strchar.toupper(c: byte): byte <inline>
+  return (@uint32)(c)-'a'_b < 26 and c & 0x5f or c
+end
+
+function strchar.isalpha(c: byte): boolean <inline>
+  return ((@uint32)(c)|32)-'a'_b < 26
+end
+
+function strchar.islower(c: byte): boolean <inline>
+  return (@uint32)(c)-'a'_b < 26
+end
+
+function strchar.isupper(c: byte): boolean <inline>
+  return (@uint32)(c)-'A'_b < 26
+end
+
+function strchar.isdigit(c: byte): boolean <inline>
+  return (@uint32)(c)-'0'_b < 10
+end
+
+function strchar.isxdigit(c: byte): boolean <inline>
+  return strchar.isdigit(c) or ((@uint32)(c)|32)-'a'_b < 6
+end
+
+function strchar.iscntrl(c: byte): boolean <inline>
+  return (@uint32)(c) < 0x20 or c == 0x7f
+end
+
+function strchar.isgraph(c: byte): boolean <inline>
+  return (@uint32)(c)-0x21 < 0x5e
+end
+
+function strchar.isspace(c: byte): boolean <inline>
+  return c == ' '_b or ((@uint32)(c)-'\t'_b < 5)
+end
+
+function strchar.isalnum(c: byte): boolean <inline>
+  return strchar.isalpha(c) or strchar.isdigit(c)
+end
+
+function strchar.ispunct(c: byte): boolean <inline>
+  return strchar.isgraph(c) and not strchar.isalnum(c)
+end
+
+## end
+
+-- Helper to get digit of a character byte.
+function strchar.getdigit(c: byte): byte <inline>
+  return c - '0'_b
+end
+
+-- Helper to convert a character byte to a digit number considering extra bases.
+function strchar.getbasedigit(c: byte): byte <inline>
+  local d: byte = c - '0'_b
+  if d < 10 then return d end
+  d = c - 'a'_b
+  if d < 26 then return d + 10 end
+  d = c - 'A'_b
+  if d < 26 then return d + 10 end
+  return 255
+end
+
+return strchar

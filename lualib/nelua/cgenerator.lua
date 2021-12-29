@@ -958,6 +958,9 @@ function visitors.DoExpr(context, node, emitter)
   local attr = node.attr
   local isstatement = context:get_visiting_node(1).is_Block
   if isstatement then
+    if #node[1] == 0 then -- no statements
+      return
+    end
     emitter:add_indent()
   end
   local blocknode = node[1]
