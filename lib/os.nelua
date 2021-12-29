@@ -7,21 +7,7 @@ or may not be supported.
 
 require 'string'
 
--- Locale C imports.
-
-local LC_ALL: cint <cimport,cinclude'<locale.h>'>
-local LC_COLLATE: cint <cimport,cinclude'<locale.h>'>
-local LC_CTYPE: cint <cimport,cinclude'<locale.h>'>
-local LC_MONETARY: cint <cimport,cinclude'<locale.h>'>
-local LC_NUMERIC: cint <cimport,cinclude'<locale.h>'>
-local LC_TIME: cint <cimport,cinclude'<locale.h>'>
-local function setlocale(category: cint, locale: cstring): cstring <cimport,cinclude'<locale.h>'> end
-
-local EXIT_SUCCESS: cint <cimport,cinclude'<stdlib.h>'>
-local EXIT_FAILURE: cint <cimport,cinclude'<stdlib.h>'>
-local function getenv(name: cstring): cstring <cimport,cinclude'<stdlib.h>'> end
-local function exit(status: cint): void <cimport,cinclude'<stdlib.h>'> end
-local function remove(pathname: cstring): cint <cimport,cinclude'<stdio.h>'> end
+-- Common C imports.
 
 local tm: type <cimport,cinclude'<time.h>',ctypedef> = @record{
   tm_year: cint,
@@ -36,24 +22,26 @@ local timespec: type <cimport,cinclude'<time.h>',ctypedef> = @record{
   tv_sec: ctime_t,
   tv_nsec: clong
 }
-local CLOCKS_PER_SEC: cclock_t <cimport,cinclude'<time.h>'>
-local function clock(): cclock_t <cimport,cinclude'<time.h>'> end
-local function time(tloc: *ctime_t): ctime_t <cimport,cinclude'<time.h>'> end
-local function mktime(tp: *tm): ctime_t <cimport,cinclude'<time.h>'> end
-local function strftime(s: cstring, maxsize: csize, format: cstring, tp: *tm): csize <cimport,cinclude'<time.h>'> end
-local function difftime(time1: ctime_t, time0: ctime_t): cdouble <cimport,cinclude'<time.h>'> end
-
 local errno: cint <cimport,cinclude'<errno.h>'>
-local function strerror(errnum: cint): cstring <cimport,cinclude'<string.h>'> end
+local function time(tloc: *ctime_t): ctime_t <cimport,cinclude'<time.h>'> end
+local function getenv(name: cstring): cstring <cimport,cinclude'<stdlib.h>'> end
 
 -- Namespace for OS module.
 global os: type = @record{}
+
+-- Returns last errno message plus its code.
+local function geterrno(): (string, integer)
+  local function strerror(errnum: cint): cstring <cimport,cinclude'<string.h>'> end
+  return strerror(errno), errno
+end
 
 --[[
 Returns an approximation of the amount in seconds of CPU time used by the program,
 as returned by the underlying ISO C function `clock`.
 ]]
 function os.clock(): number
+  local CLOCKS_PER_SEC: cclock_t <cimport,cinclude'<time.h>'>
+  local function clock(): cclock_t <cimport,cinclude'<time.h>'> end
   return clock() / CLOCKS_PER_SEC
 end
 
@@ -102,6 +90,7 @@ function os.date(format: facultative(string), formattime: facultative(integer)):
   local function gmtime(timep: *ctime_t): *tm <cimport,cinclude'<time.h>'> end
   local function localtime_r(timep: *ctime_t, result: *tm): *tm <cimport,cinclude'<time.h>'> end
   local function localtime(timep: *ctime_t): *tm <cimport,cinclude'<time.h>'> end
+  local function strftime(s: cstring, maxsize: csize, format: cstring, tp: *tm): csize <cimport,cinclude'<time.h>'> end
   ## cemit '#if _POSIX_VERSION'
     if utc then
       stm = gmtime_r(&t, &tmr)
@@ -130,6 +119,7 @@ function os.difftime(t2: integer, t1: integer): number
   local ct2: ctime_t = (@ctime_t)(t2)
   local ct1: ctime_t = (@ctime_t)(t1)
   assert(ct2 == t2 and ct1 == t1, 'time out of bounds')
+  local function difftime(time1: ctime_t, time0: ctime_t): cdouble <cimport,cinclude'<time.h>'> end
   return difftime(ct2, ct1)
 end
 
@@ -156,7 +146,7 @@ function os.execute(command: facultative(string)): (boolean, string, integer)
       errno = 0
       local status: cint = system(command)
       if status ~= 0 and errno ~= 0 then -- error with an errno?
-        return false, (@string)(strerror(errno)), errno
+        return false, geterrno()
       end
       local reason: string = 'exit'
       ## cinclude '@unistd.h'
@@ -189,6 +179,9 @@ If `code` is a number, the returned status is this number.
 The default value for code is `true`.
 ]]
 function os.exit(code: overload(integer,boolean,niltype)): void <noreturn>
+  local EXIT_SUCCESS: cint <cimport,cinclude'<stdlib.h>'>
+  local EXIT_FAILURE: cint <cimport,cinclude'<stdlib.h>'>
+  local function exit(status: cint): void <cimport,cinclude'<stdlib.h>'> end
   ## if code.type.is_integral then
     exit(code)
   ## elseif code.type.is_boolean then
@@ -238,7 +231,7 @@ function os.setenv(varname: string, value: facultative(string)): (boolean, strin
     return false, 'unsupported', -1
   ## cemit '#endif'
   if ret ~= 0 then -- error with an errno?
-    return false, (@string)(strerror(errno)), errno
+    return false, geterrno()
   end
   return true, (@string){}, 0
 end
@@ -265,8 +258,9 @@ function os.remove(filename: string): (boolean, string, integer)
   ## if ccinfo.is_wasm then
     return false, 'unsupported', -1
   ## else
+    local function remove(pathname: cstring): cint <cimport,cinclude'<stdio.h>'> end
     if remove(filename) == -1 then
-      return false, strerror(errno), errno
+      return false, geterrno()
     end
     return true, (@string){}, 0
   ## end
@@ -283,7 +277,7 @@ function os.rename(oldname: string, newname: string): (boolean, string, integer)
   ## else
     local function rename(old: cstring, new: cstring): cint <cimport,cinclude'<stdio.h>'> end
     if rename(oldname, newname) == -1 then
-      return false, strerror(errno), errno
+      return false, geterrno()
     end
     return true, (@string){}, 0
   ## end
@@ -304,6 +298,13 @@ The function returns the name of the new locale on success,
 or an empty string if the request cannot be honored.
 ]]
 function os.setlocale(locale: facultative(string), category: facultative(string)): string
+  local LC_ALL: cint <cimport,cinclude'<locale.h>'>
+  local LC_COLLATE: cint <cimport,cinclude'<locale.h>'>
+  local LC_CTYPE: cint <cimport,cinclude'<locale.h>'>
+  local LC_MONETARY: cint <cimport,cinclude'<locale.h>'>
+  local LC_NUMERIC: cint <cimport,cinclude'<locale.h>'>
+  local LC_TIME: cint <cimport,cinclude'<locale.h>'>
+  local function setlocale(category: cint, locale: cstring): cstring <cimport,cinclude'<locale.h>'> end
   local s: cstring
   ## if locale.type.is_niltype then
     s = setlocale(LC_ALL, nilptr)
@@ -354,6 +355,7 @@ When called with a record `os.timedesc`, `os.time` also normalizes all the field
 so that they represent the same time as before the call but with values inside their valid ranges.
 ]]
 function os.time(desc: facultative(os.timedesc)): integer
+  local function mktime(tp: *tm): ctime_t <cimport,cinclude'<time.h>'> end
   local t: ctime_t
   ## if desc.type.is_niltype then
     t = time(nilptr)

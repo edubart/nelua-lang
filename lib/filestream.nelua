@@ -8,30 +8,12 @@ require 'stringbuilder'
 require 'string'
 require 'allocators.default'
 
+-- Common C imports.
+
 local FILE: type <cimport,cinclude'<stdio.h>',forwarddecl> = @record{}
-local stdin: *FILE <cimport,cinclude'<stdio.h>'>
-local stdout: *FILE <cimport,cinclude'<stdio.h>'>
-local stderr: *FILE <cimport,cinclude'<stdio.h>'>
-local SEEK_SET: cint <const,cimport,cinclude'<stdio.h>'>
-local SEEK_END: cint <const,cimport,cinclude'<stdio.h>'>
-local SEEK_CUR: cint <const,cimport,cinclude'<stdio.h>'>
-local _IOFBF: cint <const,cimport,cinclude'<stdio.h>'>
-local _IOLBF: cint <const,cimport,cinclude'<stdio.h>'>
-local _IONBF: cint <const,cimport,cinclude'<stdio.h>'>
 local EOF: cint <const,cimport,cinclude'<stdio.h>'>
-local function fopen(pathname: cstring, mode: cstring): *FILE <cimport,cinclude'<stdio.h>'> end
-local function fclose(fp: *FILE): cint <cimport,cinclude'<stdio.h>'> end
-local function fflush(fp: *FILE): cint <cimport,cinclude'<stdio.h>'> end
 local function fread(ptr: pointer, size: csize, n: csize, fp: *FILE): csize <cimport,cinclude'<stdio.h>'> end
 local function fwrite(ptr: pointer, size: csize, n: csize, fp: *FILE): csize <cimport,cinclude'<stdio.h>'> end
-local function fseek(fp: *FILE, offset: clong, whence: cint): cint <cimport,cinclude'<stdio.h>'> end
-local function ftell(fp: *FILE): clong <cimport,cinclude'<stdio.h>'> end
-local function ferror(fp: *FILE): cint <cimport,cinclude'<stdio.h>'> end
-local function fgetc(fp: *FILE): cint <cimport,cinclude'<stdio.h>'> end
-local function setvbuf(fp: *FILE, buf: cstring, modes: cint, n: csize): cint <cimport,cinclude'<stdio.h>'> end
-local function clearerr(fp: *FILE): void <cimport,cinclude'<stdio.h>'> end
-local function strerror(errnum: cint): cstring <cimport,cinclude'<string.h>'> end
-local errno: cint <cimport,cinclude'<errno.h>'>
 
 -- File stream implementation record.
 local FStream: type = @record{
@@ -69,14 +51,11 @@ function filestream:_getfp(): *FILE <inline>
   return self.fs.fp
 end
 
--- Check whether mode matches '[rwa]%+?b?'
-local function checkmode(mode: string): boolean
-  if #mode == 0 then return false end
-  if memory.scan('rwa'_cstring, mode.data[0], 3) == nilptr then return false end
-  local pos: usize = 1
-  if mode.data[pos] == '+'_b then pos = pos + 1 end
-  if mode.data[pos] == 'b'_b then pos = pos + 1 end
-  return mode.data[pos] == 0
+-- Returns last errno message plus its code.
+local function geterrno(): (string, integer)
+  local errno: cint <cimport,cinclude'<errno.h>'>
+  local function strerror(errnum: cint): cstring <cimport,cinclude'<string.h>'> end
+  return strerror(errno), errno
 end
 
 --[[
@@ -96,14 +75,25 @@ The mode string can be any of the following:
 The mode string can also have a 'b' at the end, which is needed in some systems to open the file in binary mode.
 ]]
 function filestream.open(filename: string, mode: facultative(string)) : (filestream, string, integer)
+  local function fopen(pathname: cstring, mode: cstring): *FILE <cimport,cinclude'<stdio.h>'> end
+  local function fclose(fp: *FILE): cint <cimport,cinclude'<stdio.h>'> end
   ## if mode.type.is_niltype then
   local mode: string = "r"
   ## else
+  -- Check whether mode matches '[rwa]%+?b?'
+  local function checkmode(mode: string): boolean
+    if #mode == 0 then return false end
+    if memory.scan('rwa'_cstring, mode.data[0], 3) == nilptr then return false end
+    local pos: usize = 1
+    if mode.data[pos] == '+'_b then pos = pos + 1 end
+    if mode.data[pos] == 'b'_b then pos = pos + 1 end
+    return mode.data[pos] == 0
+  end
   assert(checkmode(mode), 'invalid mode')
   ## end
   local fp: *FILE = fopen(filename, mode)
   if not fp then
-    return filestream{}, strerror(errno), errno
+    return filestream{}, geterrno()
   end
   return filestream._fromfp(fp, fclose), '', 0
 end
@@ -114,12 +104,13 @@ Saves any written data to file.
 Returns `true` on success, otherwise `false` plus an error message and a system-dependent error code.
 ]]
 function filestream:flush(): (boolean, string, integer)
+  local function fflush(fp: *FILE): cint <cimport,cinclude'<stdio.h>'> end
   local fp: *FILE = self:_getfp()
   if not fp then
     return false, 'attempt to use a closed file', -1
   end
   if fflush(fp) ~= 0 then
-    return false, strerror(errno), errno
+    return false, geterrno()
   end
   return true, (@string){}, 0
 end
@@ -130,6 +121,9 @@ Closes the file.
 Returns `true` on success, otherwise `false` plus an error message and a system-dependent error code.
 ]]
 function filestream:close(): (boolean, string, integer)
+  local stdin: *FILE <cimport,cinclude'<stdio.h>'>
+  local stdout: *FILE <cimport,cinclude'<stdio.h>'>
+  local stderr: *FILE <cimport,cinclude'<stdio.h>'>
   local fs: *FStream = self.fs
   if not fs or not fs.fp then
     return false, 'attempt to use a closed file', -1
@@ -137,7 +131,6 @@ function filestream:close(): (boolean, string, integer)
   if fs.fp == stdout or fs.fp == stderr or fs.fp == stdin then
     return false, 'cannot close standard file', -1
   end
-  errno = 0 -- clear errno
   local res: cint = 0
   if fs.closef then
     res = fs.closef(fs.fp)
@@ -145,7 +138,7 @@ function filestream:close(): (boolean, string, integer)
   self.fs.fp = nilptr
   self.fs.closef = nilptr
   if res ~= 0 then
-    return false, strerror(errno), errno
+    return false, geterrno()
   end
   return true, (@string){}, 0
 end
@@ -190,6 +183,11 @@ The call `filestream:seek("set")` sets the position to the beginning of the file
 The call `file:seek("end")` sets the position to the end of the file, and returns its size.
 ]]
 function filestream:seek(whence: facultative(string), offset: facultative(integer)): (integer, string, integer)
+  local SEEK_SET: cint <const,cimport,cinclude'<stdio.h>'>
+  local SEEK_END: cint <const,cimport,cinclude'<stdio.h>'>
+  local SEEK_CUR: cint <const,cimport,cinclude'<stdio.h>'>
+  local function fseek(fp: *FILE, offset: clong, whence: cint): cint <cimport,cinclude'<stdio.h>'> end
+  local function ftell(fp: *FILE): clong <cimport,cinclude'<stdio.h>'> end
   local fp: *FILE = self:_getfp()
   if not fp then
     return -1, 'attempt to use a closed file', -1
@@ -211,8 +209,7 @@ function filestream:seek(whence: facultative(string), offset: facultative(intege
       len = ftell(fp)
     else
       len = -1
-      errmsg = strerror(errno)
-      status = errno
+      errmsg, status = geterrno()
     end
     return len, errmsg, status
   ## end
@@ -234,6 +231,10 @@ check the underlying ISO C function `setvbuf` in your platform for more details.
 Returns `true` on success, otherwise `false` plus an error message and a system-dependent error code.
 ]]
 function filestream:setvbuf(mode: string, size: facultative(integer)): (boolean, string, integer)
+  local _IOFBF: cint <const,cimport,cinclude'<stdio.h>'>
+  local _IOLBF: cint <const,cimport,cinclude'<stdio.h>'>
+  local _IONBF: cint <const,cimport,cinclude'<stdio.h>'>
+  local function setvbuf(fp: *FILE, buf: cstring, modes: cint, n: csize): cint <cimport,cinclude'<stdio.h>'> end
   ## if size.type.is_niltype then
   local size: csize = 1024
   ## end
@@ -247,7 +248,7 @@ function filestream:setvbuf(mode: string, size: facultative(integer)): (boolean,
   elseif mode == 'line' then op = _IOLBF
   else return false, 'invalid mode', -1 end
   if setvbuf(fp, nilptr, op, size) ~= 0 then
-    return false, strerror(errno), errno
+    return false, geterrno()
   end
   return true, (@string){}, 0
 end
@@ -258,6 +259,7 @@ local READ_CHUNK_SIZE: usize <comptime> = 1024
 -- Read a line from file.
 local function readline(sb: *stringbuilder, fp: *FILE, chop: boolean): (boolean, string)
   -- TODO: lock file on POSIX?
+  local function fgetc(fp: *FILE): cint <cimport,cinclude'<stdio.h>'> end
   local NL: byte <comptime> = '\n'_b
   local c: cint
   repeat
@@ -322,6 +324,8 @@ The formats `"l"` and `"L"` should be used only for text files.
 When called without arguments, it uses the default format `"l"` that reads the next line.
 ]]
 function filestream:read(fmt: overload(integer,string,niltype)): (string, string, integer)
+  local function clearerr(fp: *FILE): void <cimport,cinclude'<stdio.h>'> end
+  local function ferror(fp: *FILE): cint <cimport,cinclude'<stdio.h>'> end
   local fp: *FILE = self:_getfp()
   if not fp then
     return string{}, 'attempt to use a closed file', -1
@@ -354,8 +358,7 @@ function filestream:read(fmt: overload(integer,string,niltype)): (string, string
   local status: integer = 0
   if ferror(fp) ~= 0 then
     success = false
-    errmsg = strerror(errno)
-    status = errno
+    errmsg, status = geterrno()
   end
   local s: string
   if success then
@@ -397,7 +400,7 @@ function filestream:write(...: varargs): (boolean, string, integer)
     if s.size > 0 then
       local ok: boolean = fwrite(s.data, 1, s.size, fp) == s.size
       if not ok then
-        return false, strerror(errno), errno
+        return false, geterrno()
       end
     end
   end
@@ -425,7 +428,7 @@ function filestream:writef(fmt: string, ...: varargs): (boolean, string, integer
   if s.size > 0 then
     local res: csize = fwrite(s.data, 1, s.size, fp)
     if res ~= s.size then
-      return false, strerror(errno), errno
+      return false, geterrno()
     end
   end
   return true, '', 0

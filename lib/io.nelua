@@ -27,15 +27,9 @@ and a system-dependent error code as a third result.
 
 require 'filestream'
 
+-- Common C imports.
+
 local FILE: type <cimport,cinclude'<stdio.h>',forwarddecl> = @record{}
-local stdin: *FILE <cimport,cinclude'<stdio.h>'>
-local stdout: *FILE <cimport,cinclude'<stdio.h>'>
-local stderr: *FILE <cimport,cinclude'<stdio.h>'>
-local function tmpfile(): *FILE <cimport,cinclude'<stdio.h>'> end
-local function fclose(fp: *FILE): cint <cimport,cinclude'<stdio.h>'> end
-local function fflush(fp: *FILE): cint <cimport,cinclude'<stdio.h>'> end
-local function strerror(errnum: cint): cstring <cimport,cinclude'<string.h>'> end
-local errno: cint <cimport,cinclude'<errno.h>'>
 
 -- Namespace for I/O module.
 global io: type = @record{}
@@ -53,16 +47,19 @@ setmetatable(symbols.io.value.metafields, {__index = hygienize(function(metafiel
   infieldindex = true
 ]]
   ## if key == 'stderr' then
+  local stderr: *FILE <cimport,cinclude'<stdio.h>'>
   local stderrfs: FStream = {fp = stderr}
 
   -- Default error output file handle.
   global io.stderr: filestream = {fs = &stderrfs}
   ## elseif key == 'stdout' then
+  local stdout: *FILE <cimport,cinclude'<stdio.h>'>
   local stdoutfs: FStream = {fp = stdout}
 
   -- Default output file handle.
   global io.stdout: filestream = {fs = &stdoutfs}
   ## elseif key == 'stdin' then
+  local stdin: *FILE <cimport,cinclude'<stdio.h>'>
   local stdinfs: FStream = {fp = stdin}
 
   -- Default input file handle.
@@ -72,6 +69,13 @@ setmetatable(symbols.io.value.metafields, {__index = hygienize(function(metafiel
   infieldindex = false return rawget(metafields, key)
 end)})
 ]]
+
+-- Returns last errno message plus its code.
+local function geterrno(): (string, integer)
+  local errno: cint <cimport,cinclude'<errno.h>'>
+  local function strerror(errnum: cint): cstring <cimport,cinclude'<string.h>'> end
+  return strerror(errno), errno
+end
 
 --[[
 Opens a file, in the mode specified in the string `mode`.
@@ -111,6 +115,7 @@ function io.popen(prog: string, mode: facultative(string)) : (filestream, string
   ## cemit '#elif _POSIX_VERSION >= 200112L'
   local function popen(command: cstring, type: cstring): *FILE <cimport,cinclude'<stdio.h>'> end
   local function pclose(stream: *FILE): cint <cimport,cinclude'<stdio.h>'> end
+  local function fflush(fp: *FILE): cint <cimport,cinclude'<stdio.h>'> end
   fflush(nilptr)
   fp = popen(progcs, modecs)
   closef = pclose
@@ -118,7 +123,7 @@ function io.popen(prog: string, mode: facultative(string)) : (filestream, string
   if not fp and not closef then
     return filestream{}, 'unsupported', -1
   elseif not fp then
-    return filestream{}, strerror(errno), errno
+    return filestream{}, geterrno()
   end
   return filestream._fromfp(fp, closef), '', 0
   ## end
@@ -184,9 +189,11 @@ In case of success, returns an open handle for a temporary file.
 This file is opened in update mode and it is automatically removed when the program ends.
 ]]
 function io.tmpfile(): (filestream, string, integer)
+  local function fclose(fp: *FILE): cint <cimport,cinclude'<stdio.h>'> end
+  local function tmpfile(): *FILE <cimport,cinclude'<stdio.h>'> end
   local fp: *FILE = tmpfile()
   if not fp then
-    return filestream{}, strerror(errno), errno
+    return filestream{}, geterrno()
   end
   return filestream._fromfp(fp, fclose), '', 0
 end
