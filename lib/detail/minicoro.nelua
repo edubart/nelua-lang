@@ -121,7 +121,7 @@ Most platforms are supported through different methods:
 | iOS          | ARM/ARM64        | N/A               |
 | Windows      | x86_64           | Windows fibers    |
 | Linux        | x86_64/i686      | ucontext          |
-| Mac OS X     | x86_64           | ucontext          |
+| Mac OS X     | x86_64/ARM/ARM64 | ucontext          |
 | WebAssembly  | N/A              | Emscripten fibers |
 | Raspberry Pi | ARM              | ucontext          |
 | RISC-V       | rv64/rv32        | ucontext          |

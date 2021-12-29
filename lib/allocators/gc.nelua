@@ -94,6 +94,9 @@ function GCItem:ismarked(): boolean <inline>
   return hasflag(self.flags, GCFlags.MARK | GCFlags.ROOT) -- root items are always marked
 end
 
+-- Record used store ranges to be scanned when marking.
+local GCMarkRange: type = @record{low: usize, high: usize}
+
 -- The garbage collector record.
 global GC: type = @record{
   running: boolean,  -- Whether the collector is running.
@@ -106,6 +109,7 @@ global GC: type = @record{
   stacktop: usize, -- Stack top address.
   stackbottom: usize, -- Stack bottom address.
   frees: vector(pointer, GeneralAllocator), -- List of pointers to be freed.
+  markranges: vector(GCMarkRange, GeneralAllocator), -- List of ranges to be scanned.
   items: hashmap(pointer, GCItem, nil, GeneralAllocator), -- Map of all tracked allocations.
 }
 
@@ -142,14 +146,18 @@ end
 local function GC_markptrs(self: *GC, low: usize, high: usize): void <noinline,cinclude'@NELUA_GC_NO_SANITIZE',cqualifier'NELUA_GC_NO_SANITIZE'>
   local minaddr: usize, maxaddr: usize = self.minaddr, self.maxaddr
   local items: auto = &self.items
-  for memaddr: usize=low,<high,#@pointer do
-    local addr: usize = $(@*usize)(memaddr)
-    if addr >= minaddr and addr <= maxaddr then
-      local item: *GCItem = items:peek((@pointer)(addr))
-      if item and not item:ismarked() then -- unmarked reference found
-        item.flags = item.flags | GCFlags.MARK -- mark
-        if not hasflag(item.flags, GCFlags.LEAF) then -- don't scan leafs
-          GC_markptrs(self, addr, addr + item.size)
+  self.markranges:push{low, high}
+  while self.markranges.size > 0 do
+    local range: GCMarkRange = self.markranges:pop()
+    for memaddr: usize=range.low,<range.high,#@pointer do
+      local addr: usize = $(@*usize)(memaddr)
+      if addr >= minaddr and addr <= maxaddr then
+        local item: *GCItem = items:peek((@pointer)(addr))
+        if item and not item:ismarked() then -- unmarked reference found
+          item.flags = item.flags | GCFlags.MARK -- mark
+          if not hasflag(item.flags, GCFlags.LEAF) then -- don't scan leafs
+            self.markranges:push{addr, addr + item.size}
+          end
         end
       end
     end
@@ -517,6 +525,7 @@ function GC:destroy(): void <noinline>
   GC_sweep(self)
   self.items:destroy()
   self.frees:destroy()
+  self.markranges:destroy()
   $self = {}
 end
 
