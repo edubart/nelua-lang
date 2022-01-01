@@ -220,7 +220,7 @@ local function GC_markstack(self: *GC): void <noinline>
   low = align_forward(low, #@pointer)
   -- mark stack and registers
   GC_markptrs(self, low, high)
-  GC_markptrs(self, (@usize)(&regsbuf), (@usize)(&regsbuf) + #RegsBuf)
+  GC_markptrs(self, (@usize)(&regsbuf), (@usize)(&regsbuf) + (@usize)(#RegsBuf))
   ## cemit '#if defined(__GNUC__) || defined(__clang__)'
   GC_markptr(self, sp)
   ## cemit '#endif'

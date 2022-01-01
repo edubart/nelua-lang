@@ -39,7 +39,7 @@ function runner.show_version()
   console.info('Git date: '..version.NELUA_GIT_DATE)
   console.info('Git hash: '..version.NELUA_GIT_HASH)
   console.info('Semantic version: '..version.NELUA_SEMVER)
-  console.info('Copyright (C) 2019-2021 Eduardo Bart (https://nelua.io/)')
+  console.info('Copyright (C) 2019-2022 Eduardo Bart (https://nelua.io/)')
   return 0
 end
 
