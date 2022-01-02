@@ -333,9 +333,11 @@ Find C compiler binary utilities in system's path for the given C compiler.
 For example, this function can be used to find 'ar', 'strip', 'objdump', etc..
 ]]
 function compiler.find_binutil(binname) --luacov:disable
+  local bin = config[binname]
+  if bin then return bin end
   local cc = config.cc
   local ccinfo = compiler.get_cc_info()
-  local bin = cc..'-'..binname
+  bin = cc..'-'..binname
   if fs.findbinfile(bin) then return bin end
   if ccinfo.is_msc and ccinfo.is_clang then -- try llvm tools for MSC clang on windows
     bin = 'llvm-'..binname
@@ -357,9 +359,19 @@ function compiler.compile_static_lib(objfile, outfile)
   end --luacov:enable
 end
 
-function compiler.strip_binary(binfile)
+function compiler.strip_binary(binfile, compileopts)
   local strip = compiler.find_binutil('strip')
-  local stripcmd = string.format('%s -x "%s"', strip, binfile)
+  local stripflags = sstream()
+  stripflags:add(strip)
+  if config.stripflags and #config.stripflags > 0 then
+    stripflags:add(' '..config.stripflags)
+  end
+  if compileopts.stripflags and #compileopts.stripflags > 0 then
+    stripflags:add(' ')
+    stripflags:addlist(compileopts.stripflags, ' ')
+  end
+  stripflags:add(string.format(' "%s"', binfile))
+  local stripcmd = stripflags:tostring()
   if config.verbose then console.info(stripcmd) end
   if not executor.rexec(stripcmd, nil, config.redirect_exec) then --luacov:disable
     except.raisef("strip for '%s' failed", binfile)
@@ -420,8 +432,8 @@ function compiler.compile_binary(cfile, outfile, compileopts)
     compiler.compile_static_lib(midfile, binfile)
     fs.deletefile(midfile)
   end
-  if config.strip and (config.shared_lib or isexe) and (not ccinfo.is_mirc or ccinfo.is_wasm) then
-    compiler.strip_binary(binfile)
+  if config.strip_bin and (config.shared_lib or isexe) and (not ccinfo.is_mirc or ccinfo.is_wasm) then
+    compiler.strip_binary(binfile, compileopts)
   end
   return binfile, isexe
 end

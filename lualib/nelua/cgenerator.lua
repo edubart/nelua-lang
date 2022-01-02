@@ -478,6 +478,8 @@ function visitors.Directive(context, node, emitter)
     table.insert(context.compileopts.cflags, args[1])
   elseif name == 'ldflags' then
     table.insert(context.compileopts.ldflags, args[1])
+  elseif name == 'stripflags' then
+    table.insert(context.compileopts.stripflags, args[1])
   elseif name == 'linklib' then
     context:ensure_linklib(args[1])
   elseif name == 'linkdir' then

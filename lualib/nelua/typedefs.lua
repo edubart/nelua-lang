@@ -471,6 +471,7 @@ typedefs.pp_directives = {
   linkdir = shaper.shape{n=shaper.number, shaper.string},
   linklib = shaper.shape{n=shaper.number, shaper.string},
   ldflags = shaper.shape{n=shaper.number, shaper.string},
+  stripflags = shaper.shape{n=shaper.number, shaper.string},
   pragmapush = shaper.shape{n=shaper.number, shaper.table},
   pragmapop = shaper.shape{n=shaper.number},
 }

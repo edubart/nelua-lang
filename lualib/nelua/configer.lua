@@ -189,7 +189,7 @@ local function create_parser()
   argparser:flag('-S --sanitize', 'Enable undefined/address sanitizers at runtime', defconfig.sanitize)
   argparser:flag('-r --release', 'Release build (optimize for speed and disable runtime checks)', defconfig.release)
   argparser:flag('-M --maximum-performance', "Maximum performance build (use for benchmarking)")
-  argparser:flag('-s --strip', 'Remove symbols from the compiled binary (reduce its size)', defconfig.strip)
+  argparser:flag('-s --strip-bin', 'Remove symbols from the compiled binary (reduce its size)', defconfig.strip_bin)
   -- argparser:flag('-O --optimize', 'Optimize level', defconfig.optimize)
   argparser:flag('-t --timing', 'Show compile timing information', defconfig.timing)
   argparser:flag('-T --more-timing', 'Show detailed compile timing information', defconfig.more_timing)
@@ -208,6 +208,7 @@ local function create_parser()
   argparser:option('--cc', "C compiler to use", defconfig.cc)
   argparser:option('--cflags', "Additional flags to pass to the C compiler", defconfig.cflags)
   argparser:option('--ldflags', "Additional flags to pass when linking", defconfig.ldflags)
+  argparser:option('--stripflags', "Additional flags to pass when striping", defconfig.stripflags)
   argparser:option('--cache-dir', "Compilation cache directory", defconfig.cache_dir)
   argparser:option('--path', "Set module search path", defconfig.path)
   -- the following are used only to debug/optimize the compiler
@@ -295,6 +296,7 @@ local function init_default_configs()
   defconfig.cc = fs.findcc() or 'gcc'
   defconfig.cflags = os.getenv('CFLAGS') or ''
   defconfig.ldflags = os.getenv('LDFLAGS') or ''
+  defconfig.stripflags = os.getenv('STRIPFLAGS') or '-x'
 
   -- load global user config
   load_config(fs.getuserconfpath(fs.join('nelua', 'neluacfg.lua')))

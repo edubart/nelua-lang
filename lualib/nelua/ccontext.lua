@@ -45,6 +45,7 @@ function CContext:_init(visitors, typevisitors)
   self.compileopts = {
     cflags = {},
     ldflags = {},
+    stripflags = {},
     linklibs = {},
     linkdirs = {},
     cfiles = {},

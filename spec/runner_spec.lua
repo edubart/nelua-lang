@@ -24,7 +24,7 @@ it("compile simple programs" , function()
     expect.run('--no-cache --assembly examples/helloworld.nelua')
   end
   expect.run('--no-cache --code examples/helloworld.nelua')
-  expect.run('--no-cache --binary --strip examples/helloworld.nelua')
+  expect.run('--no-cache --binary --strip-bin examples/helloworld.nelua')
   expect.run('--code examples/helloworld.nelua')
   expect.run('--generator lua --no-cache --code examples/helloworld.nelua')
   expect.run('--generator lua --binary examples/helloworld.nelua')
