@@ -1642,14 +1642,6 @@ Destroys a string freeing its memory.
 This must never be called on string literals.
 This function is only needed to be called when not using the GC.
 
-### string:__close
-
-```nelua
-function string:__close(): void
-```
-
-Effectively the same as `destroy`, called when a to-be-closed variable goes out of scope.
-
 ### string.copy
 
 ```nelua
@@ -1698,88 +1690,6 @@ thus if you don't hold the original string reference somewhere you will have a d
 The view string may not be zero terminated, thus you should never
 cast it to a `cstring` to use in C functions.
 
-### string.find
-
-```nelua
-function string.find(s: string, pattern: string, init: facultative(isize), plain: facultative(boolean)): (isize, isize)
-```
-
-Look for the first match of pattern in the string.
-
-Returns the indices of where this occurrence starts and ends.
-
-The indices will be positive if a match is found, zero otherwise.
-A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
-A value of true as a fourth, optional argument plain turns off the pattern matching facilities.
-
-### string.gmatch
-
-```nelua
-function string.gmatch(s: string, pattern: string, init: facultative(isize)): (auto, auto, string)
-```
-
-Returns an iterator function that, each time it is called, returns the whole match plus a span of captures.
-A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
-
-### string.gmatchview
-
-```nelua
-function string.gmatchview(s: string, pattern: string, init: facultative(isize)): (auto, auto, string)
-```
-
-Like `string.gmatch` but uses sub string views (see also `string.subview`).
-
-### string.gsub
-
-```nelua
-function string.gsub(s: string, pattern: string, repl: auto, maxn: facultative(isize)): (string, isize)
-```
-
-Returns a copy of `s` in which all (or the first `n`, if given) occurrences of the pattern
-have been replaced by a replacement string specified by `repl`,
-which can be a string, a string hashmap, or a function.
-`gsub` also returns, as its second value, the total number of matches that occurred.
-
-The name `gsub` comes from Global SUBstitution.
-
-* If `repl` is a string, then its value is used for replacement.
-The character '% works as an escape character: any sequence in `repl` of the form '%d',
-with d between 1 and 9, stands for the value of the d-th captured substring;
-the sequence '%0' stands for the whole match; the sequence '%%' stands for a single %.
-
-If `repl` is a hashmap of strings, then it is queried for every match,
-using the first capture as the key and its hashmap value as the replacement string,
-if the.
-
-If `repl` is a function, then this function is called every time a match occurs
-with all captured substrings passed as arguments, in order.
-In any case, if the pattern specifies no captures,
-then it behaves as if the whole pattern was inside a capture.
-
-If the value returned by the table query or by the function call is a string or a number,
-then it is used as the replacement string;
-otherwise, if it is false or nil, then there is no replacement (that is, the original match is kept in the string).
-
-### string.match
-
-```nelua
-function string.match(s: string, pattern: string, init: facultative(isize)): (boolean, sequence(string))
-```
-
-Look for the first match of pattern in the string.
-If it finds one, then returns true plus a sequence with the captured values,
-otherwise it returns false plus an empty sequence.
-If pattern specifies no captures, then the whole match is captured.
-A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
-
-### string.matchview
-
-```nelua
-function string.matchview(s: string, pattern: string, init: facultative(isize)): (boolean, sequence(string))
-```
-
-Like `string.match` but uses sub string views (see also `string.subview`).
-
 ### string.rep
 
 ```nelua
@@ -1807,7 +1717,7 @@ function string.upper(s: string): string
 Receives a string and returns a copy of this string with all lowercase letters changed to uppercase.
 All other characters are left unchanged.
 The definition of what a lowercase letter is depends on the current locale
-only if pragma `nobuiltincharclass` is set.
+only if pragma `useclocale` is set.
 
 ### string.lower
 
@@ -1818,7 +1728,7 @@ function string.lower(s: string): string
 Receives a string and returns a copy of this string with all uppercase letters changed to lowercase.
 All other characters are left unchanged.
 The definition of what an uppercase letter is depends on the current locale
-only if pragma `nobuiltincharclass` is set.
+only if pragma `useclocale` is set.
 
 ### string.char
 
@@ -1850,6 +1760,17 @@ function string.len(s: string): isize
 Receives a string and returns its length.
 The empty string "" has length 0. Embedded zeros are counted.
 
+### string.fillcstring
+
+```nelua
+function string.fillcstring(s: string, buf: *[0]cchar, buflen: usize): boolean
+```
+
+Fills a `cstring` buffer.
+This is mainly used to ensure the string is zero terminated.
+
+Returns `true` in case of success, otherwise `false` when the `buflen` is not enough.
+
 ### string.span
 
 ```nelua
@@ -1859,6 +1780,14 @@ function string.span(s: string): span(byte)
 Converts a string to a span of bytes.
 
 Remarks: Similar to `subview` a reference of the current string data is returned.
+
+### string:__close
+
+```nelua
+function string:__close(): void
+```
+
+Effectively the same as `destroy`, called when a to-be-closed variable goes out of scope.
 
 ### string.__atindex
 
@@ -2065,43 +1994,87 @@ function string.__bnot(a: scalar_coercion_concept): integer
 Converts the input string to an integer and returns its bitwise NOT.
 Use by the bitwise NOT operator (`~`).
 
-### string.fillcstring
+### string.find
 
 ```nelua
-function string.fillcstring(s: string, buf: *[0]cchar, buflen: usize): boolean
+function string.find(s: string, pattern: string, init: facultative(isize), plain: facultative(boolean)): (isize, isize)
 ```
 
-Fills a `cstring` buffer.
-This is mainly used to ensure the string is zero terminated.
+Look for the first match of pattern in the string.
 
-Returns `true` in case of success, otherwise `false` when the `buflen` is not enough.
+Returns the indices of where this occurrence starts and ends.
 
-### tostring
+The indices will be positive if a match is found, zero otherwise.
+A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
+A value of true as a fourth, optional argument plain turns off the pattern matching facilities.
+
+### string.gmatch
 
 ```nelua
-global function tostring(x: auto): string
+function string.gmatch(s: string, pattern: string, init: facultative(isize)): (auto, auto, string)
 ```
 
-Convert a value to a string.
-A new string will be always allocated.
-When calling on records the `__tostring` metamethod may be called,
-in this case, it must always return a new allocated string.
+Returns an iterator function that, each time it is called, returns the whole match plus a span of captures.
+A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
 
-### tonumber
+### string.gmatchview
 
 ```nelua
-global function tonumber(x: auto, base: facultative(integer)): auto
+function string.gmatchview(s: string, pattern: string, init: facultative(isize)): (auto, auto, string)
 ```
 
-Convert a value to a number.
+Like `string.gmatch` but uses sub string views (see also `string.subview`).
 
-### tointeger
+### string.gsub
 
 ```nelua
-global function tointeger(x: auto, base: facultative(integer)): integer
+function string.gsub(s: string, pattern: string, repl: auto, maxn: facultative(isize)): (string, isize)
 ```
 
-Convert a value to an integer.
+Returns a copy of `s` in which all (or the first `n`, if given) occurrences of the pattern
+have been replaced by a replacement string specified by `repl`,
+which can be a string, a string hashmap, or a function.
+`gsub` also returns, as its second value, the total number of matches that occurred.
+
+The name `gsub` comes from Global SUBstitution.
+
+* If `repl` is a string, then its value is used for replacement.
+The character '% works as an escape character: any sequence in `repl` of the form '%d',
+with d between 1 and 9, stands for the value of the d-th captured substring;
+the sequence '%0' stands for the whole match; the sequence '%%' stands for a single %.
+
+If `repl` is a hashmap of strings, then it is queried for every match,
+using the first capture as the key and its hashmap value as the replacement string,
+if the.
+
+If `repl` is a function, then this function is called every time a match occurs
+with all captured substrings passed as arguments, in order.
+In any case, if the pattern specifies no captures,
+then it behaves as if the whole pattern was inside a capture.
+
+If the value returned by the table query or by the function call is a string or a number,
+then it is used as the replacement string;
+otherwise, if it is false or nil, then there is no replacement (that is, the original match is kept in the string).
+
+### string.match
+
+```nelua
+function string.match(s: string, pattern: string, init: facultative(isize)): (boolean, sequence(string))
+```
+
+Look for the first match of pattern in the string.
+If it finds one, then returns true plus a sequence with the captured values,
+otherwise it returns false plus an empty sequence.
+If pattern specifies no captures, then the whole match is captured.
+A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
+
+### string.matchview
+
+```nelua
+function string.matchview(s: string, pattern: string, init: facultative(isize)): (boolean, sequence(string))
+```
+
+Like `string.match` but uses sub string views (see also `string.subview`).
 
 ### string.pack
 
@@ -2141,6 +2114,33 @@ The format string cannot have the variable-length options 's' or 'z'.
 
 For description of the format options,
 see [Lua's format strings for pack](https://www.lua.org/manual/5.4/manual.html#6.4.2).
+
+### tostring
+
+```nelua
+global function tostring(x: auto): string
+```
+
+Convert a value to a string.
+A new string will be always allocated.
+When calling on records the `__tostring` metamethod may be called,
+in this case, it must always return a new allocated string.
+
+### tonumber
+
+```nelua
+global function tonumber(x: auto, base: facultative(integer)): auto
+```
+
+Convert a value to a number.
+
+### tointeger
+
+```nelua
+global function tointeger(x: auto, base: facultative(integer)): integer
+```
+
+Convert a value to an integer.
 
 ---
 ## stringbuilder
@@ -2529,7 +2529,7 @@ with the input and output types known at compile-time.
 ### coroutine
 
 ```nelua
-global coroutine: type = @*mco_coro
+global coroutine: type = @*minicoro.Coro
 ```
 
 The coroutine handle.
@@ -3832,6 +3832,7 @@ and it's contents are copied into the new allocated value.
 and its contents are zero initialized.
 - If the operation fails, then an error is raised.
 - If `size` is present, then returns a span with `size` elements of `what`, instead of a pointer.
+- In case the value has the `__new` metamethod, it will be called immediately after the allocation.
 - In case the value has a finalizer, and the allocator supports finalizers,
 such as `GCAllocator`, the value is marked to be finalized when deallocated.
 
@@ -3973,6 +3974,7 @@ global GC: type = @record{
   stacktop: usize, -- Stack top address.
   stackbottom: usize, -- Stack bottom address.
   frees: vector(pointer, GeneralAllocator), -- List of pointers to be freed.
+  markranges: vector(GCMarkRange, GeneralAllocator), -- List of ranges to be scanned.
   items: hashmap(pointer, GCItem, nil, GeneralAllocator), -- Map of all tracked allocations.
 }
 ```
@@ -3990,7 +3992,7 @@ The global GC instance.
 ### GC:unregister
 
 ```nelua
-function GC:unregister(ptr: pointer, finalize: facultative(boolean)): boolean
+function GC:unregister(ptr: pointer, finalize: facultative(boolean)): void
 ```
 
 Unregister pointer `ptr` from the GC.
@@ -4028,7 +4030,7 @@ If `finalizer` is present, then it will be called when the pointer is collected.
 ### GC:reregister
 
 ```nelua
-function GC:reregister(oldptr: pointer, newptr: pointer, newsize: usize): boolean
+function GC:reregister(oldptr: pointer, newptr: pointer, newsize: usize): void
 ```
 
 Register pointer that moved from `oldptr` to `newptr` with new size `newsize`.
@@ -4244,6 +4246,7 @@ and it's contents are copied into the new allocated value.
 and its contents are zero initialized.
 - If the operation fails, then an error is raised.
 - If `size` is present, then returns a span with `size` elements of `what`, instead of a pointer.
+- In case the value has the `__new` metamethod, it will be called immediately after the allocation.
 - In case the value has the `__gc` metamethod, it will be called once the value is collected.
 
 ---

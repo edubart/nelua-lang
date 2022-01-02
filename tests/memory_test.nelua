@@ -356,4 +356,29 @@ do -- span new with initialization
   delete(v)
 end
 
+local delete_count = 0
+local new_count = 0
+
+do -- new/delete metamethods
+  local Foo = @record{x: integer, y: integer}
+  function Foo:__new()
+    new_count = new_count + 1
+    self.y = new_count
+  end
+  function Foo:__delete()
+    delete_count = delete_count + 1
+  end
+
+  local foo: *Foo = new(Foo{x=10})
+  assert(foo.x == 10 and foo.y == 1)
+  delete(foo)
+  assert(new_count == 1 and delete_count == 1)
+
+  local foos: span(Foo) = new(Foo, 2)
+  assert(foos[0].x == 0 and foos[0].y == 2)
+  assert(foos[1].x == 0 and foos[1].y == 3)
+  delete(foos)
+  assert(new_count == 3 and delete_count == 3)
+end
+
 print 'memory OK!'

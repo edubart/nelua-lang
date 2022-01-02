@@ -747,10 +747,12 @@ and it's contents are copied into the new allocated value.
 and its contents are zero initialized.
 - If the operation fails, then an error is raised.
 - If `size` is present, then returns a span with `size` elements of `what`, instead of a pointer.
+- In case the value has the `__new` metamethod, it will be called immediately after the allocation.
 - In case the value has the `__gc` metamethod, it will be called once the value is collected.
 ]]
 function GCAllocator:new(what: auto, size: facultative(usize)): auto <noinline>
   local T: type = #[what.type.is_type and what.value or what.type]#
+  ## local callnew = T.value.is_record and T.value.metafields.__new
   ## if size.type.is_niltype then -- new pointer
     ## if T.value.is_record and T.value.metafields.__gc then
     local function finalizer(ptr: pointer, userdata: pointer): void
@@ -771,6 +773,9 @@ function GCAllocator:new(what: auto, size: facultative(usize)): auto <noinline>
     ptr = (@*T)(gc_allocator:alloc(#T, flags, finalizer, nilptr))
     assert(ptr ~= nilptr, 'out of memory')
     memory.copy(ptr, &what, #T)
+    ## end
+    ## if callnew then
+    ptr:__new()
     ## end
     return ptr
   ## else -- new span
@@ -802,6 +807,11 @@ function GCAllocator:new(what: auto, size: facultative(usize)): auto <noinline>
       spn.data = (@*[0]T)(gc_allocator:alloc(size * #T, flags, finalizer, userdata))
       assert(spn.data ~= nilptr, 'out of memory')
       memory.spanset(spn, what)
+      ## end
+      ## if callnew then
+      for i:usize=0,<spn.size do
+        spn[i]:__new()
+      end
       ## end
     end
     return spn

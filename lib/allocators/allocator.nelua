@@ -276,11 +276,13 @@ require 'span'
   and its contents are zero initialized.
   - If the operation fails, then an error is raised.
   - If `size` is present, then returns a span with `size` elements of `what`, instead of a pointer.
+  - In case the value has the `__new` metamethod, it will be called immediately after the allocation.
   - In case the value has a finalizer, and the allocator supports finalizers,
   such as `GCAllocator`, the value is marked to be finalized when deallocated.
   ]]
   function Allocator:new(what: auto, size: facultative(usize)): auto
     local T: type = #[what.type.is_type and what.value or what.type]#
+    ## local callnew = T.value.is_record and T.value.metafields.__new
     ## if size.type.is_niltype then -- new pointer
       ## if what.type.is_type then
       local ptr: *T = (@*T)(self:xalloc0(#T))
@@ -288,14 +290,20 @@ require 'span'
       local ptr: *T = (@*T)(self:xalloc(#T))
       memory.copy(ptr, &what, #T)
       ## end
+      ## if callnew then
+      ptr:__new()
+      ## end
       return ptr
     ## else
       ## if what.type.is_type then
       local spn: span(T) = self:xspanalloc0(T, size)
       ## else
       local spn: span(T) = self:xspanalloc(T, size)
-      for i:usize=0,<size do
-        memory.copy(&spn[i], &what, #T)
+      memory.spanset(spn, what)
+      ## end
+      ## if callnew then
+      for i:usize=0,<spn.size do
+        spn[i]:__new()
       end
       ## end
       return spn
