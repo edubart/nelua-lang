@@ -1296,7 +1296,7 @@ function visitors.FuncDef(context, node, emitter)
       emitter:add_indent_ln(varnode, ' = ', funcname, ';')
     elseif varnode.is_index then
       local fieldname, objtype = varnode[1], varnode[2].attr.type
-      if objtype.is_record then
+      if objtype.is_record or (objtype.is_pointer and objtype.subtype.is_record) then
         funcname = context.rootscope:generate_name(objtype.codename..'_funcdef_'..fieldname)
         emitter:add_indent_ln(varnode, ' = ', funcname, ';')
       end

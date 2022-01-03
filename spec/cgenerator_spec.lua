@@ -2297,6 +2297,10 @@ it("record methods", function()
     local Foo = @record{x: integer, g: function(*Foo): integer}
     local foo: Foo
     function foo:g() return self.x end
+    assert(foo:g() == 0)
+    local pfoo: *Foo = &foo
+    function pfoo:g() return self.x end
+    assert(pfoo:g() == 0)
     local function f() foo.x = foo.x + 1 return &foo end
 
     assert(foo.x == 0)
