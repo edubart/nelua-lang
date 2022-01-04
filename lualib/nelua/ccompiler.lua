@@ -386,6 +386,9 @@ function compiler.setup_env(cflags)
       if not os.getenv('UBSAN_OPTIONS') then
         sys.setenv('UBSAN_OPTIONS', 'print_stacktrace=1')
       end
+      if not os.getenv('ASAN_OPTIONS') then
+        sys.setenv('ASAN_OPTIONS', 'detect_leaks=1')
+      end
     end
   end
 end
