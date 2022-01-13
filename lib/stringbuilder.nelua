@@ -13,6 +13,7 @@ require 'span'
 require 'memory'
 
 local strchar: type = require 'detail.strchar'
+local strconv: type = require 'detail.strconv'
 local strprintf: type = require 'detail.strprintf'
 
 local MAX_FORMAT: usize <comptime> = 32
@@ -213,8 +214,16 @@ end
       ## local argtype = argnode.attr.type
       ## if argtype.is_span and argtype.subtype == primtypes.byte then
       local s: span(byte) = #[argnode]#
+      ## elseif argtype.is_integral then
+      local buf: [48]byte <noinit>
+      local s: string = strconv.int2str(&buf, #[argnode]#, 10)
+      ## elseif argtype.is_float then
+      local buf: [64]byte <noinit>
+      local s: string = strconv.num2str(&buf, #[argnode]#)
+      ## elseif argtype.is_boolean then
+      local s: string = #[argnode]# == true and 'true' or 'false'
       ## elseif not argtype.is_stringy then
-        -- TODO: avoid extra string allocation here
+      -- TODO: avoid extra string allocation here
       local s: string = tostring(#[argnode]#)
       defer s:destroy() end
       ## else

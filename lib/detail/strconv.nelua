@@ -4,8 +4,6 @@ Auxiliary module to perform conversion between string and numbers.
 Used internally by the string library.
 ]]
 
-require 'string' -- for string.copy
-
 local strchar: type = require 'detail.strchar'
 
 -- Module namespace.
@@ -51,26 +49,35 @@ function strconv.str2int(s: string, base: uinteger): (boolean, integer)
   return true, (@integer)(n)
 end
 
--- Convert an integer to a string.
-function strconv.int2str(x: auto, base: int32 <comptime>): string
-  if x == 0 then return string.copy('0') end
+--[[
+Converts an integer to a string.
+The `buf` buffer is temporary buffer needed when performing the conversion.
+Returns a string view, which may point to any part of `buf`.
+]]
+function strconv.int2str(buf: *[48]byte, x: auto, base: int32 <comptime>): string
   local T: type = #[x.type]#
-  local buf: [48]byte <noinit>
   local pos: usize = #buf-1
+  buf[pos] = 0
+  pos = pos - 1
   local neg: boolean = x < 0
-  while x ~= 0 do
-    local quot: T = x /// (@T)(base)
-    local rema: T = x - quot*(@T)(base)
-    ## if T.value.is_signed then
-    if rema < 0 then rema = -rema end
-    ## end
-    x = quot
-    ## if base.value > 10 then
-      buf[pos] = (@byte)(rema + (rema >= 10 and 'a'_i8 - 10 or '0'_i8))
-    ## else
-      buf[pos] = (@byte)(rema + '0'_i8)
-    ## end
+  if x == 0 then
+    buf[pos] = '0'_b
     pos = pos - 1
+  else
+    while x ~= 0 do
+      local quot: T = x /// (@T)(base)
+      local rema: T = x - quot*(@T)(base)
+      ## if T.value.is_signed then
+      if rema < 0 then rema = -rema end
+      ## end
+      x = quot
+      ## if base.value > 10 then
+        buf[pos] = (@byte)(rema + (rema >= 10 and 'a'_i8 - 10 or '0'_i8))
+      ## else
+        buf[pos] = (@byte)(rema + '0'_i8)
+      ## end
+      pos = pos - 1
+    end
   end
   ## if base.value == 16 then
     buf[pos] = 'x'_b
@@ -81,8 +88,7 @@ function strconv.int2str(x: auto, base: int32 <comptime>): string
     buf[pos] = '-'_b
     pos = pos - 1
   end
-  buf[pos] = 0
-  return string.copy((@string){data=&buf[pos+1], size=#buf-pos-1})
+  return (@string){data=&buf[pos+1], size=#buf-pos-2}
 end
 
 -- Macro to retrieve a longer float and integer type.
@@ -225,8 +231,13 @@ function strconv.str2num(s: string): (boolean, number)
   return true, (@number)(num)
 end
 
--- Convert a float number to a decimal string.
-function strconv.num2str(x: auto): string
+
+--[[
+Converts a float number to a decimal string.
+The `buf` buffer is temporary buffer needed when performing the conversion.
+Returns a string view, which may or may not point to any part of `buf`.
+]]
+function strconv.num2str(buf: *[64]byte, x: auto): string
   ## local longfloatT, longuintT, DIGITS = choose_long(x.type)
   local longfloat: type = #[longfloatT]#
   local longuint: type = #[longuintT]#
@@ -239,19 +250,20 @@ function strconv.num2str(x: auto): string
     local huge: longfloat <volatile> = #[math.huge]#
     local ux: UF2I = {f=n}
     if ux.i & ninf.i == ninf.i and ux.i ~= ninf.i then -- negative nan
-      return string.copy('-nan')
+      return '-nan'
     elseif ux.i & pinf.i == pinf.i and ux.i ~= pinf.i and ux.i ~= ninf.i then -- nan
-      return string.copy('nan')
+      return 'nan'
     elseif n == 0 then
-      return string.copy(ux.i ~= 0 and '-0.0' or '0.0')
+      return ux.i ~= 0 and '-0.0' or '0.0'
     elseif n == huge then
-      return string.copy('inf')
+      return 'inf'
     elseif n == -huge then
-      return string.copy('-inf')
+      return '-inf'
     end
   end
-  local buf: [64]byte <noinit>
   local pos: usize = #buf-1
+  buf[pos] = 0
+  pos = pos - 1
   local gotdigit: boolean, gotexpo: boolean
   local neg: boolean = n < 0
   if neg then n = -n end
@@ -340,8 +352,7 @@ function strconv.num2str(x: auto): string
     buf[pos] = '-'_b
     pos = pos - 1
   end
-  buf[pos] = 0
-  return string.copy((@string){data=&buf[pos+1], size=#buf-pos-1})
+  return (@string){data=&buf[pos+1], size=#buf-pos-2}
 end
 
 return strconv

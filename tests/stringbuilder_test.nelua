@@ -21,9 +21,9 @@ end
 
 do -- write
   local sb: stringbuilder
-  local ok: boolean, n: usize = sb:write('a', 'b', 2, true)
-  assert(ok == true and n == 7)
-  assert(sb:view() == 'ab2true')
+  local ok: boolean, n: usize = sb:write('a', 'b', 2, 2.0, true)
+  assert(ok == true and n == 10)
+  assert(sb:view() == 'ab22.0true')
   sb:destroy()
 end
 

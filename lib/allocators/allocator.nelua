@@ -317,8 +317,7 @@ require 'span'
 
   It's similar to `dealloc` or `spandealloc`,
   but `delete` should only be used when `new` is used for the same allocation.
-  If the deleted values has `__delete` metamethod, the it's called
-  before deletion.
+  If the deleted values has `__delete` metamethod, then it's called before deletion.
   ]]
   function Allocator:delete(v: deleteable_concept): void
     ## local T = v.type.subtype

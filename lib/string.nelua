@@ -883,26 +883,27 @@ global function tostring(x: auto): string
   ## elseif x.type.is_span and x.type.subtype == primtypes.byte then
     return string.copy((@string){data=x.data, size=x.size})
   ## elseif xtype.is_integral then
+    local buf: [48]byte <noinit>
     ## if xtype.size <= primtypes.isize.size then
-      return strconv.int2str((@#[xtype.is_signed and primtypes.isize or primtypes.usize]#)(x), 10)
+    local s: string = strconv.int2str(&buf, (@#[xtype.is_signed and primtypes.isize or primtypes.usize]#)(x), 10)
     ## else -- probably a large integer like int128
-      return strconv.int2str(x, 10)
+    local s: string = strconv.int2str(&buf, x, 10)
     ## end
+    return string.copy(s)
   ## elseif xtype.is_pointer or xtype.is_function then
-    local s: string <noinit>
-    if x == nilptr then
-      s = string.copy('(null)')
-    else
-      s = strconv.int2str((@usize)((@pointer)(x)), 16)
+    local s: string = '(null)'
+    local buf: [48]byte <noinit>
+    if x ~= nilptr then
+      s = strconv.int2str(&buf, (@usize)((@pointer)(x)), 16)
     end
     ## if xtype.is_function then
-      local ns: string = 'function: '..s
-      s:destroy()
-      s = ns
+      return 'function: '..s
+    ## else
+      return string.copy(s)
     ## end
-    return s
   ## elseif xtype.is_float then
-    return strconv.num2str(x)
+    local buf: [64]byte <noinit>
+    return string.copy(strconv.num2str(&buf, x))
   ## elseif xtype.is_boolean then
     return string.copy(x == true and 'true' or 'false')
   ## elseif xtype.is_niltype then
