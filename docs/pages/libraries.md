@@ -3846,7 +3846,7 @@ Deletes value `v`, which must be either a pointer or a span.
 
 It's similar to `dealloc` or `spandealloc`,
 but `delete` should only be used when `new` is used for the same allocation.
-If the deleted values has `__delete` metamethod, the it's called
+If the deleted values has `__delete` metamethod, then it's called
 before deletion.
 
 ---

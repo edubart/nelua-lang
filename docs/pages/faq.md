@@ -124,6 +124,8 @@ Nelua has syntax highlight plugins for the following editors:
 * [Visual Studio Code](https://github.com/edubart/nelua-vscode)
 * [Text Adept](https://github.com/Andre-LA/ta-nelua-mirror)
 * [Vim](https://github.com/stefanos82/nelua.vim)
+* [Micro](https://github.com/leapofazzam123/micro-nelua-plugin)
+* [lite-xl](https://github.com/AKDev21/nelua-lite-xl)
 
 If you use another editor and make a plugin for Nelua, please share it with the community.
 
