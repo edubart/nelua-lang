@@ -443,7 +443,7 @@ function os.now(): number
   cinclude '@windows.h'
   cinclude [[
 /* Determine supported high resolution time API. */
-#if __STDC_VERSION__ >= 201112L && defined(TIME_UTC) && !defined(__ANDROID__)
+#if __STDC_VERSION__ >= 201112L && defined(TIME_UTC) && !defined(__ANDROID__) && !defined(__wasm__)
   #define NELUA_HAVE_C11_TIMESPEC_GET
 #elif defined(_POSIX_TIMERS) && defined(_POSIX_MONOTONIC_CLOCK)
   #define NELUA_HAVE_POSIX_MONOTONIC_CLOCK
