@@ -350,11 +350,11 @@ function visitors.InitList(_, node, emitter, untypedinit)
               if j > 1 then
                 emitter:add_text(', ')
               end
-              emitter:add_converted_val(fieldtype.subtype, arrchildnode, nil, nil, arrchildnode.attr.comptime)
+              emitter:add_converted_val(fieldtype.subtype, arrchildnode, nil, nil, true)
             end
             emitter:add_text('}')
           else
-            emitter:add_converted_val(fieldtype, childvalnode, nil, nil, childvalnode.attr.comptime)
+            emitter:add_converted_val(fieldtype, childvalnode, nil, nil, true)
           end
         end
         emitter:add_text('}')
@@ -402,7 +402,7 @@ function visitors.InitList(_, node, emitter, untypedinit)
         if i > 1 then
           emitter:add_text(', ')
         end
-        emitter:add_converted_val(subtype, childnode, nil, nil, childnode.attr.comptime)
+        emitter:add_converted_val(subtype, childnode, nil, nil, true)
       end
       if untypedinit then
         emitter:add_text('}')

@@ -3757,7 +3757,7 @@ it("record initialize evaluation order", function()
         color=GREEN,
       },
     }
-  ]], [[PIECES = (Piece_arr2){{(Piece){.layout = {{0U, 0U, 0U}, {1U, 1U, 1U}}, .color = RED}]])
+  ]], [[PIECES = (Piece_arr2){{{.layout = {{0U, 0U, 0U}, {1U, 1U, 1U}}, .color = RED}]])
   expect.run_c([=[
     local Point = @record{x: integer, y: integer}
     local function f(x: integer): integer
