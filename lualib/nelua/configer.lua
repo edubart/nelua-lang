@@ -73,8 +73,8 @@ local function build_configs(conf)
   elseif conf.print_assembly then
     conf.assembly = true
   end
-  if config.code or conf.binary or conf.assembly or conf.object or
-     conf.static_lib or conf.shared_lib then
+  if (config.code or conf.binary or conf.assembly or conf.object or
+     conf.static_lib or conf.shared_lib) then
     conf.compile_only = true
   elseif conf.output then --luacov:disable
     conf.compile_only = true
@@ -97,6 +97,10 @@ local function build_configs(conf)
       conf.binary = true
     end
   end --luacov:enable
+
+  if conf.compile_only and conf.runner then
+    conf.compile_only = nil
+  end
 
   conf.lua_path = package.path
   conf.lua_cpath = package.cpath
@@ -197,6 +201,7 @@ local function create_parser()
   argparser:flag('-w --no-warning', "Suppress all warning messages", defconfig.no_warning)
   argparser:flag('-C --no-cache', "Don't use any cached compilation", defconfig.no_cache)
   argparser:flag('--no-color', 'Disable colorized output in the terminal.', defconfig.no_color)
+  argparser:option('-R --runner', "Execute compiled output with a runner", defconfig.runner)
   argparser:option('-o --output', 'Output file.', defconfig.output)
   argparser:option('-D --define', 'Define values in the preprocessor')
     :count("*"):convert(convert_param)

@@ -312,10 +312,10 @@ local function detect_output_extension(outfile, ccinfo)
     end
   else -- binary executable
     if ccinfo.is_wasm then
-      if outfile:find('%.wasm$') then
-        return '.wasm', true
-      else
+      if ccinfo.is_emscripten and not outfile:find('%.wasm$') and not config.runner then
         return '.html', true
+      else
+        return '.wasm', true
       end
     elseif ccinfo.is_windows or ccinfo.is_cygwin then
       return '.exe', true
@@ -470,25 +470,29 @@ function compiler.get_run_command(binaryfile, runargs, compileopts)
     end
   end --luacov:enable
   -- choose the runner
-  local exe, args
-  if binaryfile:match('%.html$') then  --luacov:disable
-    exe = 'emrun'
-    args = tabler.insertvalues({binaryfile}, runargs)
+  local runner, exe, args
+  if binaryfile:match('%.html$') then --luacov:disable
+    runner = 'emrun'
   elseif binaryfile:match('%.wasm$') then
-    exe = 'wasmer'
-    args = tabler.insertvalues({binaryfile}, runargs)
+    runner = 'wasmer'
   elseif binaryfile:match('%.bmir') then
-    exe = 'c2m'
-    args = {}
+    runner = 'c2m'
+    runargs = tabler.copy(runargs)
     for _,libname in ipairs(compileopts.linklibs) do
-      table.insert(args, '-l'..libname)
+      table.insert(runargs, 1, '-l'..libname)
     end
-    tabler.insertvalues(args, {binaryfile, '-el'})
-    tabler.insertvalues(args, runargs)
-  else --luacov:enable
+    table.insert(runargs, 1, '-el')
+  end
+  if config.runner then
+    runner = config.runner
+  end
+  if runner then
+    exe = runner
+    args = tabler.insertvalues({binaryfile}, runargs)
+  else
     exe = binaryfile
     args = tabler.icopy(runargs)
-  end
+  end --luacov:enable
   return exe, args
 end
 

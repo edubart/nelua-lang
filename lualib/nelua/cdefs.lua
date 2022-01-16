@@ -107,6 +107,11 @@ compilers_flags.gcc = tabler.updatecopy(compilers_flags.cc, {
   cmd_info = '$(cc) -E -x c "$(cfile)" -x none $(cflags)',
   cmd_defines = '$(cc) -E -dM -x c "$(cfile)" -x none $(cflags)',
 })
+-- Emscripten CC
+compilers_flags.emcc = tabler.updatecopy(compilers_flags.gcc, {
+  cflags_release = "-Oz -DNDEBUG",
+  cflags_maximum_performance = "-O3 -ffast-math -DNDEBUG -fno-plt -flto",
+})
 -- Clang
 compilers_flags.clang = tabler.copy(compilers_flags.gcc)
 -- TCC
