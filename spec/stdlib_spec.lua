@@ -78,7 +78,7 @@ it("coroutine", function()
 end)
 
 local ccinfo = ccompiler.get_cc_info()
-if (ccinfo.is_gcc or ccinfo.is_clang) and not ccinfo.is_emscripten and not ccinfo.is_windows then
+if (ccinfo.is_gcc or ccinfo.is_clang) and not ccinfo.is_wasm and not ccinfo.is_windows then
   it("threads", function()
     expect.run_c_from_file('tests/threads_test.nelua')
   end)

@@ -9,12 +9,14 @@ do -- os.difftime
 end
 
 do -- os.getenv/os.setenv
+  ## if not ccinfo.is_wasm then
   os.setenv('TESTVAR')
   assert(os.setenv('TESTVAR', 'TEST'))
   local value: string <close> = os.getenv('TESTVAR')
   assert(value == 'TEST')
   assert(os.setenv('TESTVAR'))
   assert(os.getenv('TESTVAR') == '')
+  ## end
 end
 
 do -- os.date
@@ -34,7 +36,7 @@ do -- os.date
 end
 
 do -- os.execute
-  ## if not ccinfo.is_emscripten then
+  ## if not ccinfo.is_wasm then
     assert(os.execute() == true)
   ## else
     assert(os.execute() == false)
@@ -42,9 +44,11 @@ do -- os.execute
 end
 
 do -- os.tmpname
-  local tmpname = os.tmpname()
-  os.remove(tmpname)
-  tmpname:destroy()
+  ## if not ccinfo.is_wasm then
+    local tmpname = os.tmpname()
+    os.remove(tmpname)
+    tmpname:destroy()
+  ## end
 end
 
 do -- os.rename

@@ -326,6 +326,9 @@ cdefs.target_info_code = [[
 #if defined(__wasm__) || defined(__wasm)
   is_wasm = true;
 #endif
+#if defined(__wasi__)
+  is_wasi = true;
+#endif
 #if defined(__asmjs__)
   is_asmjs = true;
 #endif

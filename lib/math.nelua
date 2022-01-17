@@ -514,14 +514,31 @@ To ensure a required level of randomness to the initial state
 you should call `math.randomseed` with explicit arguments.
 ]]
 function math.randomseed(x: an_optional_integral, y: an_optional_integral): (integer, integer)
+  local random_buf: [2]uint64 <noinit>
   ## if x.type.is_niltype and y.type.is_niltype then
-  local function time(tloc: *ctime_t): ctime_t <cimport,cinclude'<time.h>'> end
-  local x: uint64 = (@uint64)(time(nilptr))
-  local y: uint64 = (@usize)(&x)
+    ## if ccinfo.is_wasi then
+      local function __wasi_random_get(buf: *uint8, size: culong): uint16 <cimport,cinclude'<wasi/api.h>'> end
+      __wasi_random_get((@*uint8)(&random_buf), 16)
+    ## elseif ccinfo.is_emscripten then
+      local function emscripten_random(): float32 <cimport,cinclude'<emscripten.h>'> end
+      local random_floats: *[4]float32 = (@*[4]float32)(&random_buf)
+      random_floats[0] = emscripten_random()
+      random_floats[1] = emscripten_random()
+      random_floats[2] = emscripten_random()
+      random_floats[3] = emscripten_random()
+    ## else
+      local function time(tloc: *ctime_t): ctime_t <cimport,cinclude'<time.h>'> end
+      random_buf[0] = (@uint64)(time(nilptr))
+      random_buf[1] = (@usize)(&random_buf)
+    ## end
   ## elseif y.type.is_niltype then
-  local y: uint64 = 0
+    random_buf[0] = (@uint64)(x)
+    random_buf[1] = 0
+  ## else
+    random_buf[0] = (@uint64)(x)
+    random_buf[1] = (@uint64)(y)
   ## end
-  local ix: integer, iy: integer = (@integer)(x), (@integer)(y)
+  local ix: integer, iy: integer = (@integer)(random_buf[0]), (@integer)(random_buf[1])
   default_random:seed((@uint64)(ix), (@uint64)(iy))
   return ix, iy
 end

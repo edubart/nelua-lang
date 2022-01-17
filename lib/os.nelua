@@ -40,9 +40,20 @@ Returns an approximation of the amount in seconds of CPU time used by the progra
 as returned by the underlying ISO C function `clock`.
 ]]
 function os.clock(): number
+  ## if ccinfo.is_wasi then
+  local function __wasi_clock_time_get(id: uint32, precision: uint64, retptr0: *uint64): uint16 <cimport,cinclude'<wasi/api.h>'> end
+  local __WASI_CLOCKID_PROCESS_CPUTIME_ID: uint32 <comptime> = 2
+  local clock_time: uint64
+  __wasi_clock_time_get(__WASI_CLOCKID_PROCESS_CPUTIME_ID, 0, &clock_time)
+  return clock_time / 1000000000.0
+  ## elseif ccinfo.is_emscripten then
+  local function emscripten_get_now(): float64 <cimport,cinclude'<emscripten.h>'> end
+  return emscripten_get_now() * 1000.0
+  ## else
   local CLOCKS_PER_SEC: cclock_t <cimport,cinclude'<time.h>'>
   local function clock(): cclock_t <cimport,cinclude'<time.h>'> end
   return clock() / CLOCKS_PER_SEC
+  ## end
 end
 
 --[[
@@ -390,30 +401,34 @@ When possible, you may prefer to use `io.tmpfile`, which automatically removes t
 ]]
 function os.tmpname(): string
   local name: string
-  ## cinclude '@unistd.h'
-  ## cemit '#if _POSIX_VERSION >= 200112L'
-    local function mkstemp(template: cstring): cint <cimport,cinclude'<stdlib.h>'> end
-    local function close(fd: cint): cint <cimport,cinclude'@unistd.h'> end
-    local tmpdir: cstring = getenv('TMPDIR')
-    if tmpdir ~= nilptr then
-      name = tmpdir.."/nelua_XXXXXX"
-    else
-      name = string.copy("/tmp/nelua_XXXXXX")
+  ## if ccinfo.is_wasm then
+    error 'unsupported'
+  ## else
+    ## cinclude '@unistd.h'
+    ## cemit '#if _POSIX_VERSION >= 200112L'
+      local function mkstemp(template: cstring): cint <cimport,cinclude'<stdlib.h>'> end
+      local function close(fd: cint): cint <cimport,cinclude'@unistd.h'> end
+      local tmpdir: cstring = getenv('TMPDIR')
+      if tmpdir ~= nilptr then
+        name = tmpdir.."/nelua_XXXXXX"
+      else
+        name = string.copy("/tmp/nelua_XXXXXX")
+      end
+      local fd: cint = mkstemp(name)
+      if fd == -1 then
+        name:destroy()
+      else
+        close(fd)
+      end
+    ## cemit '#else'
+    local function tmpnam(s: cstring): cstring <cimport,cinclude'<stdio.h>'> end
+    local buf: [260]cchar
+    local bufcs: cstring = &buf[0]
+    if tmpnam(bufcs) ~= nilptr then
+      name = string.copy(bufcs)
     end
-    local fd: cint = mkstemp(name)
-    if fd == -1 then
-      name:destroy()
-    else
-      close(fd)
-    end
-  ## cemit '#else'
-  local function tmpnam(s: cstring): cstring <cimport,cinclude'<stdio.h>'> end
-  local buf: [260]cchar
-  local bufcs: cstring = &buf[0]
-  if tmpnam(bufcs) ~= nilptr then
-    name = string.copy(bufcs)
-  end
-  ## cemit '#endif'
+    ## cemit '#endif'
+  ## end
   return name
 end
 
@@ -432,6 +447,29 @@ The operation may not be supported by all systems, or may fail in some systems,
 in that case `-1` is returned.
 ]]
 function os.now(): number
+  ## if ccinfo.is_wasi then
+  local function __wasi_clock_time_get(id: uint32, precision: uint64, retptr0: *uint64): uint16 <cimport,cinclude'<wasi/api.h>'> end
+  local __WASI_CLOCKID_MONOTONIC: uint32 <comptime> = 1
+  local clock_time: uint64
+  __wasi_clock_time_get(__WASI_CLOCKID_MONOTONIC, 0, &clock_time)
+  local initialized: boolean <static> = false
+  local first_clock_time: uint64 <static> = 0
+  if not initialized then
+    first_clock_time = clock_time
+    initialized = true
+  end
+  return (clock_time - first_clock_time) / 1000000000.0
+  ## elseif ccinfo.is_emscripten then
+  local function emscripten_get_now(): float64 <cimport,cinclude'<emscripten.h>'> end
+  local now: float64 = emscripten_get_now()
+  local initialized: boolean <static> = false
+  local first_now: float64 <static> = 0
+  if not initialized then
+    first_now = now
+    initialized = true
+  end
+  return (now - first_now) / 1000.0
+  ## else
   local ok: boolean = false
   local ns: int64 = 0
 ##[==[
@@ -509,6 +547,7 @@ function os.now(): number
 ]==]
   if not ok then return -1.0 end
   return ns / 1000000000.0
+  ## end
 end
 
 --[[
@@ -524,42 +563,51 @@ in that case false is returned.
 ]]
 function os.sleep(secs: number): boolean
   if secs < 0 then return false end
-  local ok: boolean
-  ## cinclude '@unistd.h'
-  ## cinclude '@windows.h'
-  ## cemit '#if defined(_WIN32)'
-    local function Sleep(ms: culong): void <cimport,cinclude'@windows.h'> end
-    local us: uint64 <nodce> = (@uint64)(secs * 1000000)
-    local ms: cuint = (@cuint)((us + 999) // 1000)
-    if ms > 0 then
-      Sleep(ms)
-    end
-    ok = true
-  ## cemit '#elif defined(_POSIX_TIMERS)'
-    local function nanosleep(requested_time: *timespec, remaining: *timespec): cint <cimport,cinclude'<time.h>'> end
-    local EINTR: cint <cimport,cinclude'<errno.h>'>
-    local res: cint
-    if secs > 0 then
-      local ts: timespec = {
-        tv_sec = (@ctime_t)(secs // 1),
-        tv_nsec = (@clong)((secs % 1) * 1e9)
-      }
-      repeat
-        errno = 0
-        res = nanosleep(&ts, &ts)
-      until res == 0 or errno ~= EINTR
-      ok = res == 0
-    end
-  ## cemit '#elif defined(_POSIX_VERSION)'
-    local function usleep(usec: cuint): cint <cimport,cinclude'@unistd.h'> end
-    local us: uint64 <nodce> = (@uint64)(secs * 1000000)
-    if us > 0 then
-      ok = usleep(us) == 0
-    else
+  ## if ccinfo.is_wasm then
+    -- TODO: support WASI with `__wasi_poll_oneoff`
+    return false
+  ## elseif ccinfo.is_emscripten then
+    local function emscripten_sleep(ms: cuint): void <cimport,cinclude'<emscripten.h>'> end
+    emscripten_sleep((@cuint)(secs * 1000.0))
+    ## cflags '-s ASYNCIFY=1'
+  ## else
+    local ok: boolean
+    ## cinclude '@unistd.h'
+    ## cinclude '@windows.h'
+    ## cemit '#if defined(_WIN32)'
+      local function Sleep(ms: culong): void <cimport,cinclude'@windows.h'> end
+      local us: uint64 <nodce> = (@uint64)(secs * 1000000)
+      local ms: cuint = (@cuint)((us + 999) // 1000)
+      if ms > 0 then
+        Sleep(ms)
+      end
       ok = true
-    end
-  ## cemit '#endif'
-  return ok
+    ## cemit '#elif defined(_POSIX_TIMERS)'
+      local function nanosleep(requested_time: *timespec, remaining: *timespec): cint <cimport,cinclude'<time.h>'> end
+      local EINTR: cint <cimport,cinclude'<errno.h>'>
+      local res: cint
+      if secs > 0 then
+        local ts: timespec = {
+          tv_sec = (@ctime_t)(secs // 1),
+          tv_nsec = (@clong)((secs % 1) * 1e9)
+        }
+        repeat
+          errno = 0
+          res = nanosleep(&ts, &ts)
+        until res == 0 or errno ~= EINTR
+        ok = res == 0
+      end
+    ## cemit '#elif defined(_POSIX_VERSION)'
+      local function usleep(usec: cuint): cint <cimport,cinclude'@unistd.h'> end
+      local us: uint64 <nodce> = (@uint64)(secs * 1000000)
+      if us > 0 then
+        ok = usleep(us) == 0
+      else
+        ok = true
+      end
+    ## cemit '#endif'
+    return ok
+  ## end
 end
 
 return os
