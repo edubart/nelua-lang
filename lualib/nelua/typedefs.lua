@@ -315,6 +315,8 @@ typedefs.pragmas = {
   nocinlines = shaper.optional_boolean,
   -- Disable use typedefs in the C code generation (created for GLSL codegen).
   noctypedefs = shaper.optional_boolean,
+  -- Mark all variables declarations as volatile.
+  volatile = shaper.optional_boolean,
 }
 
 -- List of possible annotations for function types.

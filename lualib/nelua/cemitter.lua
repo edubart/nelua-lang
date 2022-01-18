@@ -481,7 +481,7 @@ function CEmitter:add_qualified_declaration(attr, type, name)
       self:add('const ')
     end
   end
-  if attr.volatile then
+  if attr.volatile or pragmas.volatile then
     self:add('volatile ')
   end
   if attr.cqualifier then

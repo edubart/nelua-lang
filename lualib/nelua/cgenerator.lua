@@ -1047,7 +1047,9 @@ function visitors.ForNum(context, node, emitter)
   local ittype, itmutate = itattr.type, itattr.mutate or itattr.refed
   local itforname = itmutate and '_it' or context:declname(itattr)
   local scope = context:push_forked_scope(node)
-  emitter:add_indent('for(', ittype, ' ', itforname, ' = ')
+  emitter:add_indent('for(')
+  emitter:add_qualified_declaration({}, ittype, itforname)
+  emitter:add(' = ')
   emitter:add_converted_val(ittype, begvalnode)
   local cmpval, stepval = endvalnode, fixedstep
   if not fixedend or not compop then -- end expression
