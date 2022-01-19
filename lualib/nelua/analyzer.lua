@@ -2102,45 +2102,27 @@ function visitors.ForIn(context, node)
       context:pop_scope()
     until resolutions_count == 0
   else -- on other backends must implement using while loops
-    -- build extra nodes for the extra iterating values
-    local itvardeclnodes = {}
-    local itvaridnodes = {}
-    for i=1,#itvarnodes-1 do
-      local itvarnode = itvarnodes[i+1]
-      itvardeclnodes[i] = itvarnode
-      itvaridnodes[i] = aster.Id{itvarnode[1],
-        pattr={noinit=true},
-        src=itvarnode.src,
-        pos=itvarnode.pos, endpos=itvarnode.endpos
-      }
-    end
-
     -- replace the for in node with a while loop
     local newnode = aster.Do{aster.Block{
       aster.VarDecl{'local', {
           aster.IdDecl{'__fornext'},
           aster.IdDecl{'__forstate'},
-          aster.IdDecl{'__forit'},
+          aster.IdDecl{'__fornextit'},
           aster.IdDecl{'__forclose', false, {aster.Annotation{'close'}}},
         },
         inexpnodes
       },
       aster.While{aster.Boolean{true}, aster.Block{
         aster.VarDecl{'local', tabler.insertvalues({
-          aster.IdDecl{'__forcont', pattr={noinit=true}}
-        }, itvardeclnodes)},
-        aster.Assign{
-          tabler.insertvalues({
-            aster.Id{'__forcont'},
-            aster.Id{'__forit'}
-          }, itvaridnodes), {
-            aster.Call{{aster.Id{'__forstate'}, aster.Id{'__forit'}}, aster.Id{'__fornext'}}
+          aster.IdDecl{'__forcont'},
+        }, itvarnodes), {
+            aster.Call{{aster.Id{'__forstate'}, aster.Id{'__fornextit'}}, aster.Id{'__fornext'}}
           }
         },
         aster.If{{aster.UnaryOp{'not', aster.Id{'__forcont'}}, aster.Block{
           aster.Break{}
         }}},
-        aster.VarDecl{'local', {itvarnodes[1]}, {aster.Id{'__forit'}}},
+        aster.Assign{{aster.Id{'__fornextit'}}, {aster.Id{itvarnodes[1][1]}}},
         aster.Do{blocknode}
       }}
     }}
@@ -2243,6 +2225,13 @@ end
 function visitors.VarDecl(context, node)
   local declscope, varnodes, valnodes = node[1], node[2], node[3]
   local assigning = not not valnodes
+  local last_call_node
+  if assigning then
+    local last_node = valnodes[#valnodes]
+    if last_node.is_call then
+      last_call_node = last_node
+    end
+  end
   valnodes = valnodes or {}
   if #varnodes < #valnodes then
     node:raisef("extra expressions in declaration, expected at most %d but got %d",
@@ -2357,8 +2346,8 @@ function visitors.VarDecl(context, node)
         end
       end
     end
-    if assigning and (valtype or valnode) then
-      symbol:add_possible_type(valtype, valnode)
+    if assigning and (valtype or valnode or last_call_node) then
+      symbol:add_possible_type(valtype, valnode or last_call_node)
     end
     if symbol.close then -- process close annotation
       visit_close(context, node, varnode, symbol)
@@ -2375,6 +2364,11 @@ function visitors.Assign(context, node)
   local varnodes, valnodes = node[1], node[2]
   if #varnodes < #valnodes then
     node:raisef("extra expressions in assign, expected at most %d but got %d", #varnodes, #valnodes)
+  end
+  local last_call_node
+  local last_node = valnodes[#valnodes]
+  if last_node.is_call then
+    last_call_node = last_node
   end
   local done = true
   for i,varnode,valnode,valtype in izipargnodes(varnodes, valnodes) do
@@ -2399,8 +2393,8 @@ function visitors.Assign(context, node)
       end
     end
     if symbol then -- symbol may nil in case of array/dot index
-      if valtype or valnode then
-        symbol:add_possible_type(valtype, valnode)
+      if valtype or valnode or last_call_node then
+        symbol:add_possible_type(valtype, valnode or last_call_node)
       end
       symbol.mutate = true
 

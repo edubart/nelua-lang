@@ -167,21 +167,17 @@ do -- io.lines
   end
 
   i = 1
-  for line in io.lines('test.tmp', 'L') do
-    local tmp = string.format('line%d\n', i)
+  for line <close> in io.lines('test.tmp', 'L') do
+    local tmp <close> = string.format('line%d\n', i)
     assert(line == tmp)
     i = i + 1
-    line:destroy()
-    tmp:destroy()
   end
 
   i = 1
-  for line in io.lines('test.tmp', 6) do
-    local tmp = string.format('line%d\n', i)
+  for line <close>  in io.lines('test.tmp', 6) do
+    local tmp <close>  = string.format('line%d\n', i)
     assert(line == tmp)
     i = i + 1
-    line:destroy()
-    tmp:destroy()
   end
 
   os.remove('test.tmp')
