@@ -88,7 +88,7 @@ function Attr:is_maybe_negative()
 end
 
 function Attr:is_readonly()
-  return self.const or self.comptime or (self.type and self.type.is_comptime)
+  return self.const or self.comptime or self.close or (self.type and self.type.is_comptime)
 end
 
 function Attr:is_forward_declare_type()

@@ -1744,11 +1744,32 @@ it("close", function()
     local R = @record{x: integer}
     function R:__close() end
     local r: R <close>
-    local r: *R <close>
+    local r2: R <close> = R{}
+    local pr: *R <close>
+    local t: R
+    local pr2: *R <close> = &t
 
     global G = @record{}
     global G.r: R <close>
   ]])
+  expect.analyze_error([[
+    local R = @record{x: integer}
+    function R:__close() end
+    local r: R <close>
+    r = R{}
+  ]], "cannot assign")
+  expect.analyze_error([[
+    local R = @record{x: integer}
+    function R:__close() end
+    local pr: *R <close>
+    pr = nilptr
+  ]], "cannot assign")
+  expect.analyze_error([[
+    local R = @record{x: integer}
+    function R:__close() end
+    local r: *R <close>
+    r = nilptr
+  ]], "cannot assign")
   expect.analyze_error("local function f(a: integer <close>) end", "only allowed in variable declarations")
   expect.analyze_error("local a <close> = 1", "cannot close")
   expect.analyze_error("local r: record{x: integer} <close>", "cannot close")
