@@ -63,11 +63,17 @@ typevisitors[types.ArrayType] = function(context, type)
   context:ensure_builtin('NELUA_MAYALIAS')
   decemitter:add('typedef struct NELUA_MAYALIAS')
   decemitter:add_type_qualifiers(type)
-  local len = math.max(type.length, typedefs.emptysize)
-  decemitter:add_ln(' ', type.codename, ' {', type.subtype, ' v[', len, '];} ', type.codename, ';')
+  local array_type = type
+  local len_part = ''
+  while array_type and array_type.is_array do
+    local len = math.max(array_type.length, typedefs.emptysize)
+    len_part = len_part..'['..len..']'
+    array_type = array_type.is_array and array_type.subtype
+  end
+  decemitter:add_ln(' ', type.codename, ' {', type.inner_subtype, ' v',len_part,';} ', type.codename, ';')
   decemitter:add_ln('typedef union NELUA_MAYALIAS ', type.codename, '_cast {',
     type.codename, ' a; ',
-    type.subtype, ' p[', len, '];',
+    type.inner_subtype, ' p',len_part,';',
     '} ', type.codename, '_cast;')
   if type.size and type.size > 0 and not context.pragmas.nocstaticassert then
     context:ensure_builtins('NELUA_STATIC_ASSERT', 'NELUA_ALIGNOF')
@@ -415,7 +421,11 @@ function visitors.InitList(_, node, emitter, untypedinit)
       emitter:add_zeroed_type_literal(type)
       emitter:add_ln(';')
       for i=1,#childnodes do
-        emitter:add_indent('_tmp.v[', i-1 ,'] = ')
+        if subtype.is_array then
+          emitter:add_indent('((', subtype, '_cast*)&_tmp.v[', i-1 ,'])->a = ')
+        else
+          emitter:add_indent('_tmp.v[', i-1 ,'] = ')
+        end
         emitter:add_converted_val(subtype, childnodes[i])
         emitter:add_ln(';')
       end
@@ -728,6 +738,7 @@ end
 function visitors.KeyIndex(context, node, emitter)
   local indexnode, objnode = node[1], node[2]
   local objattr = objnode.attr
+  local type = node.attr.type
   local objtype = objattr.type
   local pointer = false
   if objtype.is_pointer and objtype.subtype then -- indexing a pointer to an array
@@ -739,7 +750,16 @@ function visitors.KeyIndex(context, node, emitter)
     while topobjnode.is_KeyIndex do
       topobjnode = topobjnode[2]
     end
+    local castarray
+    if type.is_array then
+      local parent_node = context:get_visiting_node(1)
+      if not parent_node.is_KeyIndex or not parent_node[2].attr.type.is_array then
+        emitter:add('(((', type, '_cast*)&')
+        castarray = true
+      end
+    end
     if (pointer and objtype.length == 0) or -- unbounded array
+       (objnode.is_KeyIndex and objnode.attr.type.is_array) or -- multidimensional index
        (topobjnode.is_DotIndex and topobjnode[2].attr.type.is_composite) then -- record/union array field
       objattr.arrayindex = true
       emitter:add(objnode, '[')
@@ -753,6 +773,9 @@ function visitors.KeyIndex(context, node, emitter)
       emitter:add('(', indexnode, ', ', objtype.length, ')]')
     else
       emitter:add(indexnode, ']')
+    end
+    if castarray then
+      emitter:add(')->a)')
     end
   else --luacov:disable
     assert(objtype.is_table)

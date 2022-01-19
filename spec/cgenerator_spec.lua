@@ -2128,6 +2128,28 @@ it("multi dimensional arrays", function()
       local b: Map
       a = $(&b)
     end
+
+    do
+      local vec2 = @record{x: int32, y: int32}
+      local rotvecs: [3][2]vec2 = {
+        {
+          {1,2},
+          {3,4},
+        },
+        {
+          {5,6},
+          {7,8},
+        },
+        {
+          {9,10},
+          {11,12},
+        }
+      }
+      for i=0,<6 do
+        assert(rotvecs[i // 2][i % 2].x == 2*i+1)
+        assert(rotvecs[i // 2][i % 2].y == 2*i+2)
+      end
+    end
   ]])
 end)
 

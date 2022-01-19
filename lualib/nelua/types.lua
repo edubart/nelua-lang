@@ -202,6 +202,7 @@ Type.shape = shaper.shape {
   is_unbounded_pointer = shaper.optional_boolean,
   is_bounded_pointer = shaper.optional_boolean,
   is_unbounded_array = shaper.optional_boolean,
+  is_multidim_array = shaper.optional_boolean,
   is_cvalist = shaper.optional_boolean,
 
   -- Booleans for checking the underlying type (lib types).
@@ -1523,6 +1524,8 @@ ArrayType.shape = shaper.fork_shape(Type.shape, {
   length = shaper.integer,
   -- The subtype for the array.
   subtype = shaper.type,
+  -- The inner subtype for the array, (relevant for multidimensional arrays).
+  inner_subtype = shaper.type,
 })
 
 function ArrayType:_init(subtype, length, node)
@@ -1540,12 +1543,21 @@ function ArrayType:_init(subtype, length, node)
     self.is_unbounded_array = true
     self.is_empty = true
   end
+  if subtype.is_array then
+    self.is_multidim_array = true
+  end
   -- validated subtype
   if subtype.is_comptime then
     ASTNode.raisef(node, "in array type: subtype cannot be of compile-time type '%s'", subtype)
   elseif not subtype:is_defined() then
     ASTNode.raisef(node, "in array type: subtype cannot be of forward declared type '%s'", subtype)
   end
+  -- calculate inner subtype for multidimensional arrays
+  local inner_subtype = subtype
+  while inner_subtype.is_array do
+    inner_subtype = inner_subtype.subtype
+  end
+  self.inner_subtype = inner_subtype
 end
 
 -- Checks if this type equals to another type.
