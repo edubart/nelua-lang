@@ -147,6 +147,8 @@ function ASTNode.clone(node)
     if type(v) == 'table' then
       if v._astnode then -- node
         v = clone_node(v)
+      elseif v.n then -- table or arguments
+        v = tabler.copy(v)
       else -- list of nodes
         v = clone_nodes(v)
       end
