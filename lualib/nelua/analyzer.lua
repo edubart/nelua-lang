@@ -2943,6 +2943,9 @@ function visitors.FuncDef(context, node, opts)
     -- enter in the function scope
     funcscope = context:push_forked_cleaned_scope(node)
     funcscope.funcsym = symbol
+    if polysymbol then
+      funcscope.polysym = polysymbol
+    end
     funcscope.is_function = true
     funcscope.is_resultbreak = true
     context:push_forked_state{funcscope = funcscope}

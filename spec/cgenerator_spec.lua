@@ -3978,4 +3978,20 @@ it("issue with multiple returns and dead code elimination", function()
   ]=])
 end)
 
+it("recursive function resolution", function()
+  expect.run_c([=[
+    local function fib(n: auto)
+      if 2 <= n then return fib(n-1) + fib(n - 2) end
+      return n
+    end
+    assert(fib(4) == 3)
+
+    local function fib(n: int32)
+      if 2 <= n then return fib(n-1) + fib(n - 2) end
+      return n
+    end
+    assert(fib(4) == 3)
+  ]=])
+end)
+
 end)

@@ -358,10 +358,18 @@ function Scope:resolve_symbols()
   return count
 end
 
-function Scope:add_return_type(index, type, value, ref)
+function Scope:add_return_type(index, type, value, refnode)
   if not type then
-    self.has_unknown_return = ref or true
-  elseif self.has_unknown_return == ref then
+    -- ignore the unknown types in recursive functions
+    if refnode then
+      for symbol in refnode:walk_symbols() do
+        if symbol == self.funcsym or symbol == self.polysym then
+          return
+        end
+      end
+    end
+    self.has_unknown_return = refnode or true
+  elseif self.has_unknown_return == refnode then
     self.has_unknown_return = nil
   end
   if type and type.is_void then -- void must be converted to nil
