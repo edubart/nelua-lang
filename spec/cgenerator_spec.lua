@@ -389,21 +389,23 @@ end)
 
 it("repeat", function()
   expect.generate_c("repeat until true", [[
-  while(1) {
-    if(true) {
-      break;
-    }
+  {
+    bool _repeat_stop;
+    do {
+      _repeat_stop = true;
+    } while(!_repeat_stop);
   }]])
   expect.generate_c([[
     repeat
       local a = true
     until a
   ]], [[
-  while(1) {
-    bool a = true;
-    if(a) {
-      break;
-    }
+  {
+    bool _repeat_stop;
+    do {
+      bool a = true;
+      _repeat_stop = a;
+    } while(!_repeat_stop);
   }]])
   expect.run_c([[
     local x = 0
@@ -413,6 +415,17 @@ it("repeat", function()
     until a
     print(x)
     assert(x == 4)
+  ]])
+  expect.run_c([[
+    local defer_count = 0
+    local i, j = 0, 0
+    repeat
+      defer defer_count = defer_count + 1 end
+      i = i + 1
+      if i > 5 then continue end
+      j = j + 1
+    until i >= 10
+    assert(i == 10 and j == 5 and defer_count == 10)
   ]])
 end)
 

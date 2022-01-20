@@ -788,6 +788,9 @@ function visitors.Block(context, node, emitter)
   local scope = context:push_forked_scope(node)
   emitter:inc_indent()
   emitter:add_list(node, '')
+  if scope.parent.is_repeat_loop then
+    scope.parent.emit_repeat_stop(emitter)
+  end
   local laststat = node[#node]
   if laststat and not laststat.is_breakflow then
     cgenerator.emit_close_scope(context, emitter, scope, true)
@@ -1044,21 +1047,25 @@ end
 -- Emits `repeat` statement.
 function visitors.Repeat(context, node, emitter)
   local blocknode, condnode = node[1], node[2]
-  emitter:add_indent_ln("while(1) {")
-  local scope = context:push_forked_scope(node)
-  emitter:add(blocknode)
+  emitter:add_indent_ln("{")
   emitter:inc_indent()
-  emitter:add_indent('if(')
-  emitter:add_val2boolean(condnode)
-  emitter:add_ln(') {')
-  emitter:add_indent_ln('  break;')
-  emitter:add_indent_ln('}')
+  context:ensure_type(primtypes.boolean)
+  emitter:add_indent_ln("bool _repeat_stop;")
+  emitter:add_indent_ln("do {")
+  local scope = context:push_forked_scope(node)
+  scope.emit_repeat_stop = function(block_emitter)
+    block_emitter:add_indent('_repeat_stop = ')
+    block_emitter:add_val2boolean(condnode)
+    block_emitter:add_ln(';')
+  end
+  emitter:add(blocknode)
   context:pop_scope()
+  emitter:add_indent_ln('} while(!_repeat_stop);')
   emitter:dec_indent()
-  emitter:add_indent_ln('}')
   if scope.breaklabel then
     emitter:add_indent_ln(scope.breaklabel, ':;')
   end
+  emitter:add_indent_ln('}')
 end
 
 -- Emits numeric `for` statement.
@@ -1136,6 +1143,10 @@ end
 -- Emits `continue` statement.
 function visitors.Continue(context, _, emitter)
   local scope = context.scope
+  local loopscope = scope:get_up_loop_scope()
+  if loopscope.is_repeat_loop then
+    loopscope.emit_repeat_stop(emitter)
+  end
   cgenerator.emit_close_upscopes(context, emitter, scope, scope:get_up_loop_scope())
   emitter:add_indent_ln('continue;')
 end

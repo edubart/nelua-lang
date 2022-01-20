@@ -1968,6 +1968,7 @@ function visitors.Repeat(context, node)
   local blocknode, condnode = node[1], node[2]
   local scope = context:push_forked_cleaned_scope(node)
   scope.is_loop = true
+  scope.is_repeat_loop = true
   context:traverse_node(blocknode)
   context:push_scope(blocknode.scope)
   context:traverse_node(condnode, {desiredtype=primtypes.boolean})
