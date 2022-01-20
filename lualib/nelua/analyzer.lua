@@ -1695,7 +1695,6 @@ local function visitor_Type_MetaFieldIndex(context, node, objtype, name)
   if not infuncdef then
     symbol:add_use_by(context.state.funcscope.funcsym)
   end
-  node.done = symbol
   return symbol
 end
 
