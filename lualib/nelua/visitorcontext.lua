@@ -122,6 +122,21 @@ function VisitorContext:push_scope(scope)
 end
 
 --[[
+Get a forked scope for node `node`.
+Fork means that current scope symbols are inherited.
+]]
+function VisitorContext:get_forked_scope(node)
+  local scope = node.scope
+  if scope then
+    return scope
+  else -- node doesn't have a scope yet, create it
+    scope = self.scope:fork(node)
+    node.scope = scope
+  end
+  return scope
+end
+
+--[[
 Pushes a forked scope for node `node`, effectively overriding the current scope.
 Fork means that current scope symbols are inherited.
 ]]

@@ -114,7 +114,7 @@ end
 
 do print '### Switch'
   local a = 1 -- change this to 2 or 3 to trigger other ifs
-  switch a
+  switch a do
   case 1 then
     print 'is 1'
   case 2, 3 then
@@ -206,6 +206,18 @@ do print '### Continue'
     end
     print(i) -- outputs: 6 7 8 9 10
   end
+end
+
+do print '### Fallthrough'
+  local a = 1
+  switch a do
+  case 1 then
+    print '1'
+    fallthrough -- next case block will be executed
+  case 2 then
+    print '2'
+  end
+  -- outputs '1' followed by '2'
 end
 
 do print '### Break'

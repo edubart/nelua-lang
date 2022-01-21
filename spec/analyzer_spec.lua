@@ -983,6 +983,22 @@ it("switch", function()
     'must evaluate to a compile time integral value')
 end)
 
+it("switch fallthrough", function()
+  expect.analyze_ast([[
+    switch 3 case 1 then fallthrough case 2 then fallthrough else end
+  ]])
+  expect.analyze_error("fallthrough",
+    'must be inside a switch case black')
+  expect.analyze_error("switch 3 case 1 then else fallthrough end",
+    'must be inside a switch case black')
+  expect.analyze_error("switch 3 case 1 then fallthrough end",
+    'must be followed by another switch block')
+  expect.analyze_error("switch 3 case 1 then fallthrough fallthrough case 2 then end",
+    'must be used at most once per switch case block')
+  expect.analyze_error("switch 3 case 1 then fallthrough print() case 2 then end",
+    'must be the very last statement of a switch case block')
+end)
+
 it("function call", function()
   expect.ast_type_equals([[
     local function f() return 0 end

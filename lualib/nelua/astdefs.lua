@@ -326,6 +326,11 @@ aster.register('Continue', {}, {
   is_breakflow = true,
 })
 
+-- Fallthrough statement.
+aster.register('Fallthrough', {}, {
+  is_breakflow = true,
+})
+
 -- Label statement.
 aster.register('Label', {
   name, -- label name

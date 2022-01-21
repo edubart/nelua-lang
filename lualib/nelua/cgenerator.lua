@@ -1151,6 +1151,11 @@ function visitors.Continue(context, _, emitter)
   emitter:add_indent_ln('continue;')
 end
 
+-- Emits `fallthrough` statement.
+function visitors.Fallthrough(_, _, emitter)
+  emitter:add_indent_ln('/* fallthrough */')
+end
+
 function visitors.NoOp() end
 
 -- Emits label statement.

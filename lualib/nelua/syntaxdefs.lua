@@ -20,7 +20,7 @@ Block           <==(local / global /
                     If / Switch /
                     for /
                     While / Repeat /
-                    Break / Continue /
+                    Break / Continue / Fallthrough /
                     Goto / Label /
                     Preprocess /
                     Assign / call /
@@ -32,6 +32,7 @@ Return          <== `return` (expr (`,` @expr)*)?
 In              <== `in` @expr
 Break           <== `break`
 Continue        <== `continue`
+Fallthrough     <== `fallthrough`
 Goto            <== `goto` @name
 Do              <== `do` Block @`end`
 Defer           <== `defer` Block @`end`

@@ -316,6 +316,38 @@ it("switch", function()
   }]])
 end)
 
+it("fallthrough", function()
+  expect.run_c([[
+    local function f(a: integer): integer
+      local res = 0
+      switch a do
+      case 1 then
+        res = res + 1
+        fallthrough
+      case 2 then
+        res = res + 2
+      case 5 then
+        res = res + 5
+        fallthrough
+      case 3 then
+        res = res + 3
+      case 4 then
+        res = res + 4
+        fallthrough
+      else
+        res = res + 10
+      end
+      return res
+    end
+
+    assert(f(1) == 3)
+    assert(f(2) == 2)
+    assert(f(3) == 3)
+    assert(f(4) == 14)
+    assert(f(5) == 8)
+  ]])
+end)
+
 it("do", function()
   expect.generate_c("do\n  return\nend", "return 0;\n")
 end)

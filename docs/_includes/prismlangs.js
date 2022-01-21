@@ -58,7 +58,7 @@ Prism.languages.nelua = {
     'comment': /^#!.+|--(?:\[(=*)\[[\s\S]*?\]\1\]|.*)/m,
     'special': /\bself\b/,
     'builtin': /\b(?:false|true|nil|nilptr)\b/,
-    'keyword': /\b(?:and|break|do|else|elseif|end|for|function|goto|if|in|local|not|or|repeat|return|then|until|while|switch|case|continue|global|defer)\b/,
+    'keyword': /\b(?:and|break|do|else|elseif|end|for|function|goto|if|in|local|not|or|repeat|return|then|until|while|switch|case|continue|fallthrough|global|defer)\b/,
     'type': [{
         pattern: /(@)\w+/,
         lookbehind: true

@@ -1923,7 +1923,6 @@ function visitors.Switch(context, node)
   local done = valnode.done
   for i=1,#casepairs,2 do
     local caseexprs, caseblock = casepairs[i], casepairs[i+1]
-
     for j=1,#caseexprs do
       local casenode = caseexprs[j]
       context:traverse_node(casenode)
@@ -1934,7 +1933,12 @@ function visitors.Switch(context, node)
       done = done and casenode.done and true
     end
     done = done and caseblock.done and true
+    local casescope = context:get_forked_scope(caseblock)
+    casescope.switchcase_index = 1
     context:traverse_node(caseblock)
+    if casescope.fallthrough and casescope.fallthrough ~= caseblock[#caseblock] then
+      casescope.fallthrough:raisef("`fallthrough` statement must be the very last statement of a switch case block")
+    end
   end
   if elsenode then
     context:traverse_node(elsenode)
@@ -2141,6 +2145,25 @@ function visitors.Continue(context, node)
   if not context.scope:get_up_scope_of_kind('is_loop') then
     node:raisef("`continue` statement is not inside a loop")
   end
+  node.done = true
+end
+
+function visitors.Fallthrough(context, node)
+  local scope = context.scope
+  local switchcase_index = scope.switchcase_index
+  if not switchcase_index then
+    node:raisef("`fallthrough` statement must be inside a switch case black")
+  end
+  local switchnode = context:get_visiting_node(2)
+  assert(switchnode.is_Switch)
+  local casepairs, elsenode = switchnode[2], switchnode[3]
+  if not (casepairs[switchcase_index+2] or elsenode) then
+    node:raisef("`fallthrough` statement must be followed by another switch block")
+  end
+  if scope.fallthrough and scope.fallthrough ~= node then
+    node:raisef("`fallthrough` statement must be used at most once per switch case block")
+  end
+  scope.fallthrough = node
   node.done = true
 end
 

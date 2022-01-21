@@ -289,7 +289,7 @@ The switch statement is similar to C:
 
 ```nelua
 local a = 1 -- change this to 2 or 3 to trigger other ifs
-switch a
+switch a do
 case 1 then
   print 'is 1'
 case 2, 3 then
@@ -454,6 +454,25 @@ for i=1,10 do
   print(i) -- outputs: 6 7 8 9 10
 end
 ```
+
+### Fallthrough
+
+The fallthrough statement can be used to explicitly fall through into the next case block of a switch:
+
+```nelua
+local a = 1
+switch a do
+case 1 then
+  print '1'
+  fallthrough -- next case block will be executed
+case 2 then
+  print '2'
+end
+-- outputs '1' followed by '2'
+```
+
+This functionality is like fallthrough in C switches, but in Nelua it must be explicit.
+{:.alert.alert-info}
 
 ### Break
 

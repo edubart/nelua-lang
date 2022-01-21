@@ -521,6 +521,16 @@ describe("statement", function()
             n.Block{}
       }})
     end)
+    it("fallthrough", function()
+      expect_ast("switch a case b then fallthrough case c then fallthrough else end",
+        n.Block{
+          n.Switch{
+            n.Id{'a'},
+            {{n.Id{'b'}}, n.Block{n.Fallthrough{}},
+             {n.Id{'c'}}, n.Block{n.Fallthrough{}}},
+            n.Block{}
+      }})
+    end)
   end)
 
   describe("do", function()
