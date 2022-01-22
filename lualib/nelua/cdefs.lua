@@ -173,6 +173,9 @@ cdefs.target_info_code = [[
 #if defined(__APPLE__)
   is_apple = true;
   #include <TargetConditionals.h>
+  #if defined(TARGET_OS_EMBEDDED)
+    is_apple_embedded = true;
+  #endif
   #if defined(TARGET_OS_IOS)
     is_ios = true;
   #endif
@@ -182,8 +185,20 @@ cdefs.target_info_code = [[
   #if defined(TARGET_OS_IPHONE)
     is_iphone = true;
   #endif
+  #if defined(TARGET_OS_TV)
+    is_tvos = true;
+  #endif
+  #if defined(TARGET_OS_NANO) || defined(TARGET_OS_WATCH)
+    is_watchos = true;
+  #endif
+  #if defined(TARGET_IPHONE_SIMULATOR) || defined(TARGET_OS_SIMULATOR)
+    is_iphone_sim = true;
+  #endif
+  #if defined(TARGET_OS_BRIDGE)
+    is_bridgeos = true;
+  #endif
 #endif
-#if defined(__ANDROID__)
+#if defined(__ANDROID__) || defined(ANDROID)
   is_android = true;
 #endif
 #if defined(__MACH__)
@@ -198,72 +213,114 @@ cdefs.target_info_code = [[
 #if defined(__TIZEN__)
   is_tizen = true;
 #endif
+#if defined(__BLACKBERRY10__) || defined(__BB10__)
+  is_bb10 = true;
+  is_blackberry = true;
+  is_qnx = true;
+  is_qnxnto = true;
+#endif
+#if defined(__PLAYBOOK__)
+  is_playbook = true;
+  is_blackberry = true;
+  is_qnx = true;
+  is_qnxnto = true;
+#endif
+#if defined(__QNX__)
+  is_qnx = true;
+  is_blackberry = true;
+#endif
+#if defined(__QNXNTO__)
+  is_qnx = true;
+  is_qnxnto = true;
+  is_blackberry = true;
+#endif
+#if defined(__WEBOS__)
+  is_webos = true;
+#endif
+#if defined(__native_client__)
+  is_nacl = true;
+#endif
+#if defined(WINAPI_FAMILY)
+  #if (WINAPI_FAMILY == WINAPI_FAMILY_APP)
+    is_uwp = true;
+  #endif
+  #if (WINAPI_FAMILY == WINAPI_FAMILY_PHONE_APP)
+    is_windows_phone = true;
+  #endif
+#endif
 #if defined(__GAMEBOY__)
   is_gameboy = true;
 #endif
 #if defined(__gba__) || defined(__GBA__)
   is_gba = true;
 #endif
-#if defined(__NDS__) || defined(__NDS) || defined(_NDS)
+#if defined(__NDS__) || defined(_NDS)
   is_nds = true;
 #endif
-#if defined(__3DS__) || defined(_3DS) || defined(__N3DS__)
+#if defined(__3DS__) || defined(_3DS)
   is_3ds = true;
 #endif
 #if defined(__SWITCH__) || defined(_SWITCH) || defined(__NX__)
   is_switch = true;
 #endif
-#if defined(__GAMECUBE__) || defined(__gamecube__)
+#if defined(__GAMECUBE__)
   is_gamecube = true;
 #endif
-#if defined(__WII__) || defined(_WII) || defined(__wii__)
+#if defined(__WII__) || defined(_WII)
   is_wii = true;
 #endif
-#if defined(__WIIU__) || defined(_WIIU) || defined(__wiiu__)
+#if defined(__WIIU__)
   is_wiiu = true;
 #endif
-#if defined(__PSX__) || defined(__PSX) || defined(_PSX) || defined(__psx__) || \
-    defined(__PSONE__)
+#if defined(__PSX__) || defined(_PSX)
   is_ps1 = true;
 #endif
-#if defined(__PS2__) || defined(__PS2) || defined(_PS2)
+#if defined(__PS2__) || defined(_PS2) || defined(__PLAYSTATION2__) || defined(SN_TARGET_PS2)
   is_ps2 = true;
 #endif
-#if defined(__PS3__) || defined(__PS3) || defined(_PS3)
+#if defined(__PS3__) || defined(_PS3) || defined(SN_TARGET_PS3)
   is_ps3 = true;
 #endif
-#if defined(__PS4__) || defined(__PS4) || defined(_PS4) || \
-    defined(__ORBIS__)
+#if defined(__PS4__) || defined(_PS4) || defined(__ORBIS__)
   is_ps4 = true;
 #endif
-#if defined(__PS5__) || defined(__PS5) || defined(_PS5)
+#if defined(__PS5__) || defined(_PS5)
   is_ps5 = true;
 #endif
-#if defined(__PSP__) || defined(__PSP) || defined(_PSP)
+#if defined(__PSP__) || defined(_PSP)
   is_psp = true;
 #endif
-#if defined(__VITA__) || defined(__vita__)
+#if defined(__VITA__) || defined(_PSVITA)
+  is_psvita = true;
 #endif
-#if defined(__XBOX__) || defined(__XBOX) || defined(_XBOX)
+#if defined(__XBOX__) || defined(_XBOX)
   is_xbox = true;
 #endif
-#if defined(__X360__) || defined(_X360) || defined(__X360)
+#if defined(_X360) || defined(_XBOX360) || defined(__XBOX360__)
   is_xbox360 = true;
+  is_xbox = true;
 #endif
-#if defined(_XBOXONE) || defined(_XBOX_ONE) || defined(_DURANGO)
+#if defined(_XBOXONE) || (defined(_XBOX_ONE) && defined(_TITLE)) || defined(_DURANGO)
   is_xbox_one = true;
+  is_xbox = true;
 #endif
-#if defined(__BEOS__) || defined(_BEOS) || defined(__BeOS)
+#if defined(__BEOS__)
   is_beos = true;
 #endif
-#if defined(__HAIKU__) || defined(__HAIKU) || defined(_HAIKU)
+#if defined(__HAIKU__)
   is_haiku = true;
+  is_beos = true;
 #endif
-#if defined(__FreeBSD__) || defined(__DragonFly__)
+#if defined(__FreeBSD__)
+  is_freebsd = true;
+  is_bsd = true;
+#elif defined(__DragonFly__)
+  is_dragonfly = true;
   is_freebsd = true;
   is_bsd = true;
 #elif defined(__NetBSD__)
   is_netbsd = true;
+  is_openbsd = true;
   is_bsd = true;
 #elif defined(__OpenBSD__)
   is_openbsd = true;
