@@ -182,6 +182,10 @@ cdefs.target_info_code = [[
   #if defined(TARGET_OS_MAC)
     is_macos = true;
   #endif
+  #if defined(TARGET_OS_MACCATALYST)
+    is_catalyst = true;
+    is_ios = true;
+  #endif
   #if defined(TARGET_OS_IPHONE)
     is_iphone = true;
   #endif
