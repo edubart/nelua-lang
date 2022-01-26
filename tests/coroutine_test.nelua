@@ -21,6 +21,9 @@ do -- basic tests
   assert(counter == 1)
   assert(coroutine.resume(co) == false)
   coroutine.destroy(co)
+
+  local invalid_co: coroutine
+  assert(coroutine.status(invalid_co) == 'dead')
 end
 
 do -- resume/yield

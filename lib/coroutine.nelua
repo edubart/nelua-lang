@@ -260,8 +260,9 @@ The status string can be any of the following:
 * `"dead"` if the coroutine has finished its body function, or if it has been destroyed.
 ]]
 function coroutine.status(co: coroutine): string
-  check(co ~= nilptr, 'invalid coroutine')
-  if co == &main_coro then -- Main coroutine.
+  if co == nilptr then
+    return 'dead'
+  elseif co == &main_coro then -- Main coroutine.
     if minicoro.running() == nilptr then
       return 'running'
     else
