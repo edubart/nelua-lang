@@ -56,13 +56,14 @@ require 'iterators'
 
   --[[
   Returns the sub span that starts at `i` (inclusive) and continues until `j` (exclusive).
-  Both `i` and `j` must be in the span bounds and the expression `i <= j` must be true.
+  Both `i` and `j-1` must be in the span bounds and the expression `i <= j` must be true.
 
   *Remarks*: When using the GC the sub span will not hold reference to the original span data,
   thus if you don't hold the original reference somewhere you will have a dangling reference.
   ]]
   function spanT:sub(i: usize, j: usize): spanT <inline,nosideeffect>
-    check(i < self.size and j <= self.size and i <= j, 'index out of range')
+    check(i >= 0 and i <= self.size and j <= self.size and i <= j, 'index out of range')
+    if unlikely(self.size == 0) then return (@spanT){} end
     if likely(j >= i) then
       return (@spanT){data=&self.data[i], size=j-i}
     end

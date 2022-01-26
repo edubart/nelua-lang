@@ -33,6 +33,8 @@ do -- sub
   assert(#s == 1 and s[0] == 3)
   s = s:sub(0,0)
   assert(#s == 0 and s.data == &arr[2])
+  s = s:sub(0,0)
+  assert(#s == 0 and s.data == nilptr)
 end
 
 do -- iterators
