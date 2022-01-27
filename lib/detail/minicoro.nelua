@@ -83,7 +83,7 @@ local minicoro_heading = [==[
 local minicoro_code = minicoro_heading..[==[
 /*
 Minimal asymmetric stackful cross-platform coroutine library in pure C.
-minicoro - v0.1.3 - 26/Jan/2022
+minicoro - v0.1.3 - 27/Jan/2022
 Eduardo Bart - edub4rt@gmail.com
 https://github.com/edubart/minicoro
 
@@ -585,11 +585,11 @@ static MCO_FORCE_INLINE void _mco_prepare_jumpin(mco_coro* co) {
 
 static MCO_FORCE_INLINE void _mco_prepare_jumpout(mco_coro* co) {
   /* Switch back to the previous running coroutine. */
-  MCO_ASSERT(mco_running() == co);
+  /* MCO_ASSERT(mco_running() == co); */
   mco_coro* prev_co = co->prev_co;
   co->prev_co = NULL;
   if(prev_co) {
-    MCO_ASSERT(prev_co->state == MCO_NORMAL);
+    /* MCO_ASSERT(prev_co->state == MCO_NORMAL); */
     prev_co->state = MCO_RUNNING;
   }
   mco_current_co = prev_co;
@@ -1592,34 +1592,36 @@ __attribute__((import_module("asyncify"), import_name("stop_unwind")))  void _as
 __attribute__((import_module("asyncify"), import_name("start_rewind"))) void _asyncify_start_rewind(void*);
 __attribute__((import_module("asyncify"), import_name("stop_rewind")))  void _asyncify_stop_rewind();
 
-static MCO_NO_INLINE void _mco_rewind_main(mco_coro* co, void* stack_region) {
-  if(stack_region != NULL) {
-    _asyncify_start_rewind(stack_region);
-  }
-  _mco_main(co); /* Run the coroutine function. */
-  _asyncify_stop_unwind();
-}
-
-MCO_NO_INLINE void _mco_jumpin(mco_coro* co) {  /* Set the old coroutine to normal state and update it. */
+MCO_NO_INLINE void _mco_jumpin(mco_coro* co) {
   _mco_context* context = (_mco_context*)co->context;
   _mco_prepare_jumpin(co);
-  _mco_rewind_main(co, context->rewind_id > 0 ? &context->stack_region : NULL);
-  context->rewind_id = context->rewind_id + 1;
+  if(context->rewind_id > 0) { /* Begin rewinding until last yield point. */
+    _asyncify_start_rewind(&context->stack_region);
+  }
+  _mco_main(co); /* Run the coroutine function. */
+  _asyncify_stop_unwind(); /* Stop saving coroutine stack. */
 }
 
 static MCO_NO_INLINE void _mco_finish_jumpout(mco_coro* co, volatile int rewind_id) {
   _mco_context* context = (_mco_context*)co->context;
-  if(rewind_id == 0 || rewind_id == context->rewind_id+1) { /* Begins unwinding the stack (save locals and call stack to rewind later) */
+  int next_rewind_id = context->rewind_id + 1;
+  if(rewind_id == next_rewind_id) { /* Begins unwinding the stack (save locals and call stack to rewind later) */
     _mco_prepare_jumpout(co);
+    context->rewind_id = next_rewind_id;
     _asyncify_start_unwind(&context->stack_region);
   } else if(rewind_id == context->rewind_id) { /* Continue from yield point. */
     _asyncify_stop_rewind();
-  } /* Otherwise let it continue */
+  }
+  /* Otherwise, we should be rewinding, let it continue... */
 }
 
 MCO_NO_INLINE void _mco_jumpout(mco_coro* co) {
   _mco_context* context = (_mco_context*)co->context;
-  /* Must use volatile otherwise rewind_id branching may be optimized away. */
+  /*
+  Save rewind point into a local, that should be restored when rewinding.
+  That is "rewind_id != co->rewind_id + 1" may be true when rewinding.
+  Use volatile here just to be safe from compiler optimizing this out.
+  */
   volatile int rewind_id = context->rewind_id + 1;
   _mco_finish_jumpout(co, rewind_id);
 }
@@ -1942,7 +1944,7 @@ mco_coro* mco_running(void) {
   return mco_current_co;
 }
 #else
-static mco_coro* _mco_running(void) {
+static MCO_NO_INLINE mco_coro* _mco_running(void) {
   return mco_current_co;
 }
 mco_coro* mco_running(void) {
