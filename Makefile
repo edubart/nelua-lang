@@ -30,8 +30,7 @@ NELUA_RUN=./$(NELUA)
 INCS=-Isrc/lua
 DEFS=-DNDEBUG
 LUA_DEFS=-DMAXRECLEVEL=400
-SRCS=src/lua/onelua.c \
-	 $(wildcard src/*.c) \
+SRCS=$(wildcard src/*.c) \
 	 $(wildcard src/lpeglabel/*.c)
 HDRS=$(wildcard src/*.h) \
 	 $(wildcard src/lua/*.h) \
