@@ -1040,6 +1040,9 @@ it("callbacks", function()
   ]],[[
     local f: function(): void
   ]])
+  expect.analyze_ast([[
+    local f: function(...: cvarargs)
+  ]])
   expect.analyze_error([[
     local F: type = @function()
     local f: F = function(x: integer) end

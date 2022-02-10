@@ -813,7 +813,7 @@ function visitors.FuncType(context, node)
   for i=1,#argnodes do
     local argnode = argnodes[i]
     local argattr
-    if argnode.is_IdDecl then
+    if argnode.is_IdDecl or argnode.is_VarargsType then
       argattr = argnode.attr
     else
       local argtype = argnode.attr.value
