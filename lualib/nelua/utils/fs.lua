@@ -228,7 +228,6 @@ function fs.tmpname()
   local ok, res = pcall(os.tmpname)
   --luacov:disable
   if not ok then -- failed to create the temporary file on Linux
-    -- probably on lights and /tmp does not exist,
     -- try to use mktemp on $TMPDIR (cross platform way)
     local file = assert(io.popen('mktemp "${TMPDIR:-/tmp}/lua_XXXXXX"'))
     res = file:read('l')

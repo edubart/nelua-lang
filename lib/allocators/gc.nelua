@@ -705,7 +705,7 @@ function GCAllocator:spanalloc(T: type, size: usize,
   if likely(size > 0) then
     local data: *[0]T = (@*[0]T)(self:alloc(size * #T, flags, finalizer, userdata))
     if likely(data ~= nilptr) then
-      return (@span(T)){data,size}
+      return (@span(T)){data=data,size=size}
     end
   end
   return (@span(T)){}
@@ -731,7 +731,7 @@ function GCAllocator:spanalloc0(T: type, size: usize,
   if likely(size > 0) then
     local data: *[0]T = (@*[0]T)(self:alloc0(size * #T, flags, finalizer, userdata))
     if likely(data ~= nilptr) then
-      return (@span(T)){data,size}
+      return (@span(T)){data=data,size=size}
     end
   end
   return (@span(T)){}

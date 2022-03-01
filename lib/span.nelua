@@ -42,6 +42,19 @@ require 'iterators'
       return true
     end
     return false, string.format("no viable conversion from '%s' to '%s'", x.type, spanT)
+  end, function(node)
+    if node.tag == 'InitList' and #node > 0 then -- has values
+      local has_pair = false
+      for i=1,#node do
+        if node[i].is_Pair then
+          has_pair = true
+          break
+        end
+      end
+      if not has_pair then -- unnamed values
+        return types.PointerType(types.ArrayType(T, #node))
+      end
+    end
   end)]#
 
   -- Returns `true` if the span is empty, that is, its length is `0`.
@@ -94,7 +107,7 @@ require 'iterators'
     ## else
       if #values > 0 then
         self.data = (@*[0]T)(&values[#[values.type.subtype.is_sequence and 1 or 0]#])
-        self.size = (@usize)(#$values)
+        self.size = (@usize)(#values)
       end
     ## end
     return self

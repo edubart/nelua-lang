@@ -442,6 +442,13 @@ function visitors.InitList(context, node, opts)
         local listtype = argtype:get_desired_type_from_node(node)
         if listtype then
           desiredtype = listtype
+          if desiredtype.is_pointer then
+            local clone = node:clone()
+            clone.attr.desiredtype = desiredtype.subtype
+            local newnode = aster.UnaryOp{'ref', clone}
+            context:transform_and_traverse_node(node, newnode)
+            return
+          end
         end
       end
     end
@@ -3198,8 +3205,8 @@ function visitors.UnaryOp(context, node, opts)
   if opname == 'ref' then
     if argtype then
       if not argattr.lvalue and
-        not (argtype.is_aggregate and argnode.attr.calleetype == primtypes.type) then
-        node:raisef("in unary operation `%s`: cannot reference rvalues", opname)
+        not (argtype.is_aggregate and (argnode.attr.calleetype == primtypes.type or argnode.is_InitList)) then
+        node:raisef("in unary operation `%s`: cannot reference rvalue of type '%s'", opname, argtype)
       end
       argattr.refed = true
     end

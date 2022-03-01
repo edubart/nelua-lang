@@ -164,7 +164,7 @@ require 'span'
     if likely(size > 0) then
       local data: *[0]T = (@*[0]T)(self:alloc(size * #T))
       if likely(data ~= nilptr) then
-        return (@span(T)){data,size}
+        return (@span(T)){data=data,size=size}
       end
     end
     return (@span(T)){}
@@ -184,7 +184,7 @@ require 'span'
     if likely(size > 0) then
       local data: *[0]T = (@*[0]T)(self:alloc0(size * #T))
       if likely(data ~= nilptr) then
-        return (@span(T)){data,size}
+        return (@span(T)){data=data,size=size}
       end
     end
     return (@span(T)){}

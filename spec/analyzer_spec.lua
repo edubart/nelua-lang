@@ -273,16 +273,16 @@ it("unary operators", function()
   expect.analyze_error([[
     local function f(): integer return 1 end
     local a = &f()
-  ]], "cannot reference rvalues")
+  ]], "cannot reference rvalue")
   expect.analyze_error([[
     local function f(i: *cint) return $i end
     local x: integer = 1
     f(&(@cint)(x))
-  ]], "cannot reference rvalues")
+  ]], "cannot reference rvalue")
   expect.analyze_error([[
     local i = 1
     local a = &(-i)
-  ]], "cannot reference rvalues")
+  ]], "cannot reference rvalue")
   expect.analyze_error("local x: niltype; local b = &x", "cannot reference not addressable type")
   expect.analyze_error("local a = -'s'", "invalid operation")
   expect.ast_type_equals([[
