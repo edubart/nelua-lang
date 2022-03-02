@@ -2091,6 +2091,12 @@ it("array bounds checking", function()
 end)
 
 it("arrays inside records", function()
+  expect.generate_c([[
+    local R = @record{a: [4]integer}
+    local r: R
+    local pr: *R = &r
+    local x = pr.a[0]
+  ]], [[x = pr->a[0];]])
   expect.run_c([[
     local R = @record{v: [4]integer}
     local a: R
