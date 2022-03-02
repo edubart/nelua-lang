@@ -78,16 +78,26 @@ function hash.hash(v: auto): usize <nosideeffect>
     return hash.long({data=(@*[0]byte)(v.data), size=(@usize)(#T * #v)})
   ## elseif v.type.is_record and v.type.metafields.__hash then
     return v:__hash()
+  ## elseif v.type.is_union then
+    return hash.long({data=(@*[0]byte)(&v), size=# #[v.type]#})
   ## elseif v.type.is_record then
-    local h: usize = 0
-    ## for _,field in ipairs(v.type.fields) do -- hash all fields
-      h = hash.combine(h, hash.hash(v.#|field.name|#))
+    local h: usize
+    ## for i,field in ipairs(v.type.fields) do -- hash all fields
+      local hf: usize = hash.hash(v.#|field.name|#)
+      ## if i == 1 then
+        h = hf
+      ## else
+        h = hash.combine(h, hf)
+      ## end
     ## end
     return h
   ## elseif v.type.is_array then
     local h: usize = 0
-    for i:isize=0,<#v do -- hash all elements
-      h = hash.combine(h, hash.hash(v[i]))
+    if #v > 0 then -- hash all elements
+      h = hash.hash(v[0])
+      for i:isize=1,<#v do
+        h = hash.combine(h, v[i])
+      end
     end
     return h
   ## elseif v.type.is_nilptr or v.type.is_niltype then

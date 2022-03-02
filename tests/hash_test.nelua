@@ -31,6 +31,13 @@ do -- hash records
   assert(hash.hash(a) ~= hash.hash(b))
 end
 
+do -- hash unions
+  local U = @union{i: int64, f: float32}
+  local a: U = {i=1}
+  local b: U = {f=1}
+  assert(hash.hash(a) ~= hash.hash(b))
+end
+
 do -- hash arrays
   local a: [4]integer = {1,2,3,4}
   local b: [4]integer = {5,6,7,8}
