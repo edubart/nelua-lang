@@ -33,6 +33,8 @@ end
 do -- sub
   local arr: [4]integer = {1,2,3,4}
   local s: span(integer) = &arr
+  s = s:sub(0,#s):sub(0,#s)
+  assert(#s == 4)
   s = s:sub(2,#s)
   assert(#s == 2 and s[0] == 3 and s[1] == 4)
   s = s:sub(0,1)

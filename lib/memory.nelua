@@ -174,9 +174,13 @@ function memory.spanset(dest: an_span, x: auto): void <inline>
     if likely(dest.size > 0) then
       memset(dest.data, (@byte)(x), dest.size)
     end
-  ## else
+  ## elseif x.type.is_aggregate then -- record, union or array
     for i:usize=0,<dest.size do
       memcpy(&dest[i], &x, #T)
+    end
+  ## else
+    for i:usize=0,<dest.size do
+      dest[i] = x
     end
   ## end
 end

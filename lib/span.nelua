@@ -58,12 +58,12 @@ require 'iterators'
   end)]#
 
   -- Returns `true` if the span is empty, that is, its length is `0`.
-  function spanT:empty(): boolean <inline,nosideeffect>
+  function spanT.empty(self: spanT): boolean <inline,nosideeffect>
     return self.size == 0
   end
 
   -- Returns `true` if the span is not empty and has a valid data pointer.
-  function spanT:valid(): boolean <inline,nosideeffect>
+  function spanT.valid(self: spanT): boolean <inline,nosideeffect>
     return self.size > 0 and self.data ~= nilptr
   end
 
@@ -74,7 +74,7 @@ require 'iterators'
   *Remarks*: When using the GC the sub span will not hold reference to the original span data,
   thus if you don't hold the original reference somewhere you will have a dangling reference.
   ]]
-  function spanT:sub(i: usize, j: usize): spanT <inline,nosideeffect>
+  function spanT.sub(self: spanT, i: usize, j: usize): spanT <inline,nosideeffect>
     check(i >= 0 and i <= self.size and j <= self.size and i <= j, 'index out of range')
     if unlikely(self.size == 0) then return (@spanT){} end
     if likely(j >= i) then
@@ -88,13 +88,13 @@ require 'iterators'
   Argument `i` must be less than span size.
   Used when indexing elements with square brackets (`[]`).
   ]]
-  function spanT:__atindex(i: usize): *T <inline,nosideeffect>
+  function spanT.__atindex(self: spanT, i: usize): *T <inline,nosideeffect>
     check(i < self.size, 'index out of range')
     return &self.data[i]
   end
 
   -- Returns the number of elements in the span.
-  function spanT:__len(): isize <inline,nosideeffect>
+  function spanT.__len(self: spanT): isize <inline,nosideeffect>
     return (@isize)(self.size)
   end
 
