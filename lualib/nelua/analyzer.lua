@@ -3163,6 +3163,17 @@ local function override_unary_op(context, node, opname, objnode, objtype)
   return true
 end
 
+local disallowed_deref_ops = {
+  ['ne'] = true,
+  ['eq'] = true,
+  ['or'] = true,
+  ['and'] = true,
+  ['not'] = true,
+  ['deref'] = true,
+  ['ref'] = true,
+}
+
+
 function visitors.UnaryOp(context, node, opts)
   local attr = node.attr
   local opname, argnode = node[1], node[2]
@@ -3186,6 +3197,9 @@ function visitors.UnaryOp(context, node, opts)
   local argtype = argattr.type
   local type
   if argtype then
+    if argtype.is_pointer and argtype.subtype.is_composite and not disallowed_deref_ops[opname] then
+      argtype = argtype.subtype
+    end
     if override_unary_op(context, node, opname, argnode, argtype) then
       return
     end
@@ -3297,6 +3311,12 @@ function visitors.BinaryOp(context, node, opts)
   local ltype, rtype = lattr.type, rattr.type
   local type
   if ltype and rtype then
+    if ltype.is_pointer and rtype.is_pointer and not disallowed_deref_ops[opname] and
+       ltype.subtype.is_composite and rtype.subtype.is_composite then
+      -- auto dereference for binary operation on pointers
+      ltype = ltype.subtype
+      rtype = rtype.subtype
+    end
     if not wantsboolean and isbinaryconditional and
       (not rtype.is_boolean or not ltype.is_boolean) then
       attr.dynamic_conditional = true

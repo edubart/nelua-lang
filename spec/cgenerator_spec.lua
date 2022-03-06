@@ -3571,6 +3571,20 @@ it("concepts", function()
     assert(foo:f() == 1)
     assert(foo:g() == 1)
   ]=])
+  expect.run_c([=[
+    local NumR = @record{v: int32}
+    local Num = @*NumR
+    function Num.__add(a: Num, b: Num)
+      return a.v + b.v
+    end
+    function Num.__unm(a: Num)
+      return -a.v
+    end
+    local ar, br = NumR{1}, NumR{2}
+    local a, b = &ar, &br
+    assert(a + b == 3)
+    assert(-a == -1)
+  ]=])
 end)
 
 it("generics", function()
