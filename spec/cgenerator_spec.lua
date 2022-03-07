@@ -2697,6 +2697,12 @@ it("automatic reference", function()
       assert(f(a) == 1)
       assert(f(a) == 1)
     end
+
+    do
+      local R = @record{x: integer}
+      local function f(r: *R) return r.x end
+      assert(f(R{2}) == 2)
+    end
   ]])
 end)
 

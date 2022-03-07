@@ -1617,6 +1617,11 @@ it("automatic referencing", function()
     ga(a)
     ha(a)
   ]])
+  expect.analyze_ast([[
+    local R = @record{x: integer}
+    local function fr(x: *R) end
+    fr(R{})
+  ]])
   expect.analyze_error(
     [[local p: pointer(integer); local a: integer; p = a]],
     "no viable type conversion")
@@ -1648,11 +1653,6 @@ it("automatic referencing", function()
     local function f(): R return R{} end
     p = f()
   ]], 'no viable type conversion')
-  expect.analyze_error([[
-    local R = @record{x: integer}
-    local function fr(x: *R) end
-    fr(R{})
-  ]], 'cannot automatic reference rvalue')
 end)
 
 it("automatic dereferencing", function()

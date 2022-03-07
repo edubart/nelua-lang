@@ -3218,8 +3218,11 @@ function visitors.UnaryOp(context, node, opts)
   end
   if opname == 'ref' then
     if argtype then
-      if not argattr.lvalue and
-        not (argtype.is_aggregate and (argnode.attr.calleetype == primtypes.type or argnode.is_InitList)) then
+      if not argattr.lvalue and argtype.is_aggregate and
+        (argnode.attr.calleetype == primtypes.type or argnode.is_InitList) then
+        -- allow referencing temporary records/arrays
+        argattr.promotelvalue = true
+      elseif not argattr.lvalue then
         node:raisef("in unary operation `%s`: cannot reference rvalue of type '%s'", opname, argtype)
       end
       argattr.refed = true

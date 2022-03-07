@@ -2298,9 +2298,14 @@ function PointerType:get_convertible_from_attr(attr, explicit, autoref)
       (selfsubtype.is_unbounded_array and type.is_array and selfsubtype.subtype == type.subtype) then
       -- implicit automatic reference for records and arrays
       if not attr.lvalue then -- can only reference l-values
-        return false, string.format(
-          'cannot automatic reference rvalue of type "%s" to pointer type "%s"',
-          type, self)
+        if type.is_aggregate and attr.calleetype == primtypes.type then
+          -- promote expression to a lvalue
+          attr.promotelvalue = true
+        else
+          return false, string.format(
+            'cannot automatic reference rvalue of type "%s" to pointer type "%s"',
+            type, self)
+        end
       end
       attr.refed = true
       return self, true
