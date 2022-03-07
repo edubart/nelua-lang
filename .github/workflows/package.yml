@@ -30,7 +30,7 @@ jobs:
         fetch-depth: 0
     - name: Install musl
       if: ${{ matrix.os == 'ubuntu-latest' }}
-      run: sudo apt-get install musl-tools
+      run: sudo apt-get update && sudo apt-get install musl-tools
     - name: Package
       shell: bash
       run: make package CC=${{matrix.cc}} CFLAGS="${{matrix.cflags}}"

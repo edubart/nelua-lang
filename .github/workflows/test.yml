@@ -45,7 +45,7 @@ jobs:
     steps:
     - uses: actions/checkout@master
     - name: Install dependencies
-      run: sudo apt-get install gcc-multilib
+      run: sudo apt-get update && sudo apt-get install gcc-multilib
     - name: Compile
       run: make
     - name: Test
