@@ -1,6 +1,6 @@
 # Nelua's Lua Interpreter
 
-This is the Lua 5.4.3 interpreter used by Nelua, with the following changes:
+This is the Lua 5.4.4 interpreter used by Nelua, with the following changes:
 
 * Uses rpmalloc as the default memory allocator (usually much faster than the system's default memory allocator).
 * Libraries "hasher", "sys" and "lfs" are built-in (they are required by Nelua compiler).
