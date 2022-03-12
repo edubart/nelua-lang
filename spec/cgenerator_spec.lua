@@ -479,7 +479,7 @@ it("for", function()
   expect.generate_c([[
   local last <const> = -1
   for i=5,0,last do end
-  ]], "for(int64_t i = 5, _end = 0, _step = last; _step >= 0 ? i <= _end : i >= _end; i = i + _step)")
+  ]], "for(int64_t i = 5, _end = 0; _step >= 0 ? i <= _end : i >= _end; i = i + last)")
   expect.run_c([[
     local x = 0
     for i=1,10 do x = x + 1 end
