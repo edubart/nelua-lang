@@ -2133,6 +2133,20 @@ it("arrays inside records", function()
     local v = (@[4]integer){1,2,3,4}
     local a: R = {v=v}
     assert(a.v[0] == 1 and a.v[1] == 2 and a.v[2] == 3 and a.v[3] == 4)
+
+    do
+      local obj: record{m: [8][8]int32, pm: *[8][8]int32}
+      obj.pm = &obj.m
+      assert(obj.pm[0][0] == 0)
+      assert(&obj.m[0][0] == &obj.pm[0][0])
+    end
+
+    do
+      local obj: record{v: [8]int32, pv: *[8]int32}
+      obj.pv = &obj.v
+      assert(obj.pv[0] == 0)
+      assert(&obj.v[0] == &obj.pv[0])
+    end
   ]])
 end)
 

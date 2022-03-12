@@ -759,8 +759,8 @@ function visitors.KeyIndex(context, node, emitter)
       end
     end
     if (pointer and objtype.length == 0) or -- unbounded array
-       (objnode.is_KeyIndex and objnode.attr.type.is_array) or -- multidimensional index
-       (topobjnode.is_DotIndex and topobjnode[2].attr.type:implicit_deref_type().is_composite) then
+       (not pointer and objnode.is_KeyIndex and objnode.attr.type.is_array) or -- multidimensional index
+       (not pointer and topobjnode.is_DotIndex and topobjnode[2].attr.type:implicit_deref_type().is_composite) then
       -- record/union array field
       objattr.arrayindex = true
       emitter:add(objnode, '[')
