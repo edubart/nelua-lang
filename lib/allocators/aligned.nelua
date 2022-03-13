@@ -1,0 +1,68 @@
+--[[
+The aligned allocator wraps another allocator to support aligned allocations.
+
+In most platforms the default allocator perform allocations aligned to the size
+of the largest primitive type (usually 16), however in some situations you may
+want to allocate a memory with higher alignment requirements so the CPU can perform
+memory operations using SIMD instructions. This allocator can be used in such situations.
+]]
+
+require 'allocators.allocator'
+
+-- Aligns an address.
+local function align_forward(addr: usize, align: usize): usize <inline>
+  return (addr + (align-1)) & ~(align-1)
+end
+
+## local function make_AlignedAllocatorT(WrappedAllocator, ALIGN)
+  ## static_assert(ALIGN and ALIGN & (ALIGN-1) == 0, 'align must be a power of two')
+  ## static_assert(ALIGN >= primtypes.usize.size, 'align must be greater than '..primtypes.pointer.size)
+
+  local WrappedAllocator: type = #[WrappedAllocator]#
+  local SIZE <comptime> = #[SIZE]#
+  local ALIGN <comptime> = #[ALIGN]#
+
+  -- Aligned allocator record defined when instantiating the generic `AlignedAllocator`.
+  local AlignedAllocatorT: type = @record{
+    allocator: WrappedAllocator
+  }
+
+  --[[
+  Allocates `size` bytes and returns a pointer to the allocated memory block.
+  The address of the allocated memory is guaranteed to a multiple of `ALIGN`.
+
+  The allocated memory is not initialized.
+  If `size` is zero or the operation fails, then returns `nilptr`.
+  ]]
+  function AlignedAllocatorT:alloc(size: usize): pointer
+    local origp: pointer = self.allocator:alloc(size + ALIGN)
+    if not origp then return nilptr end
+    local addr: usize = align_forward((@usize)(origp) + #@pointer, ALIGN)
+    local header: *pointer = (@*pointer)(addr - #@pointer)
+    $header = origp
+    return (@pointer)(addr)
+  end
+
+  -- Deallocates the allocated memory block pointed by `p`.
+  function AlignedAllocatorT:dealloc(p: pointer): void
+    if unlikely(p == nilptr) then return end
+    local header: *pointer = (@*pointer)((@usize)(p) - #@pointer)
+    self.allocator:dealloc($header)
+  end
+
+  --TODO: optimized realloc
+
+  ## implement_allocator_interface(AlignedAllocatorT)
+
+  ## return AlignedAllocatorT
+## end
+
+--[[
+Generic used to instantiate a aligned allocator type in the form of `AlignedAllocator(Allocator, ALIGN)`.
+
+Argument `Allocator` is the allocator to be wrapped, typically `DefaultAllocator`.
+Argument `ALIGN` is the default alignment for new allocations, must be in power of two.
+]]
+global AlignedAllocator: type = #[generalize(make_AlignedAllocatorT)]#
+
+return AlignedAllocator

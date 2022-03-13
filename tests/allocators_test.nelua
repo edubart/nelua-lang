@@ -2,6 +2,8 @@ require 'allocators.arena'
 require 'allocators.stack'
 require 'allocators.pool'
 require 'allocators.heap'
+require 'allocators.aligned'
+require 'allocators.general'
 require 'vector'
 
 do -- Arena
@@ -103,6 +105,15 @@ do -- Heap
   end
   vb:destroy()
   va:destroy()
+end
+
+do -- Aligned
+  local allocator: AlignedAllocator(GeneralAllocator, 256)
+  for i=1,256 do
+    local a = allocator:alloc0(1)
+    assert((@usize)(a) & 0xff == 0)
+    allocator:dealloc(a)
+  end
 end
 
 print 'allocators OK!'
