@@ -93,7 +93,7 @@ compilers_flags.cc = {
 }
 -- GCC
 compilers_flags.gcc = tabler.updatecopy(compilers_flags.cc, {
-  cflags_base = "-pipe -fwrapv -fno-strict-aliasing",
+  cflags_base = "-fwrapv -fno-strict-aliasing",
   cflags_sanitize = "-Wall -Wextra -fsanitize=address,undefined",
   cflags_devel = "-g",
   cflags_debug = "-fsanitize-undefined-trap-on-error -ggdb",
