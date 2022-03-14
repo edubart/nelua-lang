@@ -35,7 +35,7 @@ end
   If `size` is zero or the operation fails, then returns `nilptr`.
   ]]
   function AlignedAllocatorT:alloc(size: usize): pointer
-    local origp: pointer = self.allocator:alloc(size + ALIGN)
+    local origp: pointer = self.allocator:alloc(size + (@usize)(#@pointer + ALIGN - 1))
     if not origp then return nilptr end
     local addr: usize = align_forward((@usize)(origp) + #@pointer, ALIGN)
     local header: *pointer = (@*pointer)(addr - #@pointer)
@@ -43,11 +43,19 @@ end
     return (@pointer)(addr)
   end
 
+  --[[
+  Get pointer to the real allocated block, this may be used with the GC to mark
+  references to real allocations.
+  ]]
+  function AlignedAllocatorT:get_realptr(p: pointer)
+    if unlikely(p == nilptr) then return nilptr end
+    return $(@*pointer)((@usize)(p) - #@pointer)
+  end
+
   -- Deallocates the allocated memory block pointed by `p`.
   function AlignedAllocatorT:dealloc(p: pointer): void
     if unlikely(p == nilptr) then return end
-    local header: *pointer = (@*pointer)((@usize)(p) - #@pointer)
-    self.allocator:dealloc($header)
+    self.allocator:dealloc(self:get_realptr(p))
   end
 
   --TODO: optimized realloc
