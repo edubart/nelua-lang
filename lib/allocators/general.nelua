@@ -21,7 +21,7 @@ For more details see `Allocator:alloc`.
 
 This function calls system's `malloc()`.
 ]]
-function GeneralAllocator:alloc(size: usize): pointer <inline>
+function GeneralAllocator:alloc(size: usize, flags: facultative(usize)): pointer <inline>
   ## if embedded_general_allocator then
     return embedded_general_allocator:alloc(size)
   ## else
@@ -36,7 +36,7 @@ Like `alloc`, but the allocated memory is initialized with zeros.
 
 This function calls system's `calloc()`.
 ]]
-function GeneralAllocator:alloc0(size: usize): pointer <inline>
+function GeneralAllocator:alloc0(size: usize, flags: facultative(usize)): pointer <inline>
   ## if embedded_general_allocator then
     return embedded_general_allocator:alloc0(size)
   ## else
@@ -88,6 +88,6 @@ end
 
 require 'allocators.allocator'
 
-## implement_allocator_interface(GeneralAllocator)
+## Allocator_implement_interface(GeneralAllocator)
 
 return GeneralAllocator

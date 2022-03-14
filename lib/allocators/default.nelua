@@ -22,8 +22,8 @@ unused memory from the default allocator.
 Shorthand for `default_allocator:new`.
 For details see also `Allocator:new`.
 ]]
-global function new(what: auto, size: facultative(usize)): auto
-  return default_allocator:new(what, size)
+global function new(what: auto, size: facultative(usize), flags: facultative(usize)): auto
+  return default_allocator:new(what, size, flags)
 end
 
 --[[

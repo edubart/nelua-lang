@@ -64,7 +64,7 @@ require 'allocators.allocator'
   If `size` is zero, then the operation fails.
   If the operation fails, then returns `nilptr`.
   ]]
-  function PoolAllocatorT:alloc(size: usize): pointer
+  function PoolAllocatorT:alloc(size: usize, flags: facultative(usize)): pointer
     if unlikely(size > #PoolChunkT or size == 0) then return nilptr end
     local node: *PoolFreeNode = self.head -- get the latest free node
     -- the node will be nilptr if not initialized or out of memory
@@ -125,7 +125,7 @@ require 'allocators.allocator'
     end
   end
 
-  ## implement_allocator_interface(PoolAllocatorT)
+  ## Allocator_implement_interface(PoolAllocatorT)
 
   ## return PoolAllocatorT
 ## end

@@ -34,8 +34,8 @@ end
   The allocated memory is not initialized.
   If `size` is zero or the operation fails, then returns `nilptr`.
   ]]
-  function AlignedAllocatorT:alloc(size: usize): pointer
-    local origp: pointer = self.allocator:alloc(size + (@usize)(#@pointer + ALIGN - 1))
+  function AlignedAllocatorT:alloc(size: usize, flags: facultative(usize)): pointer
+    local origp: pointer = self.allocator:alloc(size + (@usize)(#@pointer + ALIGN - 1), flags)
     if not origp then return nilptr end
     local addr: usize = align_forward((@usize)(origp) + #@pointer, ALIGN)
     local header: *pointer = (@*pointer)(addr - #@pointer)
@@ -60,7 +60,7 @@ end
 
   --TODO: optimized realloc
 
-  ## implement_allocator_interface(AlignedAllocatorT)
+  ## Allocator_implement_interface(AlignedAllocatorT)
 
   ## return AlignedAllocatorT
 ## end

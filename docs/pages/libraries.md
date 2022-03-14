@@ -1522,48 +1522,48 @@ local spanT: type = @record{
 
 Span record defined when instantiating the generic `span` with type `T`.
 
-### spanT:empty
+### spanT.empty
 
 ```nelua
-function spanT:empty(): boolean
+function spanT.empty(self: spanT): boolean
 ```
 
 Returns `true` if the span is empty, that is, its length is `0`.
 
-### spanT:valid
+### spanT.valid
 
 ```nelua
-function spanT:valid(): boolean
+function spanT.valid(self: spanT): boolean
 ```
 
 Returns `true` if the span is not empty and has a valid data pointer.
 
-### spanT:sub
+### spanT.sub
 
 ```nelua
-function spanT:sub(i: usize, j: usize): spanT
+function spanT.sub(self: spanT, i: usize, j: usize): spanT
 ```
 
 Returns the sub span that starts at `i` (inclusive) and continues until `j` (exclusive).
-Both `i` and `j` must be in the span bounds and the expression `i <= j` must be true.
+Both `i` and `j-1` must be in the span bounds and the expression `i <= j` must be true.
 
 *Remarks*: When using the GC the sub span will not hold reference to the original span data,
 thus if you don't hold the original reference somewhere you will have a dangling reference.
 
-### spanT:__atindex
+### spanT.__atindex
 
 ```nelua
-function spanT:__atindex(i: usize): *T
+function spanT.__atindex(self: spanT, i: usize): *T
 ```
 
 Returns the reference of element at index `i`.
 Argument `i` must be less than span size.
 Used when indexing elements with square brackets (`[]`).
 
-### spanT:__len
+### spanT.__len
 
 ```nelua
-function spanT:__len(): isize
+function spanT.__len(self: spanT): isize
 ```
 
 Returns the number of elements in the span.
@@ -3607,7 +3607,7 @@ unused memory from the default allocator.
 ### new
 
 ```nelua
-global function new(what: auto, size: facultative(usize)): auto
+global function new(what: auto, size: facultative(usize), flags: facultative(usize)): auto
 ```
 
 Shorthand for `default_allocator:new`.
@@ -3636,6 +3636,19 @@ allocators.
 
 Allocation failures usually happen when running out of memory.
 
+### AllocatorFlags
+
+```nelua
+global AllocatorFlags: type = @enum(usize){
+  GCRoot = 1 << 17, -- Allocation always scanned and never collected.
+  GCLeaf = 1 << 18, -- Allocation never scanned (contains no pointers).
+  GCBranch = 1 << 19, -- Allocation should be scanned despite being detected as leaf (contains pointers).
+  GCExtern = 1 << 20, -- External allocation, finalizers should be called, however deallocation is disabled.
+}
+```
+
+Flags for new allocations.
+
 ### Allocator
 
 ```nelua
@@ -3647,18 +3660,19 @@ The allocator type which the allocator interface will implements the methods.
 ### Allocator:alloc
 
 ```nelua
-function Allocator:alloc(size: usize): pointer
+function Allocator:alloc(size: usize, flags: facultative(usize)): pointer
 ```
 
 Allocates `size` bytes and returns a pointer of the allocated memory block.
 
 - The allocated memory is not initialized.
 - If `size` is zero or the operation fails, then returns `nilptr`.
+- If `flags` is present, then it is passed as flags to the underlying allocator.
 
 ### Allocator:xalloc
 
 ```nelua
-function Allocator:xalloc(size: usize): pointer
+function Allocator:xalloc(size: usize, flags: facultative(usize)): pointer
 ```
 
 Like `alloc`, but raises an error in case the allocation fails.
@@ -3666,7 +3680,7 @@ Like `alloc`, but raises an error in case the allocation fails.
 ### Allocator:alloc0
 
 ```nelua
-function Allocator:alloc0(size: usize): pointer
+function Allocator:alloc0(size: usize, flags: facultative(usize)): pointer
 ```
 
 Like `alloc`, but the allocated memory is initialized with zeros.
@@ -3674,7 +3688,7 @@ Like `alloc`, but the allocated memory is initialized with zeros.
 ### Allocator:xalloc0
 
 ```nelua
-function Allocator:xalloc0(size: usize): pointer
+function Allocator:xalloc0(size: usize, flags: facultative(usize)): pointer
 ```
 
 Like `alloc0`, but raises an error in case the allocation fails.
@@ -3740,7 +3754,7 @@ Like `realloc0`, but raises an error in case the allocation fails.
 ### Allocator:spanalloc
 
 ```nelua
-function Allocator:spanalloc(T: type, size: usize): auto
+function Allocator:spanalloc(T: type, size: usize, flags: facultative(usize)): auto
 ```
 
 Like `alloc`, but returns a span of `T` with `size` elements.
@@ -3751,7 +3765,7 @@ Like `alloc`, but returns a span of `T` with `size` elements.
 ### Allocator:xspanalloc
 
 ```nelua
-function Allocator:xspanalloc(T: type, size: usize): auto
+function Allocator:xspanalloc(T: type, size: usize, flags: facultative(usize)): auto
 ```
 
 Like `spanalloc`, but raises an error in case the allocation fails.
@@ -3759,7 +3773,7 @@ Like `spanalloc`, but raises an error in case the allocation fails.
 ### Allocator:spanalloc0
 
 ```nelua
-function Allocator:spanalloc0(T: type, size: usize): auto
+function Allocator:spanalloc0(T: type, size: usize, flags: facultative(usize)): auto
 ```
 
 Like `spanalloc`, but initializes added memory with zeros.
@@ -3767,7 +3781,7 @@ Like `spanalloc`, but initializes added memory with zeros.
 ### Allocator:xspanalloc0
 
 ```nelua
-function Allocator:xspanalloc0(T: type, size: usize): auto
+function Allocator:xspanalloc0(T: type, size: usize, flags: facultative(usize)): auto
 ```
 
 Like `spanalloc0`, but raises an error in case the allocation fails.
@@ -3820,7 +3834,7 @@ Like `spanrealloc0`, but raises an error in case the allocation fails.
 ### Allocator:new
 
 ```nelua
-function Allocator:new(what: auto, size: facultative(usize)): auto
+function Allocator:new(what: auto, size: facultative(usize), flags: facultative(usize)): auto
 ```
 
 Allocates a new value.
@@ -3877,7 +3891,7 @@ General allocator instance, that must be used to perform allocations.
 ### GeneralAllocator:alloc
 
 ```nelua
-function GeneralAllocator:alloc(size: usize): pointer
+function GeneralAllocator:alloc(size: usize, flags: facultative(usize)): pointer
 ```
 
 Allocates `size` bytes and returns a pointer of the allocated memory block.
@@ -3890,7 +3904,7 @@ This function calls system's `malloc()`.
 ### GeneralAllocator:alloc0
 
 ```nelua
-function GeneralAllocator:alloc0(size: usize): pointer
+function GeneralAllocator:alloc0(size: usize, flags: facultative(usize)): pointer
 ```
 
 Like `alloc`, but the allocated memory is initialized with zeros.
@@ -3950,10 +3964,11 @@ Values smaller than 100 mean the collector will not wait to start a new cycle.
 
 ```nelua
 global GCFlags: type = @enum(usize) {
-  MARK = 1, -- Marked for collection (used only internally).
-  ROOT = 2, -- Allocation always scanned and it is never collected.
-  LEAF = 4, -- Allocation never scanned, that is, contains no pointers.
-  EXTERN = 8, -- External allocation, used to scan external allocations.
+  MARK = 1 << 16, -- Marked for collection (used only internally).
+  ROOT = AllocatorFlags.GCRoot, -- Allocation always scanned and never collected.
+  LEAF = AllocatorFlags.GCLeaf, -- Allocation never scanned (contains no pointers).
+  BRANCH = AllocatorFlags.GCBranch, -- Allocation should be scanned despite being detected as leaf (contains pointers).
+  EXTERN = AllocatorFlags.GCExtern, -- External allocation, finalizers should be called, however deallocation is disabled.
 }
 ```
 
@@ -4233,7 +4248,7 @@ Like `spanalloc0`, but initializes added memory with zeros.
 ### GCAllocator:new
 
 ```nelua
-function GCAllocator:new(what: auto, size: facultative(usize)): auto
+function GCAllocator:new(what: auto, size: facultative(usize), flags: facultative(usize)): auto
 ```
 
 Allocates a new value.
@@ -4293,7 +4308,7 @@ Arena allocator record defined when instantiating the generic `ArenaAllocator`.
 ### ArenaAllocatorT:alloc
 
 ```nelua
-function ArenaAllocatorT:alloc(size: usize): pointer
+function ArenaAllocatorT:alloc(size: usize, flags: facultative(usize)): pointer
 ```
 
 Allocates `size` bytes and returns a pointer to the allocated memory block,
@@ -4383,7 +4398,7 @@ Stack allocator record defined when instantiating the generic `StackAllocator`.
 ### StackAllocatorT:alloc
 
 ```nelua
-function StackAllocatorT:alloc(size: usize): pointer
+function StackAllocatorT:alloc(size: usize, flags: facultative(usize)): pointer
 ```
 
 Allocates `size` bytes and returns a pointer to the allocated memory block,
@@ -4469,7 +4484,7 @@ Pool allocator record defined when instantiating the generic `PoolAllocator`.
 ### PoolAllocatorT:alloc
 
 ```nelua
-function PoolAllocatorT:alloc(size: usize): pointer
+function PoolAllocatorT:alloc(size: usize, flags: facultative(usize)): pointer
 ```
 
 Allocates `size` bytes and returns a pointer to the allocated memory block,
@@ -4575,7 +4590,7 @@ Initializes the heap allocator, called automatically on first `alloc`/`realloc`.
 ### HeapAllocatorT:alloc
 
 ```nelua
-function HeapAllocatorT:alloc(size: usize): pointer
+function HeapAllocatorT:alloc(size: usize, flags: facultative(usize)): pointer
 ```
 
 Allocates `size` bytes and returns a pointer to the allocated memory block.

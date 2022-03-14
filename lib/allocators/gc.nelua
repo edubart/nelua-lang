@@ -71,10 +71,11 @@ end
 
 -- Possible flags to set when registering a new pointer in the allocator.
 global GCFlags: type = @enum(usize) {
-  MARK = 1, -- Marked for collection (used only internally).
-  ROOT = 2, -- Allocation always scanned and it is never collected.
-  LEAF = 4, -- Allocation never scanned, that is, contains no pointers.
-  EXTERN = 8, -- External allocation, used to scan external allocations.
+  MARK = 1 << 16, -- Marked for collection (used only internally).
+  ROOT = AllocatorFlags.GCRoot, -- Allocation always scanned and never collected.
+  LEAF = AllocatorFlags.GCLeaf, -- Allocation never scanned (contains no pointers).
+  BRANCH = AllocatorFlags.GCBranch, -- Allocation should be scanned despite being detected as leaf (contains pointers).
+  EXTERN = AllocatorFlags.GCExtern, -- External allocation, finalizers should be called, however deallocation is disabled.
 }
 
 -- GC finalizer callback.
@@ -616,7 +617,7 @@ function GCAllocator:alloc(size: usize,
   ## if userdata.type.is_niltype then
   local userdata: pointer = nilptr
   ## end
-  local ptr: pointer = general_allocator:alloc(size)
+  local ptr: pointer = general_allocator:alloc(size, flags)
   gc:register(ptr, size, flags, finalizer, userdata)
   return ptr
 end
@@ -636,7 +637,7 @@ function GCAllocator:alloc0(size: usize,
   ## if userdata.type.is_niltype then
   local userdata: pointer = nilptr
   ## end
-  local ptr: pointer = general_allocator:alloc0(size)
+  local ptr: pointer = general_allocator:alloc0(size, flags)
   gc:register(ptr, size, flags, finalizer, userdata)
   return ptr
 end
@@ -690,12 +691,7 @@ function GCAllocator:spanalloc(T: type, size: usize,
                                flags: facultative(usize),
                                finalizer: facultative(function(pointer, pointer): void),
                                userdata: facultative(pointer)): auto
-  ## if flags.type.is_niltype then
-  local flags: usize = 0
-  ## end
-  ## if not T.value:has_pointer() then
-  flags = GCFlags.LEAF -- skip scanning the allocated memory
-  ## end
+  ## Allocator_parse_type_flags(flags, T)
   ## if finalizer.type.is_niltype then
   local finalizer: GCFinalizerCallback = nilptr
   ## end
@@ -716,12 +712,7 @@ function GCAllocator:spanalloc0(T: type, size: usize,
                                 flags: facultative(usize),
                                 finalizer: facultative(function(pointer, pointer): void),
                                 userdata: facultative(pointer)): auto
-  ## if flags.type.is_niltype then
-  local flags: usize = 0
-  ## end
-  ## if not T.value:has_pointer() then
-  flags = GCFlags.LEAF -- skip scanning the allocated memory
-  ## end
+  ## Allocator_parse_type_flags(flags, T)
   ## if finalizer.type.is_niltype then
   local finalizer: GCFinalizerCallback = nilptr
   ## end
@@ -750,8 +741,9 @@ and its contents are zero initialized.
 - In case the value has the `__new` metamethod, it will be called immediately after the allocation.
 - In case the value has the `__gc` metamethod, it will be called once the value is collected.
 ]]
-function GCAllocator:new(what: auto, size: facultative(usize)): auto <noinline>
+function GCAllocator:new(what: auto, size: facultative(usize), flags: facultative(usize)): auto <noinline>
   local T: type = #[what.type.is_type and what.value or what.type]#
+  ## Allocator_parse_type_flags(flags, T)
   ## local callnew = T.value.is_record and T.value.metafields.__new
   ## if size.type.is_niltype then -- new pointer
     ## if T.value.is_record and T.value.metafields.__gc then
@@ -760,10 +752,6 @@ function GCAllocator:new(what: auto, size: facultative(usize)): auto <noinline>
     end
     ## else
     local finalizer: GCFinalizerCallback = nilptr
-    ## end
-    local flags: usize = 0
-    ## if not T.value:has_pointer() then
-    flags = GCFlags.LEAF -- skip scanning the allocated memory
     ## end
     local ptr: *T <noinit>
     ## if what.type.is_type then
@@ -795,10 +783,6 @@ function GCAllocator:new(what: auto, size: facultative(usize)): auto <noinline>
       local finalizer: GCFinalizerCallback = nilptr
       local userdata: pointer = nilptr
       ## end
-      local flags: usize = 0
-      ## if not T.value:has_pointer() then
-      flags = GCFlags.LEAF -- skip scanning the allocated memory
-      ## end
       spn.size = size
       ## if what.type.is_type then
       spn.data = (@*[0]T)(gc_allocator:alloc0(size * #T, flags, finalizer, userdata))
@@ -818,6 +802,6 @@ function GCAllocator:new(what: auto, size: facultative(usize)): auto <noinline>
   ## end
 end
 
-## implement_allocator_interface(GCAllocator)
+## Allocator_implement_interface(GCAllocator)
 
 return GCAllocator

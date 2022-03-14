@@ -56,7 +56,7 @@ local StackAllocHeader: type = @record{
   The allocated memory is not initialized.
   If `size` is zero or the operation fails, then returns `nilptr`.
   ]]
-  function StackAllocatorT:alloc(size: usize): pointer
+  function StackAllocatorT:alloc(size: usize, flags: facultative(usize)): pointer
     if unlikely(size == 0) then return nilptr end
     local base: usize = (@usize)(&self.buffer[0])
     local addr: usize = align_forward(base + self.curr_offset + #@StackAllocHeader, ALIGN)
@@ -137,7 +137,7 @@ local StackAllocHeader: type = @record{
     end
   end
 
-  ## implement_allocator_interface(StackAllocatorT)
+  ## Allocator_implement_interface(StackAllocatorT)
 
   ## return StackAllocatorT
 ## end

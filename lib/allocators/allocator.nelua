@@ -14,8 +14,28 @@ Allocation failures usually happen when running out of memory.
 require 'memory'
 require 'span'
 
+-- Flags for new allocations.
+global AllocatorFlags: type = @enum(usize){
+  GCRoot = 1 << 17, -- Allocation always scanned and never collected.
+  GCLeaf = 1 << 18, -- Allocation never scanned (contains no pointers).
+  GCBranch = 1 << 19, -- Allocation should be scanned despite being detected as leaf (contains pointers).
+  GCExtern = 1 << 20, -- External allocation, finalizers should be called, however deallocation is disabled.
+}
+
+## function Allocator_parse_type_flags(flags, T)
+  ## if not pragmas.nogc and not T.value:has_pointer() then
+    ## if flags.type.is_niltype then
+    local flags: usize = AllocatorFlags.GCLeaf
+    ## else
+    if flags & AllocatorFlags.GCBranch == 0 then -- explicitly marked as a reference branch
+      flags = flags | AllocatorFlags.GCLeaf
+    end
+    ## end
+  ## end
+## end
+
 -- Macro that when called it implements common allocation methods.
-## function implement_allocator_interface(Allocator)
+## function Allocator_implement_interface(Allocator)
   ## Allocator.value.is_allocator = true
 
   -- The allocator type which the allocator interface will implements the methods.
@@ -38,24 +58,25 @@ require 'span'
 
   - The allocated memory is not initialized.
   - If `size` is zero or the operation fails, then returns `nilptr`.
+  - If `flags` is present, then it is passed as flags to the underlying allocator.
   ]]
-  function Allocator:alloc(size: usize): pointer
+  function Allocator:alloc(size: usize, flags: facultative(usize)): pointer
     -- this method will actually be overridden
     return nilptr
   end
   ## end
 
   -- Like `alloc`, but raises an error in case the allocation fails.
-  function Allocator:xalloc(size: usize): pointer
-    local p: pointer = self:alloc(size)
+  function Allocator:xalloc(size: usize, flags: facultative(usize)): pointer
+    local p: pointer = self:alloc(size, flags)
     if unlikely(p == nilptr and size > 0) then panic('out of memory') end
     return p
   end
 
   ## if not Allocator.value.metafields.alloc0 then
   -- Like `alloc`, but the allocated memory is initialized with zeros.
-  function Allocator:alloc0(size: usize): pointer
-    local p: pointer = self:alloc(size)
+  function Allocator:alloc0(size: usize, flags: facultative(usize)): pointer
+    local p: pointer = self:alloc(size, flags)
     if likely(p ~= nilptr) then
       memory.zero(p, size)
     end
@@ -64,8 +85,8 @@ require 'span'
   ## end
 
   -- Like `alloc0`, but raises an error in case the allocation fails.
-  function Allocator:xalloc0(size: usize): pointer
-    local p: pointer = self:alloc0(size)
+  function Allocator:xalloc0(size: usize, flags: facultative(usize)): pointer
+    local p: pointer = self:alloc0(size, flags)
     if unlikely(p == nilptr and size > 0) then panic('out of memory') end
     return p
   end
@@ -160,9 +181,10 @@ require 'span'
   - The allocated memory region will have `size * #T` bytes.
   - If the operation fails, then an empty span is returned.
   ]]
-  function Allocator:spanalloc(T: type, size: usize): auto
+  function Allocator:spanalloc(T: type, size: usize, flags: facultative(usize)): auto
     if likely(size > 0) then
-      local data: *[0]T = (@*[0]T)(self:alloc(size * #T))
+      ## Allocator_parse_type_flags(flags, T)
+      local data: *[0]T = (@*[0]T)(self:alloc(size * #T, flags))
       if likely(data ~= nilptr) then
         return (@span(T)){data=data,size=size}
       end
@@ -172,17 +194,18 @@ require 'span'
   ## end
 
   -- Like `spanalloc`, but raises an error in case the allocation fails.
-  function Allocator:xspanalloc(T: type, size: usize): auto
-    local s: span(T) = self:spanalloc(T, size)
+  function Allocator:xspanalloc(T: type, size: usize, flags: facultative(usize)): auto
+    local s: span(T) = self:spanalloc(T, size, flags)
     if unlikely(s.size ~= size) then panic('out of memory') end
     return s
   end
 
   ## if not Allocator.value.metafields.spanalloc0 then
   -- Like `spanalloc`, but initializes added memory with zeros.
-  function Allocator:spanalloc0(T: type, size: usize): auto
+  function Allocator:spanalloc0(T: type, size: usize, flags: facultative(usize)): auto
     if likely(size > 0) then
-      local data: *[0]T = (@*[0]T)(self:alloc0(size * #T))
+      ## Allocator_parse_type_flags(flags, T)
+      local data: *[0]T = (@*[0]T)(self:alloc0(size * #T, flags))
       if likely(data ~= nilptr) then
         return (@span(T)){data=data,size=size}
       end
@@ -192,8 +215,8 @@ require 'span'
   ## end
 
   -- Like `spanalloc0`, but raises an error in case the allocation fails.
-  function Allocator:xspanalloc0(T: type, size: usize): auto
-    local s: span(T) = self:spanalloc0(T, size)
+  function Allocator:xspanalloc0(T: type, size: usize, flags: facultative(usize)): auto
+    local s: span(T) = self:spanalloc0(T, size, flags)
     if unlikely(s.size ~= size) then panic('out of memory') end
     return s
   end
@@ -280,14 +303,15 @@ require 'span'
   - In case the value has a finalizer, and the allocator supports finalizers,
   such as `GCAllocator`, the value is marked to be finalized when deallocated.
   ]]
-  function Allocator:new(what: auto, size: facultative(usize)): auto
+  function Allocator:new(what: auto, size: facultative(usize), flags: facultative(usize)): auto
     local T: type = #[what.type.is_type and what.value or what.type]#
     ## local callnew = T.value.is_record and T.value.metafields.__new
     ## if size.type.is_niltype then -- new pointer
+      ## Allocator_parse_type_flags(flags, T)
       ## if what.type.is_type then
-      local ptr: *T = (@*T)(self:xalloc0(#T))
+      local ptr: *T = (@*T)(self:xalloc0(#T, flags))
       ## else
-      local ptr: *T = (@*T)(self:xalloc(#T))
+      local ptr: *T = (@*T)(self:xalloc(#T, flags))
       memory.copy(ptr, &what, #T)
       ## end
       ## if callnew then
@@ -296,9 +320,9 @@ require 'span'
       return ptr
     ## else
       ## if what.type.is_type then
-      local spn: span(T) = self:xspanalloc0(T, size)
+      local spn: span(T) = self:xspanalloc0(T, size, flags)
       ## else
-      local spn: span(T) = self:xspanalloc(T, size)
+      local spn: span(T) = self:xspanalloc(T, size, flags)
       memory.spanset(spn, what)
       ## end
       ## if callnew then
