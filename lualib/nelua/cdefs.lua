@@ -564,7 +564,9 @@ cdefs.target_info_code = [[
   #endif
 #endif
 #if defined(__STDC_VERSION__) && (defined(__GNUC__) || defined(__TINYC__) || defined(__MIRC__))
-  is_empty_supported = true;
+  #if !defined(__PGIC__)
+    is_empty_supported = true;
+  #endif
 #endif
 
 /* Alignment */

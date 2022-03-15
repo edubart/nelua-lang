@@ -406,7 +406,7 @@ Register pointer that moved from `oldptr` to `newptr` with new size `newsize`.
 Called when reallocating a pointers.
 ]]
 function GC:reregister(oldptr: pointer, newptr: pointer, newsize: usize): void
-  check(oldptr and newptr and newsize > 0, 'invalid reregister arguments')
+  check(oldptr ~= nilptr and newptr ~= nilptr and newsize > 0, 'invalid reregister arguments')
   local oldsize: usize
   if newptr == oldptr then
     local item: *GCItem = self.items:peek(oldptr)
@@ -425,7 +425,7 @@ function GC:reregister(oldptr: pointer, newptr: pointer, newsize: usize): void
     end
   else -- moved, remove and insert item again
     local item: GCItem = self.items:remove(oldptr)
-    assert(item ~= nilptr, 'invalid reregister pointer')
+    assert(item.ptr ~= nilptr, 'invalid reregister pointer')
     oldsize = item.size
     if likely(not hasflag(item.flags, GCFlags.ROOT)) then
       self.membytes = self.membytes - oldsize -- update memory
