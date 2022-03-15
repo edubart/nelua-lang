@@ -463,23 +463,23 @@ end)
 
 it("for", function()
   expect.generate_c("local a: integer, b: integer; for i=a,b do end", {
-    "for(int64_t i = a, _end = b; i <= _end; i = i + 1) {"})
+    "for(int64_t i = a, _end = b; i <= _end; i += 1) {"})
   expect.generate_c("local a: integer, b: integer, c: integer; for i=a,b do i=c end", {
-    "for(int64_t _it = a, _end = b; _it <= _end; _it = _it + 1) {",
+    "for(int64_t _it = a, _end = b; _it <= _end; _it += 1) {",
     "int64_t i = _it;"})
   expect.generate_c("local a: integer, b: integer, c: integer; for i=a,b,c do end",
     "for(int64_t i = a, _end = b, _step = c; " ..
-    "_step >= 0 ? i <= _end : i >= _end; i = i + _step) {")
+    "_step >= 0 ? i <= _end : i >= _end; i += _step) {")
   expect.generate_c(
     "for i=1,<2 do end",
-    "for(int64_t i = 1; i < 2; i = i + 1)")
+    "for(int64_t i = 1; i < 2; i += 1)")
   expect.generate_c(
     "for i=2,1,-1 do end",
-    "for(int64_t i = 2; i >= 1; i = i + -1)")
+    "for(int64_t i = 2; i >= 1; i += -1)")
   expect.generate_c([[
   local last <const> = -1
   for i=5,0,last do end
-  ]], "for(int64_t i = 5, _end = 0; _step >= 0 ? i <= _end : i >= _end; i = i + last)")
+  ]], "for(int64_t i = 5, _end = 0; _step >= 0 ? i <= _end : i >= _end; i += last)")
   expect.run_c([[
     local x = 0
     for i=1,10 do x = x + 1 end

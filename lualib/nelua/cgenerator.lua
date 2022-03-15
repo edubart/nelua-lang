@@ -1109,7 +1109,8 @@ function visitors.ForNum(context, node, emitter)
   else -- step is an expression, must detect the compare operation at runtime
     emitter:add('_step >= 0 ? ', itforname, ' <= _end : ', itforname, ' >= _end')
   end
-  emitter:add_ln('; ', itforname, ' = ', itforname, ' + ', stepval, ') {')
+  emitter:add_ln('; ', itforname, ' += ', stepval, ') {')
+
   if itmutate then -- block mutates the iterator, copy it
     emitter:inc_indent()
     emitter:add_indent_ln(itnode, ' = _it;')
