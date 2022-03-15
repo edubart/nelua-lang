@@ -256,7 +256,7 @@ function CEmitter:add_short_string_literal(val, ascstring, untypedinit)
     quotedliterals[val] = quoted_value
   end
   if ascstring then
-    self:add(quoted_value)
+    self:add('(char*)',quoted_value)
   else
     if not untypedinit then
       self:add_text('(')

@@ -112,7 +112,7 @@ it("number literals", function()
   expect.generate_c("local a = ' '_cchar", "char a = ' ';")
   expect.generate_c("local a = ' '_cschar", "signed char a = 32;")
   expect.generate_c("local a = ' '_cuchar", "unsigned char a = 32U;")
-  expect.generate_c("local a = 'str'_cstring", 'char* a = "str"')
+  expect.generate_c("local a = 'str'_cstring", 'char* a = (char*)"str"')
 end)
 
 it("type cast", function()
@@ -598,7 +598,7 @@ it("operation on comptime variables", function()
     local s <comptime> = 'hello\n'_cstring
     local function printf(format: cstring, ...: cvarargs): cint <cimport,nodecl,cinclude'<stdio.h>'> end
     printf(s)
-  ]], [[printf("hello\n");]])
+  ]], [[printf((char*)"hello\n");]])
   expect.generate_c([[
     local ADDR: *uinteger <comptime> = (@*uinteger)(0xfffffffff)
     local a = ADDR
@@ -2876,7 +2876,7 @@ it("C varargs", function()
 
   expect.generate_c(
     [[local function printf(format: cstring, ...: cvarargs): cint <cimport> end printf('hello')]],
-    [[printf("hello");]])
+    [[printf((char*)"hello");]])
 
   expect.generate_c(
     [[local F = @function(cint, cvarargs); local f: F]],

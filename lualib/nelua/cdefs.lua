@@ -134,6 +134,14 @@ compilers_flags['g++'] = tabler.updatecopy(compilers_flags.gcc, {
 })
 -- Clang (C++)
 compilers_flags['clang++'] = tabler.copy(compilers_flags['g++'])
+-- NVCC (CUDA C++)
+compilers_flags['nvcc'] = tabler.updatecopy(compilers_flags.gcc, {
+  cflags_base = "",
+  cmd_compile = '$(cc) -x cu "$(cfile)" $(cflags) -o "$(binfile)"',
+  cmd_info = '$(cc) -E -x cu "$(cfile)" $(cflags)',
+  cmd_defines = '$(cc) -E -dM -x cu "$(cfile)" $(cflags)',
+  ext = '.cu',
+})
 -- Zig CC
 compilers_flags['zig cc'] = compilers_flags.clang
 
@@ -563,10 +571,10 @@ cdefs.target_info_code = [[
     is_big_endian = true;
   #endif
 #endif
-#if defined(__STDC_VERSION__) && (defined(__GNUC__) || defined(__TINYC__) || defined(__MIRC__))
-  #if !defined(__PGIC__)
-    is_empty_supported = true;
-  #endif
+#if defined(__STDC_VERSION__) && !defined(__cplusplus) && \
+    (defined(__GNUC__) || defined(__TINYC__) || defined(__MIRC__)) && \
+    !defined(__PGIC__)
+  is_empty_supported = true;
 #endif
 
 /* Alignment */
