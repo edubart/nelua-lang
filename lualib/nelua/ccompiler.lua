@@ -122,8 +122,15 @@ local function get_compiler_cflags(compileopts)
       cflags:addlist(compileopts.ldflags, ' ')
     end
     if #compileopts.linklibs > 0 then
-      cflags:add(' -l')
-      cflags:addlist(compileopts.linklibs, ' -l')
+      for _,lib in ipairs(compileopts.linklibs) do
+        if fs.isabspath(lib) then -- full path
+          cflags:add(' '..lib)
+        elseif lib:find('%.[A-Za-z]+$') then -- contains library extension
+          cflags:add(' -l:'..lib..'')
+        else
+          cflags:add(' -l'..lib)
+        end
+      end
     end
     if ccinfo.is_unix and -- always link math library on unix
       (not ccinfo.is_mirc and not ccinfo.is_apple) then
