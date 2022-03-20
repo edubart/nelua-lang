@@ -108,4 +108,15 @@ function tabler.shallow_compare_nomt(t1, t2)
   return false
 end
 
+-- Make table `dst` identical to table `src` (including metatables).
+function tabler.mirror(dst, src)
+  if rawequal(dst, src) then
+    return
+  end
+  setmetatable(dst, nil)
+  tabler.clear(dst)
+  tabler.update(dst, src)
+  setmetatable(dst, getmetatable(src))
+end
+
 return tabler

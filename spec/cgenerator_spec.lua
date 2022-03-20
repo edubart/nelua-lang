@@ -3663,6 +3663,23 @@ it("forward type declaration", function()
 
     local Union <forwarddecl> = @union{}
     local Union = @union{i: integer, n: number}
+
+    do
+      ## local function make_boxT(T)
+        local boxT: type = @record{
+          x: #[T]#,
+        }
+        ## return boxT
+      ## end
+
+      local box: type = #[generalize(make_boxT)]#
+      local A <forwarddecl> = @record{}
+      local pa: *A
+      A = @box(integer)
+      local a: A = {1}
+      pa = &a
+      assert(a.x == 1)
+    end
   ]=])
   expect.run_c([=[
     local function f(x: integer): integer <forwarddecl> end

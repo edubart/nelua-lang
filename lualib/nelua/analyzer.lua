@@ -788,6 +788,10 @@ function visitors.Type(context, node, opts)
     if symbol.type and not (symbol.type.is_type or symbol.type.is_auto) then
       node:raisef("attempt to assign a type to a symbol of type '%s'", symbol.type)
     end
+    if symbol.value then
+      -- overwrite old symbol value, (this fixes forward declarations on generics)
+      tabler.mirror(symbol.value, type)
+    end
     symbol.type = primtypes.type
     symbol.value = type
     context:choose_type_symbol_names(symbol)
