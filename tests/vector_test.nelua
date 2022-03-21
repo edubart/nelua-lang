@@ -170,6 +170,13 @@ do -- next/mnext
   vec:destroy()
 end
 
+do -- implict conversion to span
+  local vec: vector(integer) = {1,2,3,4}
+  local spn: span(integer) = vec
+  assert(#spn == 4 and spn[0] == 1 and spn[3] == 4)
+  vec:destroy()
+end
+
 do -- copy
   local a: vector(integer) = {1, 2, 3, 4}
   local b: vector(integer)

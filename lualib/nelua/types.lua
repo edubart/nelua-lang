@@ -2407,6 +2407,11 @@ function PointerType:is_pointer_of(subtype)
   return self.subtype == subtype
 end
 
+-- Checks if this type can be represented as a contiguous array of the subtype.
+function PointerType:is_contiguous_of(subtype)
+  return self.subtype:is_contiguous_of(subtype)
+end
+
 -- Give the underlying type when implicit dereferencing this type.
 function PointerType:implicit_deref_type()
   local subtype = self.subtype
