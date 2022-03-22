@@ -98,6 +98,11 @@ require 'iterators'
     return (@isize)(self.size)
   end
 
+  -- Returns the size of the span in bytes.
+  function spanT.sizebytes(self: spanT): usize
+    return self.size * #@T
+  end
+
   -- Initializes a span from a pointer to contiguous containers.
   function spanT.__convert(values: spanT_convertible_concept): spanT <inline>
     local self: spanT
@@ -111,6 +116,15 @@ require 'iterators'
       end
     ## end
     return self
+  end
+
+  -- Converts a span of T into a span of U.
+  function spanT.as(self: spanT, U: type): auto
+    ## if U.value.size == 1 then
+      return (@span(U)){data=(@*[0]U)(self.data), size=self.size * #@T}
+    ## else
+      return (@span(U)){data=(@*[0]U)(self.data), size=(self.size * #@T) // #@U}
+    ## end
   end
 
   ## return spanT

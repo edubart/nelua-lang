@@ -6,6 +6,7 @@ do -- pointer to span
   assert(#s == 4 and s[0] == 1 and s[1] == 2 and s[2] == 3 and s[3] == 4)
   s[0] = 5
   assert(arr[0] == 5)
+  assert(s:sizebytes() == 4 * #@integer)
 end
 
 do -- string to span
@@ -43,6 +44,17 @@ do -- sub
   assert(#s == 0 and s.data == &arr[2])
   s = s:sub(0,0)
   assert(#s == 0 and s.data == nilptr)
+end
+
+do -- as
+  local arr: [4]uint32 = {0x01010101,0x02020202,0x03030303,0x04040404}
+  local s: span(uint32) = &arr
+  local s2: span(byte) = s:as(@byte)
+  assert(#s2 == 4 * #@uint32)
+  assert(s2[0] == 0x01 and
+         s2[4] == 0x02 and
+         s2[8] == 0x03 and
+         s2[12] == 0x04)
 end
 
 do -- iterators
