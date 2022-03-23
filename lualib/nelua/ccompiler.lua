@@ -477,7 +477,7 @@ function compiler.get_run_command(binaryfile, runargs, compileopts)
     end
   end --luacov:enable
   -- choose the runner
-  local runner, exe, args
+  local runner, runner_args, exe, args
   if binaryfile:match('%.html$') then --luacov:disable
     runner = 'emrun'
   elseif binaryfile:match('%.wasm$') then
@@ -491,11 +491,17 @@ function compiler.get_run_command(binaryfile, runargs, compileopts)
     table.insert(runargs, 1, '-el')
   end
   if config.runner then
-    runner = config.runner
+    runner, runner_args = executor.convertargs(config.runner)
   end
   if runner then
     exe = runner
-    args = tabler.insertvalues({binaryfile}, runargs)
+    if runner_args then
+      args = tabler.icopy(runner_args)
+      table.insert(args, binaryfile)
+    else
+      args = {binaryfile}
+    end
+    tabler.insertvalues(args, runargs)
   else
     exe = binaryfile
     args = tabler.icopy(runargs)

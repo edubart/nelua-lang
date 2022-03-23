@@ -135,7 +135,7 @@ local function pexec(exe, args, capture)
 end
 
 -- Helper to split arguments to a table.
-local function convertargs(exe, args)
+function executor.convertargs(exe, args)
   if not args then
     args = pegger.split_execargs(exe)
     exe = args[1]
@@ -150,7 +150,7 @@ Args must be a table or nil, if args is nil then the args is extracted from exe.
 Returns a true when successful and status code.
 ]]
 function executor.exec(exe, args)
-  exe, args = convertargs(exe, args)
+  exe, args = executor.convertargs(exe, args)
   return pexec(exe, args)
 end
 
@@ -160,7 +160,7 @@ Args must be a table or nil, if args is nil then the args is extracted from exe.
 Returns a true when successful, the status code, stdout and stderr contents.
 ]]
 function executor.execex(exe, args)
-  exe, args = convertargs(exe, args)
+  exe, args = executor.convertargs(exe, args)
   return pexec(exe, args, true)
 end
 
@@ -170,7 +170,7 @@ Args must be a table or nil, if args is nil then the args is extracted from exe.
 Returns the stdout plus stderr on success, otherwise nil plus an error message and status code.
 ]]
 function executor.evalex(exe, args)
-  exe, args = convertargs(exe, args)
+  exe, args = executor.convertargs(exe, args)
   local ok, status, stdout, stderr = pexec(exe, args, true)
   if ok and status == 0 then
     return stdout, stderr, status
