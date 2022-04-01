@@ -10,8 +10,8 @@ it("raising strings", function()
   local e
   except.try(function()
     except.assertraise(false, 'an error')
-  end, function(_e)
-    e = _e
+  end, function(ee)
+    e = ee
     return true
   end)
   assert(e and e:get_message() == 'an error')
@@ -22,8 +22,8 @@ it("raising tables", function()
   except.try(function()
     except.assertraise(true, 'not happening')
     except.raise({message='an error'})
-  end, function(_e)
-    e = _e
+  end, function(ee)
+    e = ee
     return true
   end)
   assert(e and e.message == 'an error')
@@ -33,8 +33,8 @@ it("raising something", function()
   local e
   except.try(function()
     except.raise({message='an error'})
-  end, function(_e)
-    e = _e
+  end, function(ee)
+    e = ee
     return true
   end)
   assert(e and e.message == 'an error')
@@ -44,8 +44,8 @@ it("raising Exception", function()
   local e
   except.try(function()
     except.raise(except.Exception({message = 'an error'}))
-  end, function(_e)
-    e = _e
+  end, function(ee)
+    e = ee
     return true
   end)
   assert(e and e.message == 'an error')
@@ -55,8 +55,8 @@ it("raising labeled Exception", function()
   local e
   except.try(function()
     except.raise(except.Exception({label = 'MyError'}))
-  end, function(_e)
-    e = _e
+  end, function(ee)
+    e = ee
     return true
   end)
   assert(e and e.label == 'MyError' and e:get_message() == 'MyError')
@@ -69,8 +69,8 @@ it("reraising", function()
     except.try(function()
       except.raise('an error')
     end, function() return false end)
-  end, function(_e)
-    e = _e
+  end, function(ee)
+    e = ee
     return true
   end)
   assert(e and e.message == 'an error')
