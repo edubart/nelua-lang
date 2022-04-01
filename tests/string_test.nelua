@@ -669,4 +669,10 @@ do -- iterating
   end
 end
 
+do -- tostringview
+  local s = "hi"
+  local s2 = tostringview(s)
+  assert(s2 == s)
+end
+
 print 'string OK!'

@@ -412,6 +412,9 @@ end
     return (@string){data = &self.data[0], size = self.size}
   end
 
+  -- Alias to `view` method, for supporting `tostringview`.
+  global stringbuilderT.__tostringview: auto = stringbuilderT.view
+
   ## if Allocator == DefaultAllocator then
   --[[
   Promote a `stringbuilder` to a `string`.

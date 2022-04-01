@@ -24,6 +24,7 @@ do -- write
   local ok: boolean, n: usize = sb:write('a', 'b', 2, 2.0, true)
   assert(ok == true and n == 10)
   assert(sb:view() == 'ab22.0true')
+  assert(tostringview(sb) == 'ab22.0true')
   sb:destroy()
 end
 

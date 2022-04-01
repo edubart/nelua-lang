@@ -865,7 +865,7 @@ local strconv: type = require 'detail.strconv'
 --[[
 Convert a value to a string.
 A new string will be always allocated.
-When calling on records the `__tostring` metamethod may be called,
+The `__tostring` metamethod may be called,
 in this case, it must always return a new allocated string.
 ]]
 global function tostring(x: auto): string
@@ -880,6 +880,8 @@ global function tostring(x: auto): string
     return string.copy(x)
   ## elseif xobjtype.metafields and xobjtype.metafields.__tostring then
     return x:__tostring()
+  ## elseif xobjtype.metafields and xobjtype.metafields.__tostringview then
+    return string.copy(x:__tostringview())
   ## elseif x.type.is_span and x.type.subtype == primtypes.byte then
     return string.copy((@string){data=x.data, size=x.size})
   ## elseif xtype.is_integral then
@@ -915,6 +917,27 @@ global function tostring(x: auto): string
   ## elseif x.type.is_type then
     return 'type: '..#[tostring(x.value)]#
   ## else static_error("tostring: cannot convert type '%s' to a string", xtype) end
+end
+
+--[[
+Convert a value to a string without performing new allocations.
+The `__tostringview` metamethod may be called,
+in this case, it must always return a non owned string reference
+that the caller won't attempt to destroy.
+]]
+global function tostringview(x: auto): string
+  ##[[
+  local xobjtype = x.type:implicit_deref_type()
+  local xtype = x.type
+  if xtype.is_enum then
+    xtype = xtype.subtype
+  end
+  ]]
+  ## if xtype.is_stringy then
+    return x
+  ## elseif xobjtype.metafields and xobjtype.metafields.__tostringview then
+    return x:__tostringview()
+  ## else static_error("tostringview: cannot convert type '%s' to a string view", xtype) end
 end
 
 -- Convert a value to a number.
