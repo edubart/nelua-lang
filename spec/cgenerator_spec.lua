@@ -1005,6 +1005,15 @@ it("function multiple returns", function()
       local a, b = f()
       assert(b == 1)
     end
+
+    do
+      local function f(): (integer, integer) return 1 end
+      local function g(): (integer, integer) return end
+      local a, b = f()
+      assert(a == 1 and b == 0)
+      a, b = g()
+      assert(a == 0 and b == 0)
+    end
   ]])
   expect.run_c([[
     local function f(): integer return 1 end

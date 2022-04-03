@@ -831,6 +831,7 @@ it("function return", function()
     local function f(): integer panic('panic!') return 0 end
     local function g() <noreturn> error'error!' end
     local function f(): integer g() return 0 end
+    local function f(): (integer, string) return 1 end
   ]])
   expect.analyze_ast([[
     local function f() end
@@ -844,9 +845,6 @@ it("function return", function()
     local function f() end
     local a: integer = f()
   ]], "no viable type conversion from 'void'")
-  expect.analyze_error([[
-    local function f(): (integer, string) return 1 end
-  ]], "missing return expression at index")
   expect.analyze_error([[
     local function f(): integer end
   ]], "return statement is missing")

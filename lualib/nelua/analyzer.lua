@@ -2466,13 +2466,10 @@ function visitors.Return(context, node)
           if funcrettype.is_auto then
             funcscope.rettypes[i] = rettype
           else
-            if rettype.is_niltype and not funcrettype.is_nilable then
-              node:raisef("missing return expression at index %d of type '%s'", i, funcrettype)
-            end
             if retnode and rettype then
               retnode, rettype = visitor_convert(context, retnodes, i, funcrettype, retnode, rettype)
             end
-            if rettype then
+            if retnode and rettype then
               local ok, err = funcrettype:is_convertible_from(retnode or rettype)
               if not ok then
                 (retnode or node):raisef("return at index %d: %s", i, err)
