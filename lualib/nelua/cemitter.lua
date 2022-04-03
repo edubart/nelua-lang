@@ -223,8 +223,7 @@ function CEmitter:add_converted_val(type, val, valtype, force, untypedinit)
       self:add_typed_val(type, val, valtype, checked)
     end
   else
-    local typed = force and not untypedinit
-    self:add_zeroed_type_literal(type, typed)
+    self:add_zeroed_type_literal(type, not untypedinit)
   end
 end
 

@@ -1044,6 +1044,19 @@ it("call with multiple args", function()
   end]])
 end)
 
+it("call with omitted args", function()
+  expect.run_c([[do
+    local function f(x: integer, y: integer): integer return x+y end
+    assert(f() == 0)
+    assert(f(1) == 1)
+    assert(f(1,2) == 3)
+
+    local function g(x: string) return x end
+    assert(g() == '')
+    assert(g'a' == 'a')
+  end]])
+end)
+
 it("call with side effects", function()
   expect.run_c([[do
     local function f(x: integer) print(x) return x end

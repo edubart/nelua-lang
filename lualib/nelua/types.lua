@@ -328,12 +328,15 @@ function Type:binary_operator(opname, rtype, lattr, rattr)
 end
 
 -- Get the desired type when converting this type from another type.
-function Type:get_convertible_from_type(type)
+function Type:get_convertible_from_type(type, explicit, fromcall)
   if self == type then
     -- the type itself
     return self
   elseif type.is_any then
     -- anything can be converted to and from `any`
+    return self
+  elseif type.is_niltype and not explicit and fromcall then
+    -- call arguments can be converted from `niltype`
     return self
   end
   local msg = string.format("no viable type conversion from '%s' to '%s'", type, self)
@@ -756,11 +759,11 @@ function NiltypeType:_init(name, size)
 end
 
 -- Get the desired type when converting this type from another type.
-function NiltypeType:get_convertible_from_type(type, explicit, autoref)
+function NiltypeType:get_convertible_from_type(type, explicit, fromcall)
   if type.is_void then
     return true
   end
-  return Type.get_convertible_from_type(self, type, explicit, autoref)
+  return Type.get_convertible_from_type(self, type, explicit, fromcall)
 end
 
 -- Negation operator for niltype type.
@@ -836,7 +839,6 @@ end
 local AnyType = types.typeclass()
 types.AnyType = AnyType
 AnyType.is_any = true
-AnyType.is_nilable = true
 AnyType.is_falseable = true
 AnyType.sideeffect = true
 
@@ -870,6 +872,7 @@ end --luacov:enable
 local VaranysType = types.typeclass(AnyType)
 types.VaranysType = VaranysType
 VaranysType.is_varanys = true
+VaranysType.is_nilable = true
 VaranysType.is_multipleargs = true
 VaranysType.is_nolvalue = true
 
@@ -1065,7 +1068,7 @@ function IntegralType:signed_type()
 end
 
 -- Get the desired type when converting this type from an attr.
-function IntegralType:get_convertible_from_attr(attr, explicit, autoref)
+function IntegralType:get_convertible_from_attr(attr, explicit, fromcall)
   if not explicit and attr.comptime and attr.type.is_scalar then
     -- implicit conversion between two compile time scalar types,
     -- we can convert only if the compiler time value does not overflow/underflow the type
@@ -1082,11 +1085,11 @@ function IntegralType:get_convertible_from_attr(attr, explicit, autoref)
     -- in range and integral, thus a valid conversion
     return self
   end
-  return ScalarType.get_convertible_from_attr(self, attr, explicit, autoref)
+  return ScalarType.get_convertible_from_attr(self, attr, explicit, fromcall)
 end
 
 -- Get the desired type when converting this type from another type.
-function IntegralType:get_convertible_from_type(type, explicit, autoref)
+function IntegralType:get_convertible_from_type(type, explicit, fromcall)
   if type.is_integral then
     if type.id == self.id then
       -- early return for the same type
@@ -1103,7 +1106,7 @@ function IntegralType:get_convertible_from_type(type, explicit, autoref)
     -- explicit cast from a pointer to an integral that can fit the pointer
     return self
   end
-  return ScalarType.get_convertible_from_type(self, type, explicit, autoref)
+  return ScalarType.get_convertible_from_type(self, type, explicit, fromcall)
 end
 
 -- Checks if this type scalar type can fit another scalar type.
@@ -1382,12 +1385,12 @@ function FloatType:_init(name, size, align, decimaldigits, mantdigits)
 end
 
 -- Get the desired type when converting this type from another type.
-function FloatType:get_convertible_from_type(type, explicit, autoref)
+function FloatType:get_convertible_from_type(type, explicit, fromcall)
   if type.is_scalar then
     -- any scalar can convert to a float
     return self
   end
-  return ScalarType.get_convertible_from_type(self, type, explicit, autoref)
+  return ScalarType.get_convertible_from_type(self, type, explicit, fromcall)
 end
 
 -- Checks if the value can fit in this type min and max range.
@@ -1578,12 +1581,12 @@ function ArrayType:typedesc()
 end
 
 -- Get the desired type when converting this type from another type.
-function ArrayType:get_convertible_from_type(type, explicit, autoref)
-  if not explicit and autoref and type:is_pointer_of(self) and not self.nocopy then
+function ArrayType:get_convertible_from_type(type, explicit, fromcall)
+  if not explicit and fromcall and type:is_pointer_of(self) and not self.nocopy then
     -- implicit automatic dereference
     return self, true
   end
-  return Type.get_convertible_from_type(self, type, explicit, autoref)
+  return Type.get_convertible_from_type(self, type, explicit, fromcall)
 end
 
 -- Checks if this type is an array of the subtype.
@@ -1768,7 +1771,7 @@ function FunctionType:get_return_type(index)
 end
 
 -- Get the desired type when converting this type from another type.
-function FunctionType:get_convertible_from_type(type, explicit, autoref)
+function FunctionType:get_convertible_from_type(type, explicit, fromcall)
   if type.is_nilptr then
     -- allow setting a function to a nil pointer
     return self
@@ -1782,7 +1785,7 @@ function FunctionType:get_convertible_from_type(type, explicit, autoref)
       return self
     end
   end
-  return Type.get_convertible_from_type(self, type, explicit, autoref)
+  return Type.get_convertible_from_type(self, type, explicit, fromcall)
 end
 
 -- Helper to emit a list of typed fields.
@@ -2095,12 +2098,12 @@ function Type:set_metafield(name, symbol)
 end
 
 -- Get the desired type when converting this type from another type.
-function RecordType:get_convertible_from_type(type, explicit, autoref)
-  if not explicit and autoref and type:is_pointer_of(self) and not self.nocopy then
+function RecordType:get_convertible_from_type(type, explicit, fromcall)
+  if not explicit and fromcall and type:is_pointer_of(self) and not self.nocopy then
     -- perform implicit automatic dereference on a pointer to this record
     return self, true
   end
-  return Type.get_convertible_from_type(self, type, explicit, autoref)
+  return Type.get_convertible_from_type(self, type, explicit, fromcall)
 end
 
 -- Checks if this type has pointers, used by the garbage collector.
@@ -2290,9 +2293,9 @@ function PointerType:_init(subtype)
 end
 
 -- Get the desired type when converting this type from an attr.
-function PointerType:get_convertible_from_attr(attr, explicit, autoref)
+function PointerType:get_convertible_from_attr(attr, explicit, fromcall)
   local type = attr.type
-  if not explicit and autoref and type.is_aggregate then
+  if not explicit and fromcall and type.is_aggregate then
     local selfsubtype = self.subtype
     if selfsubtype == type or
       (selfsubtype.is_unbounded_array and type.is_array and selfsubtype.subtype == type.subtype) then
@@ -2311,7 +2314,7 @@ function PointerType:get_convertible_from_attr(attr, explicit, autoref)
       return self, true
     end
   end
-  return Type.get_convertible_from_attr(self, attr, explicit, autoref)
+  return Type.get_convertible_from_attr(self, attr, explicit, fromcall)
 end
 
 local function is_pointer_subtype_convertible(ltype, rtype)
@@ -2326,7 +2329,7 @@ local function is_pointer_subtype_convertible(ltype, rtype)
 end
 
 -- Get the desired type when converting this type from another type.
-function PointerType:get_convertible_from_type(type, explicit, autoref)
+function PointerType:get_convertible_from_type(type, explicit, fromcall)
   if type.is_pointer then
     if type.subtype == self.subtype then
       -- early check for the same type (optimization)
@@ -2386,7 +2389,7 @@ function PointerType:get_convertible_from_type(type, explicit, autoref)
       end
     end
   end
-  return Type.get_convertible_from_type(self, type, explicit, autoref)
+  return Type.get_convertible_from_type(self, type, explicit, fromcall)
 end
 
 -- Returns the resulting type when mixing this type with another type.
@@ -2473,11 +2476,11 @@ function StringType:_init(name)
 end
 
 -- Get the desired type when converting this type from another type.
-function StringType:get_convertible_from_type(type, explicit, autoref)
+function StringType:get_convertible_from_type(type, explicit, fromcall)
   if type.is_stringy then -- implicit cast cstring/acstring to string
     return self
   end
-  return RecordType.get_convertible_from_type(self, type, explicit, autoref)
+  return RecordType.get_convertible_from_type(self, type, explicit, fromcall)
 end
 
 -- String length operator.
@@ -2565,15 +2568,15 @@ function ConceptType:_init(func, desiredfunc)
 end
 
 -- Checks if this type is convertible from another type.
-function ConceptType:get_convertible_from_type(type, explicit, autoref)
+function ConceptType:get_convertible_from_type(type, explicit, fromcall)
   local attr = Attr{type=type}
-  return self:get_convertible_from_attr(attr, explicit, autoref, {attr})
+  return self:get_convertible_from_attr(attr, explicit, fromcall, {attr})
 end
 
 -- Checks if an attr can match a concept.
-function ConceptType:get_convertible_from_attr(attr, explicit, autoref, argattrs)
+function ConceptType:get_convertible_from_attr(attr, explicit, fromcall, argattrs)
   local concept_eval_func = self.func -- alias to have better error messages
-  local type, err = concept_eval_func(attr, explicit, autoref, argattrs)
+  local type, err = concept_eval_func(attr, explicit, fromcall, argattrs)
   if type == true then -- concept returned true, use the incoming type
     assert(attr.type)
     type = attr.type

@@ -1413,9 +1413,8 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
         elseif not funcargtype then
           break
         end
-
-        if argtype and argtype.is_niltype and not funcargtype.is_nilable then
-          node:raisef("in call of function '%s': expected an argument at index %d but got nothing",
+        if argtype and argnode and argtype.is_niltype and not funcargtype.is_nilable then
+          node:raisef("in call of function '%s': expected an argument at index %d but got nil",
             calleename, i)
         end
         if arg then
