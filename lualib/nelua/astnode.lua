@@ -465,6 +465,17 @@ function ASTNode:recursive_has_attr(attrname)
   return false
 end
 
+-- Finds first child with where `fieldname` evaluates to true.
+function ASTNode:find_child_with_field(fieldname)
+  for i=1,#self do
+    local subnode = self[i]
+    if type(subnode) == 'table' and subnode[fieldname] then
+      return subnode
+    end
+  end
+  return nil
+end
+
 --[[
 Recursively updates `src`, `pos` and `endpos` in child nodes that are unset.
 Used set a source location of generated nodes through metaprogramming.

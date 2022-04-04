@@ -2285,6 +2285,7 @@ function PointerType:_init(subtype)
       self.is_bounded_pointer = true
     end
     self.is_array_pointer = true
+    self.is_contiguous = true
   elseif subtype.is_integral and subtype.size == 1 then
     self.is_byte_pointer = true
   end

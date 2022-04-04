@@ -43,17 +43,9 @@ require 'iterators'
     end
     return false, string.format("no viable conversion from '%s' to '%s'", x.type, spanT)
   end, function(node)
-    if node.tag == 'InitList' and #node > 0 then -- has values
-      local has_pair = false
-      for i=1,#node do
-        if node[i].is_Pair then
-          has_pair = true
-          break
-        end
-      end
-      if not has_pair then -- unnamed values
-        return types.PointerType(types.ArrayType(T, #node))
-      end
+    if node.is_InitList and #node > 0 and not node:find_child_with_field('is_Pair') then
+      -- is a list of unnamed values
+      return types.PointerType(types.ArrayType(T, #node))
     end
   end)]#
 

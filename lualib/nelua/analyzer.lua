@@ -442,13 +442,6 @@ function visitors.InitList(context, node, opts)
         local listtype = argtype:get_desired_type_from_node(node)
         if listtype then
           desiredtype = listtype
-          if desiredtype.is_pointer then
-            local clone = node:clone()
-            clone.attr.desiredtype = desiredtype.subtype
-            local newnode = aster.UnaryOp{'ref', clone}
-            context:transform_and_traverse_node(node, newnode)
-            return
-          end
         end
       end
     end
@@ -461,6 +454,11 @@ function visitors.InitList(context, node, opts)
     visitor_Record_literal(context, node, desiredtype)
   elseif desiredtype.is_union then
     visitor_Union_literal(context, node, desiredtype)
+  elseif desiredtype.is_array_pointer then
+    local clone = node:clone()
+    clone.attr.desiredtype = desiredtype.subtype
+    local newnode = aster.UnaryOp{'ref', clone}
+    context:transform_and_traverse_node(node, newnode)
   else
     node:raisef("type '%s' cannot be initialized using an initializer list", desiredtype)
   end
