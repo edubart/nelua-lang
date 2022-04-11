@@ -246,15 +246,13 @@ local function filter_ast_for_check(t)
         -- check type shape
         assert(v.attr.value:shape())
         -- remove type nodes because they are optional
-        t[k] = nil
+        t[k] = false
       elseif type(v) == 'table' then
         filter_ast_for_check(v)
-        -- set empty tables, because they may be omitted
+        -- remove empty tables, because they may be omitted
         if getmetatable(v) == nil and #v == 0 then
-          t[k] = nil
+          t[k] = false
         end
-      elseif v == false then
-        t[k] = nil
       end
     elseif k == 'attr' and traits.is_astnode(t) then
       -- remove some generated strings
@@ -267,6 +265,14 @@ local function filter_ast_for_check(t)
       v.value = nil
     elseif k == 'pattr' then
       t[k] = nil
+    end
+  end
+  -- trim trailing falsy values
+  for i=#t,1,-1 do
+    if not t[i] then
+      t[i] = nil
+    else
+      break
     end
   end
 end

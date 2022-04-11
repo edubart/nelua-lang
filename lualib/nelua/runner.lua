@@ -6,12 +6,14 @@ it's the first required module when running the compiler.
 ]]
 
 -- We expect to be running in Lua 5.4.
-if _VERSION ~= 'Lua 5.4' then
+if _VERSION ~= 'Lua 5.4' and _VERSION ~= 'Lua 5.3' then
   error 'Please use Lua 5.4'
 end
 
 -- Make the lua garbage collector less aggressive to speed up compilation.
-collectgarbage("incremental", 800, 400, 16)
+if _VERSION == 'Lua 5.4' then
+  collectgarbage("incremental", 800, 400, 16)
+end
 
 -- Timers must be the first loaded module.
 local nanotimer = require 'nelua.utils.nanotimer'
