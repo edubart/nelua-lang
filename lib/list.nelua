@@ -44,7 +44,7 @@ require 'iterators'
   -- Concept matching fixed arrays of T.
   local an_arrayT: type = #[concept(function(x)
     if x.type:is_array_of(T) then
-      return true
+      return types.PointerType(x.type)
     end
     return false, string.format("no viable conversion from '%s' to '%s'", x.type, vectorT)
   end, function(node)

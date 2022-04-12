@@ -1149,7 +1149,7 @@ it("spans", function()
       local priv: []integer = {1,2}
       return priv
     end
-  ]], 'cannot perform implicit conversion')
+  ]], 'cannot perform conversion')
 end)
 
 it("arrays", function()

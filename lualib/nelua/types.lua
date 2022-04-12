@@ -2302,7 +2302,8 @@ function PointerType:get_convertible_from_attr(attr, explicit, fromcall)
       (selfsubtype.is_unbounded_array and type.is_array and selfsubtype.subtype == type.subtype) then
       -- implicit automatic reference for records and arrays
       if not attr.lvalue then -- can only reference l-values
-        if type.is_aggregate and attr.calleetype == primtypes.type then
+        if type.is_aggregate and (not explicit or
+           (attr.calleetype == primtypes.type)) then
           -- promote expression to a lvalue
           attr.promotelvalue = true
         else

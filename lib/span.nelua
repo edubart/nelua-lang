@@ -37,11 +37,15 @@ require 'iterators'
   -- Concept matching contiguous containers of T.
   local spanT_convertible_concept: type = #[concept(function(x)
     if context:get_visiting_node(1).is_Return then
-      return false, string.format("cannot perform implicit conversion from '%s' to '%s' while inside a return statement",
+      return false, string.format("cannot perform conversion from '%s' to '%s' while inside a return statement",
         x.type, spanT)
     end
     if x.type:is_contiguous_of(T) then
-      return true
+      if x.type.is_array_of(T) then
+        return types.PointerType(x.type)
+      else
+        return true
+      end
     elseif x.type.is_string and (T.is_integral and T.bitsize == 8) then
       return true
     end
