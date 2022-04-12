@@ -1132,11 +1132,24 @@ it("spans", function()
   ]], 'no viable conversion')
   expect.analyze_error([[
     require 'span'
+    local a: span(float64)
+    local b: span(int64)
+    b = a
+  ]], 'no viable conversion')
+  expect.analyze_error([[
+    require 'span'
     local v1: span(integer)
     local v2: span(*integer)
     v1 = v2
   ]], "no viable conversion from 'span(pointer(int64))' to 'span(int64)'")
   expect.analyze_error([[require 'span' local a: span(void) ]], 'spans cannot be of')
+  expect.analyze_error([[
+    require 'span'
+    local function f(): span(integer)
+      local priv: []integer = {1,2}
+      return priv
+    end
+  ]], 'cannot perform implicit conversion')
 end)
 
 it("arrays", function()
