@@ -1568,6 +1568,14 @@ function spanT.__len(self: spanT): isize
 
 Returns the number of elements in the span.
 
+### spanT.sizebytes
+
+```nelua
+function spanT.sizebytes(self: spanT): usize
+```
+
+Returns the size of the span in bytes.
+
 ### spanT.__convert
 
 ```nelua
@@ -1575,6 +1583,14 @@ function spanT.__convert(values: spanT_convertible_concept): spanT
 ```
 
 Initializes a span from a pointer to contiguous containers.
+
+### spanT.as
+
+```nelua
+function spanT.as(self: spanT, U: type): auto
+```
+
+Converts a span of T into a span of U.
 
 ### span
 
@@ -2123,8 +2139,19 @@ global function tostring(x: auto): string
 
 Convert a value to a string.
 A new string will be always allocated.
-When calling on records the `__tostring` metamethod may be called,
+The `__tostring` metamethod may be called,
 in this case, it must always return a new allocated string.
+
+### tostringview
+
+```nelua
+global function tostringview(x: auto): string
+```
+
+Convert a value to a string without performing new allocations.
+The `__tostringview` metamethod may be called,
+in this case, it must always return a non owned string reference
+that the caller won't attempt to destroy.
 
 ### tonumber
 
@@ -2285,6 +2312,14 @@ function stringbuilderT:view(): string
 
 Returns a string view of the current written bytes so far.
 No allocation is done.
+
+### stringbuilderT.__tostringview
+
+```nelua
+global stringbuilderT.__tostringview: auto
+```
+
+Alias to `view` method, for supporting `tostringview`.
 
 ### stringbuilderT:promote
 
@@ -3584,12 +3619,14 @@ Allow using `mnext()` to iterate the container.
 global hashmap: type
 ```
 
-Generic used to instantiate a hash map type in the form of `hashmap(K, V, HashFunc, Allocator)`.
+Generic used to instantiate a hash map type in the form of `hashmap(K, V, HashFunc, KeyEqualFunc, Allocator)`.
 
 Argument `K` is the key type for the hash map.
 Argument `V` is the value type for the hash map.
 Argument `HashFunc` is a function to hash a key,
 in case absent then `hash.hash` is used.
+Argument `KeyEqualFunc` is a function to compare two keys,
+in case absent then `==` is used.
 Argument `Allocator` is an allocator type for the container storage,
 in case absent then then `DefaultAllocator` is used.
 
@@ -3989,7 +4026,7 @@ global GC: type = @record{
   stackbottom: usize, -- Stack bottom address.
   frees: vector(pointer, GeneralAllocator), -- List of pointers to be freed.
   markranges: vector(GCMarkRange, GeneralAllocator), -- List of ranges to be scanned.
-  items: hashmap(pointer, GCItem, nil, GeneralAllocator), -- Map of all tracked allocations.
+  items: hashmap(pointer, GCItem, nil, nil, GeneralAllocator), -- Map of all tracked allocations.
 }
 ```
 

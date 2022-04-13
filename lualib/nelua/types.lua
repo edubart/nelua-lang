@@ -2712,7 +2712,7 @@ end
 -- Evaluate a generic to a type by calling it's function defined in the preprocessor.
 function GenericType:eval_type(params)
   local generic_eval_func = self.func -- alias to have better error messages
-  local ok, ret, err = except.trycall(generic_eval_func, table.unpack(params))
+  local ok, ret, err = except.trycall(generic_eval_func, table.unpack(params, 1, params.n))
   if not ok then
     -- the generic creation failed due to a lua error in preprocessor function
     return nil, ret

@@ -198,7 +198,7 @@ end
 
 require 'allocators.general'
 do -- custom allocator
-  local map = (@hashmap(integer, integer, nil, GeneralAllocator)).make(general_allocator)
+  local map = (@hashmap(integer, integer, nil, nil, GeneralAllocator)).make(general_allocator)
   for i=1,100 do
     local k, v = i*3167, i*10
     map[k] = v

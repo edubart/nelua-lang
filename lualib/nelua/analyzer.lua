@@ -1101,7 +1101,7 @@ function visitors.GenericType(context, node)
   if not generic_type or not traits.is_type(generic_type) or not generic_type.is_generic then
     node:raisef("in generic evaluation: symbol '%s' of type '%s' cannot generalize", name, symbol.type)
   end
-  local params = {}
+  local params = {n=#argnodes}
   for i=1,#argnodes do
     local argnode = argnodes[i]
     context:traverse_node(argnode)

@@ -57,7 +57,7 @@ local INIT_CAPACITY: usize <comptime> = 8
 -- Constant used to test invalid index.
 local INVALID_INDEX: usize <comptime> = (@usize)(-1)
 
-## local function make_hashmapT(K, V, HashFunc, Allocator)
+## local function make_hashmapT(K, V, HashFunc, KeyEqualFunc, Allocator)
   ## static_assert(traits.is_type(K), "invalid type '%s'", K)
   ## static_assert(traits.is_type(V), "invalid type '%s'", V)
   ## if not Allocator then
@@ -93,12 +93,6 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   hashmapT.K = K
   hashmapT.V = V
   ]]
-
-  ## if HashFunc then
-  local hash_func: auto <comptime> = #[HashFunc]#
-  ## else
-  local hash_func: auto = hash.hash
-  ## end
 
   --[[
   Creates a hash map using a custom allocator instance.
@@ -150,7 +144,12 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
 
   -- Used internally to find a value at a key returning it's node index.
   function hashmapT:_find(key: K): (usize, usize, usize) <inline>
-    local bucket_index: usize = hashmod((@usize)(hash_func(key)), self.buckets.size)
+    ## if HashFunc then
+    local h: usize = (@usize)(#[HashFunc]#(key))
+    ## else
+    local h: usize = hash.hash(key)
+    ## end
+    local bucket_index: usize = hashmod(h, self.buckets.size)
     local prev_node_index: usize = INVALID_INDEX
     if unlikely(self.buckets.size == 0) then -- container is empty
       return INVALID_INDEX, prev_node_index, bucket_index
@@ -159,7 +158,14 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
     -- iterate until the key is found
     while node_index ~= INVALID_INDEX do
       local node: *hashnodeT = &self.nodes[node_index]
-      if likely(node.key == key) then
+      ## if KeyEqualFunc then
+      local eq: boolean = #[KeyEqualFunc]#(key, node.key)
+      ## elseif K.is_record and K.metafields.__keyequal then
+      local eq: boolean = key:__keyequal(node.key)
+      ## else
+      local eq: boolean = key == node.key
+      ## end
+      if eq then
         return node_index, prev_node_index, bucket_index
       end
       prev_node_index = node_index
@@ -450,12 +456,14 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
 ## end
 
 --[[
-Generic used to instantiate a hash map type in the form of `hashmap(K, V, HashFunc, Allocator)`.
+Generic used to instantiate a hash map type in the form of `hashmap(K, V, HashFunc, KeyEqualFunc, Allocator)`.
 
 Argument `K` is the key type for the hash map.
 Argument `V` is the value type for the hash map.
 Argument `HashFunc` is a function to hash a key,
 in case absent then `hash.hash` is used.
+Argument `KeyEqualFunc` is a function to compare two keys,
+in case absent then `==` is used.
 Argument `Allocator` is an allocator type for the container storage,
 in case absent then then `DefaultAllocator` is used.
 ]]

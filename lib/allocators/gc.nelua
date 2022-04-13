@@ -111,7 +111,7 @@ global GC: type = @record{
   stackbottom: usize, -- Stack bottom address.
   frees: vector(pointer, GeneralAllocator), -- List of pointers to be freed.
   markranges: vector(GCMarkRange, GeneralAllocator), -- List of ranges to be scanned.
-  items: hashmap(pointer, GCItem, nil, GeneralAllocator), -- Map of all tracked allocations.
+  items: hashmap(pointer, GCItem, nil, nil, GeneralAllocator), -- Map of all tracked allocations.
 }
 
 -- The global GC instance.
