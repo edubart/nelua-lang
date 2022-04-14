@@ -896,8 +896,6 @@ function cbuiltins.calls.require(context, node)
       proxyemitter:add_indent_ln('}')
       if rettypename ~= 'void' then
         proxyemitter:add_indent_ln('return cache;')
-      else
-        proxyemitter:add_indent_ln('return;')
       end
       proxyemitter:dec_indent()
       proxyemitter:add_indent_ln('}')
@@ -986,6 +984,7 @@ function cbuiltins.calls.print(context, node)
       context:ensure_builtins('fputs', 'fprintf', 'stdout', 'NULL')
       if argtype.is_function then
         defemitter:add_ln('fputs("function: ", stdout);')
+        defemitter:add_indent()
       end
       defemitter:add_ln('if(a',i,' != NULL) {')
         defemitter:inc_indent()

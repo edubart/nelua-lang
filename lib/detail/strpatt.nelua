@@ -69,8 +69,8 @@ function StrPatt.create(source: string, pattern: string, plain: boolean): StrPat
   }
 end
 
-function StrPatt:reset_captures()
-  for i=0,<self.numcaptures do
+function StrPatt:reset_captures(): void
+  for i: isize=0,<self.numcaptures do
     self.capture[i] = {}
   end
   self.numcaptures = 0

@@ -300,7 +300,7 @@ function strconv.num2str(buf: *[64]byte, x: auto): string
   -- extract fractional digits
   local frac: longuint = (@longuint)(n)
   local fracmax: longuint = 1
-  for i=0,<#[DIGITS]# do fracmax = fracmax * 10 end
+  for i: int32=0,<#[DIGITS]# do fracmax = fracmax * 10 end
   while frac >= fracmax do
     frac = frac // 10
     expo = expo + 1

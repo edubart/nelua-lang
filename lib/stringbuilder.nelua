@@ -413,7 +413,9 @@ end
   end
 
   -- Alias to `view` method, for supporting `tostringview`.
-  global stringbuilderT.__tostringview: auto = stringbuilderT.view
+  function stringbuilderT:__tostringview(): string
+    return self:view()
+  end
 
   ## if Allocator == DefaultAllocator then
   --[[
