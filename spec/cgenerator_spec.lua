@@ -3645,8 +3645,13 @@ it("generics", function()
       assert(x[0] == 1)
     end
 
+    function arrayproxy.g()
+      return 1
+    end
+
     f(i)
     f(j)
+    assert(arrayproxy.g() == 1)
   ]=])
 end)
 

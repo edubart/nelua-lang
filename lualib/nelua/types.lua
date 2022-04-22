@@ -590,6 +590,21 @@ function types.typenodes_to_types(nodes)
   return typelist
 end
 
+-- Convert a list of nodes to a list of types.
+function types.nodes_to_types(nodes)
+  local typelist = {}
+  for i=1,#nodes do
+    local nodetype = nodes[i].attr.type
+    assert(nodetype)
+    typelist[i] = nodetype
+  end
+  if #typelist == 1 and typelist[1].is_void then
+    -- single void type means no returns
+    typelist = {}
+  end
+  return typelist
+end
+
 -- Convert a list of argument nodes into a list of argument types.
 -- This consider if last argument is a function call.
 -- Returns nil if need to wait type resolution to complete.

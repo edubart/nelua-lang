@@ -1652,7 +1652,7 @@ end
 
 local function visitor_Type_MetaFieldIndex(context, node, objtype, name)
   local attr = node.attr
-  local symbol = objtype.metafields[name]
+  local symbol = objtype.metafields and objtype.metafields[name]
   local parentnode = context:get_visiting_node(1)
   local infuncdef = (context.state.infuncdef == parentnode) and parentnode
   local infielddecl = (context.state.infielddecl == parentnode) and parentnode
@@ -1678,7 +1678,7 @@ local function visitor_Type_MetaFieldIndex(context, node, objtype, name)
       symbol.metafield = true
     else
       symbol:link_node(node)
-      if objtype.is_string and not objtype.metafields.sub then
+      if objtype.is_string and objtype.metafields and not objtype.metafields.sub then
         node:raisef("cannot index meta field '%s' in record '%s', \z
           maybe you forgot to require module 'string'?", name, objtype)
       else
@@ -1726,10 +1726,8 @@ local function visitor_Type_FieldIndex(context, node, objtype, name)
   objtype = objtype:implicit_deref_type()
   if objtype.is_enum and not (context.state.infuncdef or context.state.infielddecl) then
     return visitor_EnumType_FieldIndex(context, node, objtype, name)
-  elseif objtype.metafields then
-    return visitor_Type_MetaFieldIndex(context, node, objtype, name)
   else
-    node:raisef("cannot index fields on type '%s'", objtype)
+    return visitor_Type_MetaFieldIndex(context, node, objtype, name)
   end
 end
 
