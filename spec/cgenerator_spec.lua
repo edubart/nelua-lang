@@ -2740,6 +2740,18 @@ it("automatic reference", function()
       assert(f(R{2}) == 2)
     end
   ]])
+
+  expect.run_c([[
+    local R: type = @record{x: integer, y: integer}
+    local sideeffect: integer = 0
+    local function f(x: integer): integer sideeffect = x return x end
+    local function g(r: *R): integer return r.x + r.y end
+
+    local r: R = {1}
+    assert(g(&(@R){f(1), f(2)}) == 3)
+    assert(g(R{f(2), f(3)}) == 5)
+    assert(sideeffect == 3)
+  ]])
 end)
 
 it("automatic dereference", function()

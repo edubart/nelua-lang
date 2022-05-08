@@ -261,6 +261,14 @@ function cbuiltins.NELUA_MAYALIAS(context)
 ]], 'directives')
 end
 
+-- Used to take reference of literals (rvalues).
+function cbuiltins.NELUA_LITERAL_REF(context)
+  context:define_builtin_macro('NELUA_LITERAL_REF', [[
+/* Macro used to take reference of literals. */
+#define NELUA_LITERAL_REF(T, x) (&((struct{T v;}){x}.v))
+]], 'directives')
+end
+
 --[[
 Called before aborting when sanitizing.
 Its purpose is to generate traceback before aborting.
@@ -1430,10 +1438,13 @@ function cbuiltins.operators.ref(_, node, emitter, argattr, argname)
     if ccompiler.get_cc_info().is_cpp then --luacov:disable
       node:raisef('taking reference of a compound literal is not allowed in the C++ backend')
     end --luacov:enable
-  else -- we expect an lvalue
+    emitter:add_builtin('NELUA_LITERAL_REF')
+    emitter:add('(', argattr.type, ', (', argname, '))')
+  else
+    -- we expect an lvalue
     assert(argattr.lvalue)
+    emitter:add('(&', argname, ')')
   end
-  emitter:add('(&', argname, ')')
 end
 
 -- Implementation of dereference operator (`$`).

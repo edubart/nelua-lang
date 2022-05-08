@@ -190,28 +190,19 @@ function CEmitter:add_converted_val(type, val, valtype, force, untypedinit)
            (type.is_float or valtype.is_integral) then -- comptime scalar -> scalar
       self:add_scalar_literal(valattr.value, type, valattr.base, true)
     elseif type.is_pointer and valtype.is_aggregate then -- auto ref
-      -- TODO: the following would maybe take address of rvalues properly in C++ backend?
-      -- (without -fpermissive)
-      --[[
+      local cast = valtype ~= type.subtype
+      if cast then
+        self:add('((', type, ')')
+      end
       if valattr.promotelvalue then
-        self:add_ln('({')
-        self:inc_indent()
-        self:add_indent_ln(valtype, ' _expr = ', val, ';')
-        if valtype == type.subtype then
-          self:add_indent_ln('&_expr;')
-        else
-          self:add_indent_ln('(', type, ')(&_expr);')
-        end
-        self:dec_indent()
-        self:add_indent('})')
+        self:add_builtin('NELUA_LITERAL_REF')
+        self:add('(', valtype, ', (', val, '))')
       else
-      ]]
-        if valtype == type.subtype then
-          self:add('(&', val, ')')
-        else
-          self:add('((', type, ')(&', val, '))')
-        end
-      -- end
+        self:add('(&', val, ')')
+      end
+      if cast then
+        self:add(')')
+      end
     elseif type.is_aggregate and valtype.is_pointer and valtype.subtype == type then -- auto deref
       self:add_deref(val, valtype)
     elseif valtype.is_void and type.is_niltype then
