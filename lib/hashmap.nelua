@@ -312,6 +312,27 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   end
 
   --[[
+  Returns true if a key exists in the container.
+
+  *Complexity*: Average case O(1).
+  ]]
+  function hashmapT:has(key: K): boolean
+    return self:peek(key) ~= nilptr
+  end
+
+  --[[
+  Returns true plus the value for the element with key `key` in in the container in case it exists.
+  Otherwise, returns false plus a zero initialized element.
+
+  *Complexity*: Average case O(1).
+  ]]
+  function hashmapT:has_and_get(key: K): (boolean, V)
+    local value: *V = self:peek(key)
+    if value == nilptr then return false, V() end
+    return true, $value
+  end
+
+  --[[
   Removes an element with a key from the container (if it exists).
   Returns the removed value that was was actually removed.
   If the key does not exist, then returns a zeroed value.
