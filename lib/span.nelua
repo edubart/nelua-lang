@@ -41,7 +41,7 @@ require 'iterators'
         x.type, spanT)
     end
     if x.type:is_contiguous_of(T) then
-      if x.type.is_array_of(T) then
+      if x.type:is_array_of(T) then
         return types.PointerType(x.type)
       else
         return true
