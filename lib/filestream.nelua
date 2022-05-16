@@ -181,7 +181,7 @@ The default value for whence is `"cur"`, and for offset is `0`.
 Therefore, the call `filestream:seek()` returns the current file position, without changing it.
 
 The call `filestream:seek("set")` sets the position to the beginning of the file (and returns `0`).
-The call `file:seek("end")` sets the position to the end of the file, and returns its size.
+The call `filestream:seek("end")` sets the position to the end of the file, and returns its size.
 ]]
 function filestream:seek(whence: facultative(string), offset: facultative(integer)): (integer, string, integer)
   local SEEK_SET: cint <const,cimport,cinclude'<stdio.h>'>
@@ -445,11 +445,29 @@ function filestream:writef(fmt: string, ...: varargs): (boolean, string, integer
   return true, '', 0
 end
 
+-- Like `filestream:writef` but also flushes the standard output.
+function filestream:printf(...: varargs): void
+  self:writef(...)
+  self:flush()
+end
+
+-- Like `filestream:print`, but writes to `io.stdout` using `io.write`.
+function filestream:print(...: varargs): void
+  ## for i=1,select('#', ...) do
+    ## if i > 1 then
+      self:write('\t')
+    ## end
+    self:write(#[select(i, ...)]#)
+  ## end
+  self:write('\n')
+  self:flush()
+end
+
 --[[
 Returns an iterator function that, each time it is called, reads the file according to the given format.
 When no format is given, uses `"l"` as a default. As an example, the construction
 ```nelua
-for c in file:lines(1) do body end
+for c in filestream:lines(1) do body end
 ```
 will iterate over all characters of the file, starting at the current position.
 ]]

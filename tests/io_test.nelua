@@ -231,6 +231,11 @@ do -- io.output/io.write/io.writef
   assert(io.stdout:isopen())
 end
 
+do -- io.printf/io.print
+  io.print('print', 'test')
+  io.printf('printf %s\n', 'test')
+end
+
 do -- io.input/io.read
   assert(io.input() == stdin)
 

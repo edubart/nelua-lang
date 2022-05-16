@@ -230,8 +230,12 @@ end
 
 -- Like `io.writef` but also flushes the standard output.
 function io.printf(...: varargs): void
-  io.writef(...)
-  io.flush()
+  io.stdout:printf(...)
+end
+
+-- Like `print`, but writes to `io.stdout` using `io.write`.
+function io.print(...: varargs): void
+  io.stdout:print(...)
 end
 
 --[[

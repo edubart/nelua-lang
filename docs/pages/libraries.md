@@ -390,6 +390,14 @@ function io.printf(...: varargs): void
 
 Like `io.writef` but also flushes the standard output.
 
+### io.print
+
+```nelua
+function io.print(...: varargs): void
+```
+
+Like `print`, but writes to `io.stdout` using `io.write`.
+
 ### io.type
 
 ```nelua
@@ -535,7 +543,7 @@ The default value for whence is `"cur"`, and for offset is `0`.
 Therefore, the call `filestream:seek()` returns the current file position, without changing it.
 
 The call `filestream:seek("set")` sets the position to the beginning of the file (and returns `0`).
-The call `file:seek("end")` sets the position to the end of the file, and returns its size.
+The call `filestream:seek("end")` sets the position to the end of the file, and returns its size.
 
 ### filestream:setvbuf
 
@@ -602,6 +610,22 @@ Writes formatted values to the file, according to the given format.
 
 Returns `true` on success, otherwise `false` plus an error message and a system-dependent error code.
 
+### filestream:printf
+
+```nelua
+function filestream:printf(...: varargs): void
+```
+
+Like `filestream:writef` but also flushes the standard output.
+
+### filestream:print
+
+```nelua
+function filestream:print(...: varargs): void
+```
+
+Like `filestream:print`, but writes to `io.stdout` using `io.write`.
+
 ### filestream:lines
 
 ```nelua
@@ -611,7 +635,7 @@ function filestream:lines(fmt: overload(integer,string,niltype)): (auto, auto, s
 Returns an iterator function that, each time it is called, reads the file according to the given format.
 When no format is given, uses `"l"` as a default. As an example, the construction
 ```nelua
-for c in file:lines(1) do body end
+for c in filestream:lines(1) do body end
 ```
 will iterate over all characters of the file, starting at the current position.
 
@@ -2313,10 +2337,10 @@ function stringbuilderT:view(): string
 Returns a string view of the current written bytes so far.
 No allocation is done.
 
-### stringbuilderT.__tostringview
+### stringbuilderT:__tostringview
 
 ```nelua
-global stringbuilderT.__tostringview: auto
+function stringbuilderT:__tostringview(): string
 ```
 
 Alias to `view` method, for supporting `tostringview`.
@@ -3523,6 +3547,27 @@ function hashmapT:peek(key: K): *V
 Returns a reference to the value that is mapped to a key.
 If no such element exists, returns `nilptr`.
 The reference will remain valid until next rehash (when growing).
+
+*Complexity*: Average case O(1).
+
+### hashmapT:has
+
+```nelua
+function hashmapT:has(key: K): boolean
+```
+
+Returns true if a key exists in the container.
+
+*Complexity*: Average case O(1).
+
+### hashmapT:has_and_get
+
+```nelua
+function hashmapT:has_and_get(key: K): (boolean, V)
+```
+
+Returns true plus the value for the element with key `key` in in the container in case it exists.
+Otherwise, returns false plus a zero initialized element.
 
 *Complexity*: Average case O(1).
 
