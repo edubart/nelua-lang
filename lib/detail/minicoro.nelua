@@ -79,6 +79,7 @@ local minicoro_heading = [==[
 #define MCO_LOG(x)
 #define MCO_API static
 #define MCO_NO_DEBUG
+#define MCO_DEFAULT_STACK_SIZE 1024*1024
 ]==]
 local minicoro_code = minicoro_heading..[==[
 /*
