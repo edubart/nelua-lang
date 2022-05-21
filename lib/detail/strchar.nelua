@@ -8,7 +8,69 @@ but it respect C locale in case pragma `useclocale` is enabled.
 -- Module namespace.
 local strchar = @record{}
 
-## if pragmas.useclocale then
+## if not pragmas.useclocale then
+
+-- Converts a uppercase alphabet character to lowercase.
+function strchar.tolower(c: byte): byte <inline>
+  return (@uint32)(c)-'A'_b < 26 and c | 32 or c
+end
+
+-- Converts a lowercase alphabet character to uppercase.
+function strchar.toupper(c: byte): byte <inline>
+  return (@uint32)(c)-'a'_b < 26 and c & 0x5f or c
+end
+
+-- Checks whether a character is in the alphabet (matches [a-zA-Z]).
+function strchar.isalpha(c: byte): boolean <inline>
+  return ((@uint32)(c)|32)-'a'_b < 26
+end
+
+-- Checks whether a character is lowercase (matches [a-z]).
+function strchar.islower(c: byte): boolean <inline>
+  return (@uint32)(c)-'a'_b < 26
+end
+
+-- Checks whether a character is uppercase (matches [A-Z]).
+function strchar.isupper(c: byte): boolean <inline>
+  return (@uint32)(c)-'A'_b < 26
+end
+
+-- Checks whether a character is a decimal digit (matches [0-9]).
+function strchar.isdigit(c: byte): boolean <inline>
+  return (@uint32)(c)-'0'_b < 10
+end
+
+-- Checks whether a character is a hexadecimal digit (matches [0-9a-fA-F]).
+function strchar.isxdigit(c: byte): boolean <inline>
+  return strchar.isdigit(c) or ((@uint32)(c)|32)-'a'_b < 6
+end
+
+-- Checks whether a character is a control character.
+function strchar.iscntrl(c: byte): boolean <inline>
+  return (@uint32)(c) < 0x20 or c == 0x7f
+end
+
+-- Checks whether a character is a graphic character.
+function strchar.isgraph(c: byte): boolean <inline>
+  return (@uint32)(c)-0x21 < 0x5e
+end
+
+-- Check whether a character is a space (matches [ \n\t\v\f\r]).
+function strchar.isspace(c: byte): boolean <inline>
+  return c == ' '_b or ((@uint32)(c)-'\t'_b < 5)
+end
+
+-- Checks whether a character is an alphanumeric character (matches [a-zA-Z0-9]).
+function strchar.isalnum(c: byte): boolean <inline>
+  return strchar.isalpha(c) or strchar.isdigit(c)
+end
+
+-- Checks whether a character is a punctuation mark or not.
+function strchar.ispunct(c: byte): boolean <inline>
+  return strchar.isgraph(c) and not strchar.isalnum(c)
+end
+
+## else
 
 local function tolower(c: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
 local function toupper(c: cint): cint <cimport,cinclude'<ctype.h>',nosideeffect> end
@@ -34,56 +96,6 @@ function strchar.isgraph(c: byte): boolean <inline> return isgraph(c) ~= 0 end
 function strchar.isspace(c: byte): boolean <inline> return isspace(c) ~= 0 end
 function strchar.isalnum(c: byte): boolean <inline> return isalnum(c) ~= 0 end
 function strchar.ispunct(c: byte): boolean <inline> return ispunct(c) ~= 0 end
-
-## else
-
-function strchar.tolower(c: byte): byte <inline>
-  return (@uint32)(c)-'A'_b < 26 and c | 32 or c
-end
-
-function strchar.toupper(c: byte): byte <inline>
-  return (@uint32)(c)-'a'_b < 26 and c & 0x5f or c
-end
-
-function strchar.isalpha(c: byte): boolean <inline>
-  return ((@uint32)(c)|32)-'a'_b < 26
-end
-
-function strchar.islower(c: byte): boolean <inline>
-  return (@uint32)(c)-'a'_b < 26
-end
-
-function strchar.isupper(c: byte): boolean <inline>
-  return (@uint32)(c)-'A'_b < 26
-end
-
-function strchar.isdigit(c: byte): boolean <inline>
-  return (@uint32)(c)-'0'_b < 10
-end
-
-function strchar.isxdigit(c: byte): boolean <inline>
-  return strchar.isdigit(c) or ((@uint32)(c)|32)-'a'_b < 6
-end
-
-function strchar.iscntrl(c: byte): boolean <inline>
-  return (@uint32)(c) < 0x20 or c == 0x7f
-end
-
-function strchar.isgraph(c: byte): boolean <inline>
-  return (@uint32)(c)-0x21 < 0x5e
-end
-
-function strchar.isspace(c: byte): boolean <inline>
-  return c == ' '_b or ((@uint32)(c)-'\t'_b < 5)
-end
-
-function strchar.isalnum(c: byte): boolean <inline>
-  return strchar.isalpha(c) or strchar.isdigit(c)
-end
-
-function strchar.ispunct(c: byte): boolean <inline>
-  return strchar.isgraph(c) and not strchar.isalnum(c)
-end
 
 ## end
 
