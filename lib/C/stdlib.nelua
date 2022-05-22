@@ -27,8 +27,8 @@ function C.abort(): void <cimport,cinclude'<stdlib.h>'> end
 function C.exit(status: cint): void <cimport,cinclude'<stdlib.h>'> end
 function C.quick_exit(status: cint): void <cimport,cinclude'<stdlib.h>'> end
 function C._Exit(status: cint): void <cimport,cinclude'<stdlib.h>'> end
-function C.atexit(func: pointer): cint <cimport,cinclude'<stdlib.h>'> end
-function C.at_quick_exit(func: pointer): cint <cimport,cinclude'<stdlib.h>'> end
+function C.atexit(func: function(): void): cint <cimport,cinclude'<stdlib.h>'> end
+function C.at_quick_exit(func: function(): void): cint <cimport,cinclude'<stdlib.h>'> end
 
 -- Communicating with the environment
 

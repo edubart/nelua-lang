@@ -20,7 +20,7 @@ do -- basic tests
   assert(coroutine.status(co) == 'dead')
   assert(counter == 1)
   assert(coroutine.resume(co) == false)
-  coroutine.destroy(co)
+  assert(coroutine.destroy(co))
 
   local invalid_co: coroutine
   assert(coroutine.status(invalid_co) == 'dead')
@@ -28,11 +28,11 @@ end
 
 do -- resume/yield
   counter = 0
-  local co = coroutine.create(function()
+  local co = assert(coroutine.create(function()
     counter = counter + 1
-    coroutine.yield()
+    assert(coroutine.yield())
     counter = counter + 1
-  end)
+  end))
   assert(counter == 0)
   assert(coroutine.status(co) == 'suspended')
   assert(coroutine.resume(co) == true)
@@ -42,31 +42,31 @@ do -- resume/yield
   assert(counter == 2)
   assert(coroutine.status(co) == 'dead')
   assert(coroutine.resume(co) == false)
-  coroutine.destroy(co)
+  assert(coroutine.destroy(co))
 end
 
 do -- spawn
   counter = -1
-  local co = coroutine.spawn(function(x: integer)
+  local co = assert(coroutine.spawn(function(x: integer)
     counter = x
     counter = counter + 1
-    coroutine.yield()
+    assert(coroutine.yield())
     counter = counter + 1
-  end, 0)
+  end, 0))
   assert(counter == 1)
   assert(coroutine.status(co) == 'suspended')
   assert(coroutine.resume(co) == true)
   assert(counter == 2)
   assert(coroutine.status(co) == 'dead')
   assert(coroutine.resume(co) == false)
-  coroutine.destroy(co)
+  assert(coroutine.destroy(co))
 end
 
 do -- passing 1 value between yield and resume
   local co = coroutine.create(function(a: integer): integer
     assert(a == 1)
     local co = coroutine.running()
-    coroutine.yield(2)
+    assert(coroutine.yield(2))
     local i: integer
     assert(coroutine.pop(co, &i) == true)
     assert(i == 3)
@@ -82,19 +82,19 @@ do -- passing 1 value between yield and resume
   assert(coroutine.status(co) == 'dead')
   assert(coroutine.resume(co) == false)
   assert(coroutine.pop(co, &i) == false)
-  coroutine.destroy(co)
+  assert(coroutine.destroy(co))
 end
 
 do -- passing 2 values between yield and resume
   local Pair = @record{first: integer, second: string}
-  local co = coroutine.create(function(first: integer, second: string): (integer, string)
+  local co = assert(coroutine.create(function(first: integer, second: string): (integer, string)
     local co = coroutine.running()
     assert(first == 1 and second == 'a')
-    coroutine.yield(2, 'b')
+    assert(coroutine.yield(2, 'b'))
     local s: string, i: integer
     assert(coroutine.pop(co, &i, &s) == true and s == 'c' and i == 3)
     return 4, 'd'
-  end)
+  end))
   local s: string, i: integer
   assert(coroutine.status(co) == 'suspended')
   s = 'a'
@@ -106,21 +106,21 @@ do -- passing 2 values between yield and resume
   assert(coroutine.status(co) == 'dead')
   assert(coroutine.resume(co) == false)
   assert(coroutine.pop(co, &i) == false)
-  coroutine.destroy(co)
+  assert(coroutine.destroy(co))
 end
 
 do -- fibonacci example
-  local co = coroutine.spawn(function(max: integer): integer
+  local co = assert(coroutine.spawn(function(max: integer): integer
     local co = coroutine.running()
     local m: integer, n: integer = 1, 1
     while m < max do
       -- print('y', m)
-      coroutine.yield(m)
+      assert(coroutine.yield(m))
       m, n = n, m + n
     end
     -- print('ret', m)
     return m
-  end, 1000000)
+  end, 1000000))
   local m: integer = 0
   while coroutine.status(co) == 'suspended' do
     assert(coroutine.pop(co, &m) == true)
@@ -131,7 +131,7 @@ do -- fibonacci example
   assert(coroutine.pop(co, &m) == true and m == 1346269)
   assert(coroutine.status(co) == 'dead')
   assert(coroutine.pop(co, &m) == false)
-  coroutine.destroy(co)
+  assert(coroutine.destroy(co))
 end
 
 print 'coroutine OK!'

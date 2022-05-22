@@ -46,13 +46,13 @@ Note that this is only needed to be called when the GC is disabled.
 
 *Remarks*: Destroying a coroutine before `"dead"` state will not execute its defer statements.
 ]]
-function coroutine.destroy(co: coroutine): void
+function coroutine.destroy(co: coroutine): (boolean, string)
   ## if not pragmas.nogc then
   gc:unregister(co)
   ## end
-  if minicoro.destroy(co) ~= minicoro.Result.MCO_SUCCESS then
-    error 'failed to destroy a coroutine'
-  end
+  local res: minicoro.Result = minicoro.destroy(co)
+  if res ~= minicoro.Result.MCO_SUCCESS then return false, (@string)(minicoro.result_description(res)) end
+  return true, (@string){}
 end
 
 -- Effectively the same as `destroy`, called when a to-be-closed variable goes out of scope.
@@ -71,7 +71,7 @@ Returns a new coroutine with body function `f`.
 The function allocates stack memory and resources for the coroutine.
 It only creates a new coroutine and returns a handle to it, it does not start the coroutine.
 ]]
-function coroutine.create(f: function_concept): coroutine
+function coroutine.create(f: function_concept): (coroutine, string)
   local F: type = #[f.type]#
   local function coroutine_main(co: *minicoro.Coro): void
     -- Meta program to use values from last `push` as `f` arguments and to `push` returns from `f`.
@@ -82,7 +82,7 @@ function coroutine.create(f: function_concept): coroutine
       ## local argname = 'a'..i
       local #|argname|#: #[argtype]#
       if minicoro.pop(co, &#|argname|#, #@#[argtype]#) ~= minicoro.Result.MCO_SUCCESS then
-        error 'failed to pop a coroutine body argument'
+        panic 'failed to pop a coroutine body argument'
       end
       ## argnodes[i] = aster.Id{argname}
     ## end
@@ -102,21 +102,20 @@ function coroutine.create(f: function_concept): coroutine
     ## for i,rettype in ipairs(f.type.rettypes) do
       ## local retname = 'r'..i
       if minicoro.push(co, &#|retname|#, #@#[rettype]#) ~= minicoro.Result.MCO_SUCCESS then
-        error 'failed to push a coroutine body return'
+        panic 'failed to push a coroutine body return'
       end
     ## end
   end
   local desc: minicoro.Desc = minicoro.desc_init(coroutine_main, 0)
   desc.user_data = (@pointer)(f)
   local co: coroutine
-  if minicoro.create(&co, &desc) ~= minicoro.Result.MCO_SUCCESS then
-    error 'failed to create a coroutine'
-  end
+  local res: minicoro.Result = minicoro.create(&co, &desc)
+  if res ~= minicoro.Result.MCO_SUCCESS then return (@coroutine)(), (@string)(minicoro.result_description(res)) end
   -- Mark the coroutine stack memory to scan in the garbage collector
   ## if not pragmas.nogc then
   gc:register(co, desc.coro_size, 0, coroutine_gc, nilptr)
   ## end
-  return co
+  return co, (@string){}
 end
 
 --[[
@@ -189,7 +188,7 @@ Starts or continues the execution of the coroutine `co`.
 function coroutine.resume(co: coroutine, ...: varargs): (boolean, string) <noinline>
   ## if select('#', ...) > 0 then
   local ok: boolean, err: string = coroutine.push(co, ...)
-  assert(ok, err)
+  if not ok then return false, err end
   ## end
   ## if not pragmas.nogc then
   local ismain: boolean = minicoro.running() == nilptr
@@ -215,11 +214,11 @@ Creates and immediately starts a new coroutine with body function `f`.
 Extra arguments are passed to the function `f` arguments.
 This is effectively the same as calling `coroutine.create` and then `coroutine.resume`.
 ]]
-function coroutine.spawn(f: function_concept, ...: varargs): coroutine
+function coroutine.spawn(f: function_concept, ...: varargs): (coroutine, string)
   local co: coroutine = coroutine.create(f)
   local ok: boolean, err: string = coroutine.resume(co, ...)
-  assert(ok, err)
-  return co
+  if not ok then return (@coroutine)(), err end
+  return co, (@string){}
 end
 
 --[[
@@ -229,14 +228,19 @@ Suspends the execution of the running coroutine.
 - Extra arguments `...` are pushed before yielding.
 - Values passed to last resume should be retrieved with `coroutine.pop`.
 ]]
-function coroutine.yield(...: varargs): void
+function coroutine.yield(...: varargs): (boolean, string)
   local co: coroutine = minicoro.running()
   ## if select('#', ...) > 0 then
   local ok: boolean, err: string = coroutine.push(co, ...)
-  assert(ok, err)
+  if not ok then return ok, err end
   ## end
   local res: minicoro.Result = minicoro.yield(co)
-  assert(res == minicoro.Result.MCO_SUCCESS, 'failed to yield coroutine')
+  if res == minicoro.Result.MCO_STACK_OVERFLOW then
+    -- can't recover from stack overflow, because stack is corrupted
+    panic('coroutine stack overflow')
+  end
+  if res ~= minicoro.Result.MCO_SUCCESS then return false, minicoro.result_description(res) end
+  return true, (@string){}
 end
 
 -- Returns the running coroutine plus a boolean that is true when the running coroutine is the main one.
