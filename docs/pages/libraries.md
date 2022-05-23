@@ -1821,6 +1821,14 @@ Converts a string to a span of bytes.
 
 Remarks: Similar to `subview` a reference of the current string data is returned.
 
+### string.concat
+
+```nelua
+function string.concat(list: span(string), sep: facultative(string)): string
+```
+
+Concatenates a span of a strings into a single string.
+
 ### string:__close
 
 ```nelua
@@ -2596,7 +2604,7 @@ The coroutine handle.
 ### coroutine.destroy
 
 ```nelua
-function coroutine.destroy(co: coroutine): void
+function coroutine.destroy(co: coroutine): (boolean, string)
 ```
 
 Destroy the coroutine `co`, freeing its stack memory and resources.
@@ -2616,7 +2624,7 @@ Effectively the same as `destroy`, called when a to-be-closed variable goes out 
 ### coroutine.create
 
 ```nelua
-function coroutine.create(f: function_concept): coroutine
+function coroutine.create(f: function_concept): (coroutine, string)
 ```
 
 Returns a new coroutine with body function `f`.
@@ -2677,7 +2685,7 @@ Starts or continues the execution of the coroutine `co`.
 ### coroutine.spawn
 
 ```nelua
-function coroutine.spawn(f: function_concept, ...: varargs): coroutine
+function coroutine.spawn(f: function_concept, ...: varargs): (coroutine, string)
 ```
 
 Creates and immediately starts a new coroutine with body function `f`.
@@ -2688,7 +2696,7 @@ This is effectively the same as calling `coroutine.create` and then `coroutine.r
 ### coroutine.yield
 
 ```nelua
-function coroutine.yield(...: varargs): void
+function coroutine.yield(...: varargs): (boolean, string)
 ```
 
 Suspends the execution of the running coroutine.

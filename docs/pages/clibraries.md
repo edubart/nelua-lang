@@ -2858,7 +2858,7 @@ function C._Exit(status: cint): void
 ### C.atexit
 
 ```nelua
-function C.atexit(func: pointer): cint
+function C.atexit(func: function(): void): cint
 ```
 
 
@@ -2866,7 +2866,7 @@ function C.atexit(func: pointer): cint
 ### C.at_quick_exit
 
 ```nelua
-function C.at_quick_exit(func: pointer): cint
+function C.at_quick_exit(func: function(): void): cint
 ```
 
 

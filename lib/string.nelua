@@ -265,6 +265,35 @@ function string.span(s: string): span(byte) <inline>
   return (@span(byte)){data=s.data, size=s.size}
 end
 
+-- Concatenates a span of a strings into a single string.
+function string.concat(list: span(string), sep: facultative(string)): string
+  ## if sep.type.is_niltype then
+  local sep: string = ""
+  ## end
+  local size: usize
+  for i: usize=0,<list.size do
+    if i > 0 then size = size + sep.size end
+    size = size + list[i].size
+  end
+  if size == 0 then return (@string){} end
+  local s: string = string.create(size)
+  local pos: usize = 0
+  for i: usize=0,<list.size do
+    if sep.size > 0 and i > 0 then
+      for j=0,<sep.size do
+        s.data[pos] = sep.data[j]
+        pos = pos + 1
+      end
+    end
+    local part: string = list[i]
+    for j=0,<part.size do
+      s.data[pos] = part.data[j]
+      pos = pos + 1
+    end
+  end
+  return s
+end
+
 ----------------------------------------------------------------------------------------------------
 -- String metamethods
 

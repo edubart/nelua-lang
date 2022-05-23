@@ -437,7 +437,7 @@ do -- string.gsub
   sub:destroy()
 end
 
-do -- string format
+do -- string.format
   local s: string
   assert_string_eq(string.format(''), '')
   assert_string_eq(string.format('%s', (@string){}), '')
@@ -478,6 +478,16 @@ do -- string format
   assert_string_eq(string.format('a number here: %d !', 1337), 'a number here: 1337 !')
   assert_string_eq(string.format('%-30s %s', 'a', 'b'), 'a                              b')
   assert_string_eq(string.format('|%4s|', ''), '|    |')
+end
+
+do -- string.concat
+  assert(string.concat({}) == "")
+  assert(string.concat({}, " ") == "")
+
+  local s: string <close> = string.concat({"hello", "world"}) assert(s == "helloworld")
+  local s: string <close> = string.concat({"hello", "world"}, " ") print(s) assert(s == "hello world")
+  local s: string <close> = string.concat({"hello", "huge", "world"}, ",") assert(s == "hello,huge,world")
+  local s: string <close> = string.concat({"a", "b", "c"}, ";:") assert(s == "a;:b;:c")
 end
 
 do -- print
