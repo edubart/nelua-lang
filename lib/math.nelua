@@ -119,6 +119,11 @@ function math.round(x: an_scalar): auto <inline,nosideeffect>
   ## end
 end
 
+-- Like `math.round`, but the result is always converted to an integer.
+function math.iround(x: an_scalar): integer <inline,nosideeffect>
+  return math.round(x)
+end
+
 -- Returns the rounded value of `x` towards zero.
 function math.trunc(x: an_scalar): auto <inline,nosideeffect>
   ## if x.type.is_float then
@@ -127,6 +132,11 @@ function math.trunc(x: an_scalar): auto <inline,nosideeffect>
   ## else
     return x
   ## end
+end
+
+-- Like `math.trunc`, but the result is always converted to an integer.
+function math.itrunc(x: an_scalar): integer <inline,nosideeffect>
+  return math.trunc(x)
 end
 
 --[[
