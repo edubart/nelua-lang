@@ -263,7 +263,7 @@ function Scope:add_symbol(symbol)
   local symbols = self.symbols
   local oldsymbol = symbols[key]
   if oldsymbol then
-    if oldsymbol == symbol then
+    if oldsymbol == symbol or symbols[symbol] then -- symbol already registered
       return
     end
     -- shadowing a symbol with the same name
@@ -272,7 +272,7 @@ function Scope:add_symbol(symbol)
       key = symbol
     else
       -- shadowing an usual variable
-      if rawget(symbols, key) == oldsymbol then
+      if rawget(symbols, key) == oldsymbol then -- the old symbol is really in this scope
         -- this symbol will be overridden but we still need to list it for the resolution
         symbols[oldsymbol] = oldsymbol
       end
