@@ -344,7 +344,7 @@ function strconv.num2str(buf: *[64]byte, x: auto): string
     end
   end
   -- trim leading zeros
-  while pos < #buf and buf[pos+1] == '0'_b and buf[pos+2] ~= '.'_b do
+  while pos < #buf-2 and buf[pos+1] == '0'_b and buf[pos+2] ~= '.'_b do
     pos = pos + 1
   end
   -- fill sign

@@ -98,7 +98,7 @@ compilers_flags.gcc = tabler.updatecopy(compilers_flags.cc, {
   cflags_devel = "-g",
   cflags_debug = "-fsanitize-undefined-trap-on-error -ggdb",
   cflags_release = "-O2 -DNDEBUG",
-  cflags_maximum_performance = "-Ofast -march=native -DNDEBUG -fno-plt -flto",
+  cflags_maximum_performance = "-Ofast -march=native -DNDEBUG -fno-plt -flto=auto",
   cflags_shared_lib = "-shared -fPIC",
   cflags_shared_lib_windows_msc = '-shared',
   cflags_shared_lib_windows_gcc = '-shared -Wl,--out-implib,"$(binfile).a"',
