@@ -77,6 +77,15 @@ do -- os.time
   assert(os.time(os.timedesc{year=2020,month=7,day=18,hour=12,isdst=false}) > 0)
 end
 
+do -- os.realtime
+  if os.realtime() >= 0 then -- os.realtime is supported
+    local t1 = os.time()
+    local t2, t2ns = os.realtime()
+    assert(t2 - t1 <= 1)
+    assert(t2ns >= 0)
+  end
+end
+
 do -- os.now/os.sleep
   local start = os.now()
   if start >= 0 then -- os.now is supported

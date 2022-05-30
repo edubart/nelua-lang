@@ -1502,6 +1502,24 @@ and the number returned by time can be used only as an argument to `os.date` and
 When called with a record `os.timedesc`, `os.time` also normalizes all the fields,
 so that they represent the same time as before the call but with values inside their valid ranges.
 
+### os.realtime
+
+```nelua
+function os.realtime(): (integer, integer)
+```
+
+Like `os.time`, returns the current time but using a high resolution clock.
+
+Returns two integers, the number of seconds since the "epoch" (same value as `os.time`)
+plus the remaining number of nanoseconds.
+
+A system realtime clock is used.
+A realtime clock can jump, because it is affected by changes in system time clock,
+thus prefer using `os.now` for timers.
+
+The operation may not be supported by all systems, or may fail in some systems,
+in that case `-1`, `0` is returned.
+
 ### os.now
 
 ```nelua
@@ -1514,6 +1532,10 @@ Returns a number greater than or equal to `0` on success, otherwise `-1`.
 In the first successful call `0` is returned,
 in subsequent calls the relative time in seconds since the first call is returned.
 This is typically used to compute time differences with high precision.
+
+A system monotonic clock is used if supported by the OS.
+A monotonic clock can't jump, because it isn't affected by changes in system time clock.
+If a monotonic clock is not supported, then a realtime may be used as fallback.
 
 The time resolution is unspecified and depends on the OS,
 but typically has nanosecond precision on POSIX systems.

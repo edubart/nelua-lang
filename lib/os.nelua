@@ -433,12 +433,97 @@ function os.time(desc: facultative(os.timedesc)): integer
 end
 
 --[[
+Like `os.time`, returns the current time but using a high resolution clock.
+
+Returns two integers, the number of seconds since the "epoch" (same value as `os.time`)
+plus the remaining number of nanoseconds.
+
+A system realtime clock is used.
+A realtime clock can jump, because it is affected by changes in system time clock,
+thus prefer using `os.now` for timers.
+
+The operation may not be supported by all systems, or may fail in some systems,
+in that case `-1`, `0` is returned.
+]]
+function os.realtime(): (integer, integer)
+  ## if ccinfo.is_wasi then
+  local function __wasi_clock_time_get(id: uint32, precision: uint64, retptr0: *uint64): uint16 <cimport,cinclude'<wasi/api.h>'> end
+  local __WASI_CLOCKID_REALTIME: uint32 <comptime> = 0
+  local clock_time: uint64
+  local ok: boolean = __wasi_clock_time_get(__WASI_CLOCKID_REALTIME, 0, &clock_time) == 0
+  local secs: int64 = (@int64)(clock_time // 1000000000)
+  local nsecs: int64 = (@int64)(clock_time % 1000000000)
+  ## else
+  local ok: boolean = false
+  local secs: int64 = 0
+  local nsecs: int64 = 0
+##[==[
+  cinclude '<stdbool.h>' -- for bool
+  cinclude '<stdint.h>' -- for int64_t
+  cinclude '<time.h>' -- for timespec_get/TIME_UTC
+  cinclude '<errno.h>' -- for errno
+  cinclude '@unistd.h'
+  cinclude '@windows.h'
+  cinclude [[
+/* Determine supported high resolution time API. */
+#if defined(_POSIX_TIMERS) && defined(_POSIX_REALTIME_CLOCK)
+  #define NELUA_HAVE_POSIX_REALTIME_CLOCK
+#elif __STDC_VERSION__ >= 201112L && defined(TIME_UTC) && !defined(__ANDROID__) && !defined(__wasm__)
+  #define NELUA_HAVE_C11_TIMESPEC_GET
+#elif defined(_POSIX_VERSION)
+  #include <sys/time.h>
+  #define NELUA_HAVE_POSIX_GETTIMEOFDAY
+#endif
+]]
+  cemit [[
+#if defined(_WIN32)
+  FILETIME filetime = {0};
+  ULARGE_INTEGER large_filetime = {0};
+#if _WIN32_WINNT >= _WIN32_WINNT_WIN8
+  GetSystemTimePreciseAsFileTime(&filetime);
+#else
+  GetSystemTimeAsFileTime(&filetime);
+#endif
+  ok = true;
+  large_filetime.LowPart = filetime.dwLowDateTime;
+  large_filetime.HighPart = filetime.dwHighDateTime;
+  uint64_t unixtime = large_filetime.QuadPart - 116444736000000000;
+  secs = unixtime / 10000000;
+  nsecs = (unixtime % 10000000) * 100;
+#elif defined(NELUA_HAVE_POSIX_REALTIME_CLOCK)
+  struct timespec ts = {0};
+  ok = clock_gettime(CLOCK_MONOTONIC, &ts) == 0;
+  secs = ts.tv_sec;
+  nsecs = ts.tv_nsec;
+#elif defined(NELUA_HAVE_C11_TIMESPEC_GET)
+  struct timespec ts = {0};
+  ok = timespec_get(&ts, TIME_UTC) == TIME_UTC;
+  secs = ts.tv_sec;
+  nsecs = ts.tv_nsec;
+#elif defined(NELUA_HAVE_POSIX_GETTIMEOFDAY)
+  struct timeval ts;
+  ok = gettimeofday(&ts, NULL) == 0;
+  secs = ts.tv_sec;
+  nsecs = ts.tv_usec * 1000;
+#endif
+]]
+]==]
+  ## end
+  if not ok then return -1, 0 end
+  return secs, nsecs
+end
+
+--[[
 Get time elapsed in seconds since its first call using a high resolution timer.
 Returns a number greater than or equal to `0` on success, otherwise `-1`.
 
 In the first successful call `0` is returned,
 in subsequent calls the relative time in seconds since the first call is returned.
 This is typically used to compute time differences with high precision.
+
+A system monotonic clock is used if supported by the OS.
+A monotonic clock can't jump, because it isn't affected by changes in system time clock.
+If a monotonic clock is not supported, then a realtime may be used as fallback.
 
 The time resolution is unspecified and depends on the OS,
 but typically has nanosecond precision on POSIX systems.
