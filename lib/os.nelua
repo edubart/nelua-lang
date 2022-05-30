@@ -36,105 +36,6 @@ local function geterrno(): (string, integer)
 end
 
 --[[
-Returns an approximation of the amount in seconds of CPU time used by the program,
-as returned by the underlying ISO C function `clock`.
-]]
-function os.clock(): number
-  ## if ccinfo.is_wasi then
-  local function __wasi_clock_time_get(id: uint32, precision: uint64, retptr0: *uint64): uint16 <cimport,cinclude'<wasi/api.h>'> end
-  local __WASI_CLOCKID_PROCESS_CPUTIME_ID: uint32 <comptime> = 2
-  local clock_time: uint64
-  __wasi_clock_time_get(__WASI_CLOCKID_PROCESS_CPUTIME_ID, 0, &clock_time)
-  return clock_time / 1000000000.0
-  ## elseif ccinfo.is_emscripten then
-  local function emscripten_get_now(): float64 <cimport,cinclude'<emscripten.h>'> end
-  return emscripten_get_now() * 1000.0
-  ## else
-  local CLOCKS_PER_SEC: cclock_t <cimport,cinclude'<time.h>'>
-  local function clock(): cclock_t <cimport,cinclude'<time.h>'> end
-  return clock() / CLOCKS_PER_SEC
-  ## end
-end
-
---[[
-Returns a string or a table containing date and time,
-formatted according to the given string `format`.
-
-If the `formattime` argument is present, this is the time to be formatted
-(see the `os.time` function for a description of this value).
-Otherwise, `date` formats the current time.
-
-If `format` starts with '!', then the date is formatted in UTC (Coordinated Universal Time).
-After this optional character, the date is
-formatted according to the same rules as the ISO C function `strftime`.
-
-If `format` is absent, it defaults to "%c",
-which gives a human-readable date and time representation using the current locale.
-
-On non-POSIX systems, this function may be not thread safe
-because of its reliance on C function `gmtime` and C function `localtime`.
-]]
-function os.date(format: facultative(string), formattime: facultative(integer)): string
-  -- TODO: handle '*t' format
-  -- TODO: check for invalid formats (Lua performs checks)
-  ## if formattime.type.is_niltype then
-  local t: ctime_t = time(nilptr)
-  ## else
-  local t: ctime_t = (@ctime_t)(formattime)
-  assert(t == formattime, 'time out of bounds')
-  ## end
-  local fmt: cstring, stm: *tm, tmr: tm
-  local buf: [256]cchar <noinit>
-  local utc: boolean
-  ## if format.type.is_niltype then
-    fmt = "%c"
-  ## else
-    if format.size > 0 and format.data[0] == '!'_b then -- UTC?
-      utc = true
-      fmt = &format.data[1]
-    else
-      fmt = &format.data[0]
-    end
-  ## end
-  ## cinclude '@unistd.h'
-  local function gmtime_r(timep: *ctime_t, result: *tm): *tm <cimport,cinclude'<time.h>'> end
-  local function gmtime(timep: *ctime_t): *tm <cimport,cinclude'<time.h>'> end
-  local function localtime_r(timep: *ctime_t, result: *tm): *tm <cimport,cinclude'<time.h>'> end
-  local function localtime(timep: *ctime_t): *tm <cimport,cinclude'<time.h>'> end
-  local function strftime(s: cstring, maxsize: csize, format: cstring, tp: *tm): csize <cimport,cinclude'<time.h>'> end
-  ## cemit '#if _POSIX_VERSION'
-    if utc then
-      stm = gmtime_r(&t, &tmr)
-    else
-      stm = localtime_r(&t, &tmr)
-    end
-  ## cemit '#else'
-    if utc then
-      stm = gmtime(&t)
-    else
-      stm = localtime(&t)
-    end
-  ## cemit '#endif'
-  assert(stm ~= nilptr, "date result cannot be represented in this installation")
-  local size: csize = strftime(&buf, #buf, fmt, stm)
-  return string{data=&buf[0],size=size}:copy()
-end
-
---[[
-Returns the difference, in seconds, from time `t1` to time `t2`
-(where the times are values returned by `os.time`).
-
-In POSIX, Windows, and some other systems, this value is exactly `t2 - t1`.
-]]
-function os.difftime(t2: integer, t1: integer): number
-  local ct2: ctime_t = (@ctime_t)(t2)
-  local ct1: ctime_t = (@ctime_t)(t1)
-  assert(ct2 == t2 and ct1 == t1, 'time out of bounds')
-  local function difftime(time1: ctime_t, time0: ctime_t): cdouble <cimport,cinclude'<time.h>'> end
-  return difftime(ct2, ct1)
-end
-
---[[
 Passes command to be executed by an operating system shell.
 
 Its first result is `true` if the command terminated successfully, or `false` otherwise.
@@ -341,6 +242,147 @@ function os.setlocale(locale: facultative(string), category: facultative(string)
   end
 end
 
+--[[
+Returns a string with a file name that can be used for a temporary file.
+
+The file must be explicitly opened before its use and explicitly removed when no longer needed.
+In POSIX systems, this function also creates a file with that name, to avoid security risks.
+(Someone else might create the file with wrong permissions in the time between getting the name and creating the file.)
+You still have to open the file to use it and to remove it (even if you do not use it).
+When possible, you may prefer to use `io.tmpfile`, which automatically removes the file when the program ends.
+]]
+function os.tmpname(): string
+  local name: string
+  ## if ccinfo.is_wasm then
+    error 'unsupported'
+  ## else
+    ## cinclude '@unistd.h'
+    ## cemit '#if _POSIX_VERSION >= 200112L'
+      local function mkstemp(template: cstring): cint <cimport,cinclude'<stdlib.h>'> end
+      local function close(fd: cint): cint <cimport,cinclude'@unistd.h'> end
+      local tmpdir: cstring = getenv('TMPDIR')
+      if tmpdir ~= nilptr then
+        name = tmpdir.."/nelua_XXXXXX"
+      else
+        name = string.copy("/tmp/nelua_XXXXXX")
+      end
+      local fd: cint = mkstemp(name)
+      if fd == -1 then
+        name:destroy()
+      else
+        close(fd)
+      end
+    ## cemit '#else'
+    local function tmpnam(s: cstring): cstring <cimport,cinclude'<stdio.h>'> end
+    local buf: [260]cchar
+    local bufcs: cstring = &buf[0]
+    if tmpnam(bufcs) ~= nilptr then
+      name = string.copy(bufcs)
+    end
+    ## cemit '#endif'
+  ## end
+  return name
+end
+
+--[[
+Returns a string or a table containing date and time,
+formatted according to the given string `format`.
+
+If the `formattime` argument is present, this is the time to be formatted
+(see the `os.time` function for a description of this value).
+Otherwise, `date` formats the current time.
+
+If `format` starts with '!', then the date is formatted in UTC (Coordinated Universal Time).
+After this optional character, the date is
+formatted according to the same rules as the ISO C function `strftime`.
+
+If `format` is absent, it defaults to "%c",
+which gives a human-readable date and time representation using the current locale.
+
+On non-POSIX systems, this function may be not thread safe
+because of its reliance on C function `gmtime` and C function `localtime`.
+]]
+function os.date(format: facultative(string), formattime: facultative(integer)): string
+  -- TODO: handle '*t' format
+  -- TODO: check for invalid formats (Lua performs checks)
+  ## if formattime.type.is_niltype then
+  local t: ctime_t = time(nilptr)
+  ## else
+  local t: ctime_t = (@ctime_t)(formattime)
+  assert(t == formattime, 'time out of bounds')
+  ## end
+  local fmt: cstring, stm: *tm, tmr: tm
+  local buf: [256]cchar <noinit>
+  local utc: boolean
+  ## if format.type.is_niltype then
+    fmt = "%c"
+  ## else
+    if format.size > 0 and format.data[0] == '!'_b then -- UTC?
+      utc = true
+      fmt = &format.data[1]
+    else
+      fmt = &format.data[0]
+    end
+  ## end
+  ## cinclude '@unistd.h'
+  local function gmtime_r(timep: *ctime_t, result: *tm): *tm <cimport,cinclude'<time.h>'> end
+  local function gmtime(timep: *ctime_t): *tm <cimport,cinclude'<time.h>'> end
+  local function localtime_r(timep: *ctime_t, result: *tm): *tm <cimport,cinclude'<time.h>'> end
+  local function localtime(timep: *ctime_t): *tm <cimport,cinclude'<time.h>'> end
+  local function strftime(s: cstring, maxsize: csize, format: cstring, tp: *tm): csize <cimport,cinclude'<time.h>'> end
+  ## cemit '#if _POSIX_VERSION'
+    if utc then
+      stm = gmtime_r(&t, &tmr)
+    else
+      stm = localtime_r(&t, &tmr)
+    end
+  ## cemit '#else'
+    if utc then
+      stm = gmtime(&t)
+    else
+      stm = localtime(&t)
+    end
+  ## cemit '#endif'
+  assert(stm ~= nilptr, "date result cannot be represented in this installation")
+  local size: csize = strftime(&buf, #buf, fmt, stm)
+  return string{data=&buf[0],size=size}:copy()
+end
+
+--[[
+Returns an approximation of the amount in seconds of CPU time used by the program,
+as returned by the underlying ISO C function `clock`.
+]]
+function os.clock(): number
+  ## if ccinfo.is_wasi then
+  local function __wasi_clock_time_get(id: uint32, precision: uint64, retptr0: *uint64): uint16 <cimport,cinclude'<wasi/api.h>'> end
+  local __WASI_CLOCKID_PROCESS_CPUTIME_ID: uint32 <comptime> = 2
+  local clock_time: uint64
+  __wasi_clock_time_get(__WASI_CLOCKID_PROCESS_CPUTIME_ID, 0, &clock_time)
+  return clock_time / 1000000000.0
+  ## elseif ccinfo.is_emscripten then
+  local function emscripten_get_now(): float64 <cimport,cinclude'<emscripten.h>'> end
+  return emscripten_get_now() * 1000.0
+  ## else
+  local CLOCKS_PER_SEC: cclock_t <cimport,cinclude'<time.h>'>
+  local function clock(): cclock_t <cimport,cinclude'<time.h>'> end
+  return clock() / CLOCKS_PER_SEC
+  ## end
+end
+
+--[[
+Returns the difference, in seconds, from time `t1` to time `t2`
+(where the times are values returned by `os.time`).
+
+In POSIX, Windows, and some other systems, this value is exactly `t2 - t1`.
+]]
+function os.difftime(t2: integer, t1: integer): number
+  local ct2: ctime_t = (@ctime_t)(t2)
+  local ct1: ctime_t = (@ctime_t)(t1)
+  assert(ct2 == t2 and ct1 == t1, 'time out of bounds')
+  local function difftime(time1: ctime_t, time0: ctime_t): cdouble <cimport,cinclude'<time.h>'> end
+  return difftime(ct2, ct1)
+end
+
 -- Time description, used by function `os.time`.
 global os.timedesc: type = @record{
   year: integer, month: integer, day: integer,
@@ -391,48 +433,6 @@ function os.time(desc: facultative(os.timedesc)): integer
 end
 
 --[[
-Returns a string with a file name that can be used for a temporary file.
-
-The file must be explicitly opened before its use and explicitly removed when no longer needed.
-In POSIX systems, this function also creates a file with that name, to avoid security risks.
-(Someone else might create the file with wrong permissions in the time between getting the name and creating the file.)
-You still have to open the file to use it and to remove it (even if you do not use it).
-When possible, you may prefer to use `io.tmpfile`, which automatically removes the file when the program ends.
-]]
-function os.tmpname(): string
-  local name: string
-  ## if ccinfo.is_wasm then
-    error 'unsupported'
-  ## else
-    ## cinclude '@unistd.h'
-    ## cemit '#if _POSIX_VERSION >= 200112L'
-      local function mkstemp(template: cstring): cint <cimport,cinclude'<stdlib.h>'> end
-      local function close(fd: cint): cint <cimport,cinclude'@unistd.h'> end
-      local tmpdir: cstring = getenv('TMPDIR')
-      if tmpdir ~= nilptr then
-        name = tmpdir.."/nelua_XXXXXX"
-      else
-        name = string.copy("/tmp/nelua_XXXXXX")
-      end
-      local fd: cint = mkstemp(name)
-      if fd == -1 then
-        name:destroy()
-      else
-        close(fd)
-      end
-    ## cemit '#else'
-    local function tmpnam(s: cstring): cstring <cimport,cinclude'<stdio.h>'> end
-    local buf: [260]cchar
-    local bufcs: cstring = &buf[0]
-    if tmpnam(bufcs) ~= nilptr then
-      name = string.copy(bufcs)
-    end
-    ## cemit '#endif'
-  ## end
-  return name
-end
-
---[[
 Get time elapsed in seconds since its first call using a high resolution timer.
 Returns a number greater than or equal to `0` on success, otherwise `-1`.
 
@@ -451,7 +451,9 @@ function os.now(): number
   local function __wasi_clock_time_get(id: uint32, precision: uint64, retptr0: *uint64): uint16 <cimport,cinclude'<wasi/api.h>'> end
   local __WASI_CLOCKID_MONOTONIC: uint32 <comptime> = 1
   local clock_time: uint64
-  __wasi_clock_time_get(__WASI_CLOCKID_MONOTONIC, 0, &clock_time)
+  if __wasi_clock_time_get(__WASI_CLOCKID_MONOTONIC, 0, &clock_time) ~= 0 then
+    return -1
+  end
   local initialized: boolean <static> = false
   local first_clock_time: uint64 <static> = 0
   if not initialized then
@@ -476,15 +478,14 @@ function os.now(): number
   cinclude '<stdbool.h>' -- for bool
   cinclude '<stdint.h>' -- for int64_t
   cinclude '<time.h>' -- for timespec_get/TIME_UTC
-  cinclude '<errno.h>' -- for errno
   cinclude '@unistd.h'
   cinclude '@windows.h'
   cinclude [[
 /* Determine supported high resolution time API. */
-#if __STDC_VERSION__ >= 201112L && defined(TIME_UTC) && !defined(__ANDROID__) && !defined(__wasm__)
-  #define NELUA_HAVE_C11_TIMESPEC_GET
-#elif defined(_POSIX_TIMERS) && defined(_POSIX_MONOTONIC_CLOCK)
+#if defined(_POSIX_TIMERS) && defined(_POSIX_MONOTONIC_CLOCK)
   #define NELUA_HAVE_POSIX_MONOTONIC_CLOCK
+#elif __STDC_VERSION__ >= 201112L && defined(TIME_UTC) && !defined(__ANDROID__) && !defined(__wasm__)
+  #define NELUA_HAVE_C11_TIMESPEC_GET
 #elif defined(_POSIX_VERSION)
   #include <sys/time.h>
   #define NELUA_HAVE_POSIX_GETTIMEOFDAY
@@ -506,22 +507,9 @@ function os.now(): number
     int64_t r = ticks % freq.QuadPart;
     ns = (q * 1000000000) + ((r * 1000000000) / freq.QuadPart);
   }
-#elif defined(NELUA_HAVE_C11_TIMESPEC_GET)
-  static bool initialized = false;
-  static struct timespec start = {0};
-  errno = 0;
-  if(!initialized) {
-    initialized = true;
-    ok = timespec_get(&start, TIME_UTC) == TIME_UTC;
-  } else {
-    struct timespec ts = {0};
-    ok = timespec_get(&ts, TIME_UTC) == TIME_UTC;
-    ns = (int64_t)(ts.tv_sec - start.tv_sec)*1000000000 + (int64_t)(ts.tv_nsec - start.tv_nsec);
-  }
 #elif defined(NELUA_HAVE_POSIX_MONOTONIC_CLOCK)
   static bool initialized = false;
   static struct timespec start = {0};
-  errno = 0;
   if(!initialized) {
     initialized = true;
     ok = clock_gettime(CLOCK_MONOTONIC, &start) == 0;
@@ -530,10 +518,20 @@ function os.now(): number
     ok = clock_gettime(CLOCK_MONOTONIC, &ts) == 0;
     ns = (int64_t)(ts.tv_sec - start.tv_sec)*1000000000 + (int64_t)(ts.tv_nsec - start.tv_nsec);
   }
+#elif defined(NELUA_HAVE_C11_TIMESPEC_GET)
+  static bool initialized = false;
+  static struct timespec start = {0};
+  if(!initialized) {
+    initialized = true;
+    ok = timespec_get(&start, TIME_UTC) == TIME_UTC;
+  } else {
+    struct timespec ts = {0};
+    ok = timespec_get(&ts, TIME_UTC) == TIME_UTC;
+    ns = (int64_t)(ts.tv_sec - start.tv_sec)*1000000000 + (int64_t)(ts.tv_nsec - start.tv_nsec);
+  }
 #elif defined(NELUA_HAVE_POSIX_GETTIMEOFDAY)
   static bool initialized = false;
   static struct timeval start = {0};
-  errno = 0;
   if(!initialized) {
     initialized = true;
     ok = gettimeofday(&start, NULL) == 0;

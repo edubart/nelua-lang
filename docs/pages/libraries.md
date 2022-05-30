@@ -723,6 +723,14 @@ function math.round(x: an_scalar): auto
 Returns the rounded value of `x` towards the nearest integer.
 Halfway cases are rounded away from zero.
 
+### math.iround
+
+```nelua
+function math.iround(x: an_scalar): integer
+```
+
+Like `math.round`, but the result is always converted to an integer.
+
 ### math.trunc
 
 ```nelua
@@ -730,6 +738,14 @@ function math.trunc(x: an_scalar): auto
 ```
 
 Returns the rounded value of `x` towards zero.
+
+### math.itrunc
+
+```nelua
+function math.itrunc(x: an_scalar): integer
+```
+
+Like `math.trunc`, but the result is always converted to an integer.
 
 ### math.sqrt
 
@@ -1303,49 +1319,6 @@ global os: type = @record{}
 
 Namespace for OS module.
 
-### os.clock
-
-```nelua
-function os.clock(): number
-```
-
-Returns an approximation of the amount in seconds of CPU time used by the program,
-as returned by the underlying ISO C function `clock`.
-
-### os.date
-
-```nelua
-function os.date(format: facultative(string), formattime: facultative(integer)): string
-```
-
-Returns a string or a table containing date and time,
-formatted according to the given string `format`.
-
-If the `formattime` argument is present, this is the time to be formatted
-(see the `os.time` function for a description of this value).
-Otherwise, `date` formats the current time.
-
-If `format` starts with '!', then the date is formatted in UTC (Coordinated Universal Time).
-After this optional character, the date is
-formatted according to the same rules as the ISO C function `strftime`.
-
-If `format` is absent, it defaults to "%c",
-which gives a human-readable date and time representation using the current locale.
-
-On non-POSIX systems, this function may be not thread safe
-because of its reliance on C function `gmtime` and C function `localtime`.
-
-### os.difftime
-
-```nelua
-function os.difftime(t2: integer, t1: integer): number
-```
-
-Returns the difference, in seconds, from time `t1` to time `t2`
-(where the times are values returned by `os.time`).
-
-In POSIX, Windows, and some other systems, this value is exactly `t2 - t1`.
-
 ### os.execute
 
 ```nelua
@@ -1438,6 +1411,63 @@ If locale is the string `"C"`, the current locale is set to the standard C local
 The function returns the name of the new locale on success,
 or an empty string if the request cannot be honored.
 
+### os.tmpname
+
+```nelua
+function os.tmpname(): string
+```
+
+Returns a string with a file name that can be used for a temporary file.
+
+The file must be explicitly opened before its use and explicitly removed when no longer needed.
+In POSIX systems, this function also creates a file with that name, to avoid security risks.
+(Someone else might create the file with wrong permissions in the time between getting the name and creating the file.)
+You still have to open the file to use it and to remove it (even if you do not use it).
+When possible, you may prefer to use `io.tmpfile`, which automatically removes the file when the program ends.
+
+### os.date
+
+```nelua
+function os.date(format: facultative(string), formattime: facultative(integer)): string
+```
+
+Returns a string or a table containing date and time,
+formatted according to the given string `format`.
+
+If the `formattime` argument is present, this is the time to be formatted
+(see the `os.time` function for a description of this value).
+Otherwise, `date` formats the current time.
+
+If `format` starts with '!', then the date is formatted in UTC (Coordinated Universal Time).
+After this optional character, the date is
+formatted according to the same rules as the ISO C function `strftime`.
+
+If `format` is absent, it defaults to "%c",
+which gives a human-readable date and time representation using the current locale.
+
+On non-POSIX systems, this function may be not thread safe
+because of its reliance on C function `gmtime` and C function `localtime`.
+
+### os.clock
+
+```nelua
+function os.clock(): number
+```
+
+Returns an approximation of the amount in seconds of CPU time used by the program,
+as returned by the underlying ISO C function `clock`.
+
+### os.difftime
+
+```nelua
+function os.difftime(t2: integer, t1: integer): number
+```
+
+Returns the difference, in seconds, from time `t1` to time `t2`
+(where the times are values returned by `os.time`).
+
+In POSIX, Windows, and some other systems, this value is exactly `t2 - t1`.
+
 ### os.timedesc
 
 ```nelua
@@ -1471,20 +1501,6 @@ and the number returned by time can be used only as an argument to `os.date` and
 
 When called with a record `os.timedesc`, `os.time` also normalizes all the fields,
 so that they represent the same time as before the call but with values inside their valid ranges.
-
-### os.tmpname
-
-```nelua
-function os.tmpname(): string
-```
-
-Returns a string with a file name that can be used for a temporary file.
-
-The file must be explicitly opened before its use and explicitly removed when no longer needed.
-In POSIX systems, this function also creates a file with that name, to avoid security risks.
-(Someone else might create the file with wrong permissions in the time between getting the name and creating the file.)
-You still have to open the file to use it and to remove it (even if you do not use it).
-When possible, you may prefer to use `io.tmpfile`, which automatically removes the file when the program ends.
 
 ### os.now
 
