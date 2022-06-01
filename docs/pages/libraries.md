@@ -1097,6 +1097,30 @@ Other results (ranges and floats) are unbiased extracted from these integers.
 Its pseudo-random generator is initialized with the equivalent of a call to `math.randomseed` with no arguments,
 so that `math.random` should generate different sequences of results each time the program runs.
 
+### math.isnan
+
+```nelua
+function math.isnan(x: an_scalar): boolean
+```
+
+Returns true if value `x` is a NaN (not a number) floating point number.
+
+### math.isinf
+
+```nelua
+function math.isinf(x: an_scalar): boolean
+```
+
+Returns true if value `x` is an infinite floating point number.
+
+### math.isfinite
+
+```nelua
+function math.isfinite(x: an_scalar): boolean
+```
+
+Returns true if value `x` is a finite floating point number (neither NaN or Inf).
+
 ### math.pi
 
 ```nelua

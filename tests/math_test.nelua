@@ -476,6 +476,78 @@ do -- math.clamp
   asserteq(math.clamp(1.0, 0.0, 1.0), 1.0)
 end
 
+do -- isnan
+  assert(math.isnan(0.0/0.0) == true)
+  assert(math.isnan(-0.0/0.0) == true)
+  assert(math.isnan(1e-100000) == false)
+  assert(math.isnan(0.0) == false)
+  assert(math.isnan(1.0) == false)
+  assert(math.isnan(-1.0) == false)
+  assert(math.isnan(math.huge) == false)
+  assert(math.isnan(-math.huge) == false)
+  assert(math.isinf((@float64)(math.maxinteger)) == false)
+  assert(math.isinf((@float64)(math.mininteger)) == false)
+  assert(math.isnan(math.maxinteger) == false)
+  assert(math.isnan(math.mininteger) == false)
+
+  assert(math.isnan(0.0_f32/0.0_f32) == true)
+  assert(math.isnan(-0.0_f32/0.0_f32) == true)
+  assert(math.isnan(1e100000_f32) == false)
+  assert(math.isnan(-1e100000_f32) == false)
+  assert(math.isnan(1e-100000_f32) == false)
+  assert(math.isnan(0.0_f32) == false)
+  assert(math.isnan(1.0_f32) == false)
+  assert(math.isnan(-1.0_f32) == false)
+end
+
+do -- isinf
+  assert(math.isinf(0.0/0.0) == false)
+  assert(math.isinf(-0.0/0.0) == false)
+  assert(math.isinf(1e-100000) == false)
+  assert(math.isinf(0.0) == false)
+  assert(math.isinf(1.0) == false)
+  assert(math.isinf(-1.0) == false)
+  assert(math.isinf(math.huge) == true)
+  assert(math.isinf(-math.huge) == true)
+  assert(math.isinf((@float64)(math.maxinteger)) == false)
+  assert(math.isinf((@float64)(math.mininteger)) == false)
+  assert(math.isinf(math.maxinteger) == false)
+  assert(math.isinf(math.mininteger) == false)
+
+  assert(math.isinf(0.0_f32/0.0_f32) == false)
+  assert(math.isinf(-0.0_f32/0.0_f32) == false)
+  assert(math.isinf(1e100000_f32) == true)
+  assert(math.isinf(-1e100000_f32) == true)
+  assert(math.isinf(1e-100000_f32) == false)
+  assert(math.isinf(0.0_f32) == false)
+  assert(math.isinf(1.0_f32) == false)
+  assert(math.isinf(-1.0_f32) == false)
+end
+
+do -- isfinite
+  assert(math.isfinite(0.0/0.0) == false)
+  assert(math.isfinite(-0.0/0.0) == false)
+  assert(math.isfinite(1e-100000) == true)
+  assert(math.isfinite(0.0) == true)
+  assert(math.isfinite(1.0) == true)
+  assert(math.isfinite(-1.0) == true)
+  assert(math.isfinite(math.huge) == false)
+  assert(math.isfinite(-math.huge) == false)
+  assert(math.isfinite((@float64)(math.maxinteger)) == true)
+  assert(math.isfinite((@float64)(math.mininteger)) == true)
+  assert(math.isfinite(math.maxinteger) == true)
+  assert(math.isfinite(math.mininteger) == true)
+
+  assert(math.isfinite(0.0_f32/0.0_f32) == false)
+  assert(math.isfinite(-0.0_f32/0.0_f32) == false)
+  assert(math.isfinite(1e100000_f32) == false)
+  assert(math.isfinite(-1e100000_f32) == false)
+  assert(math.isfinite(1e-100000_f32) == true)
+  assert(math.isfinite(0.0_f32) == true)
+  assert(math.isfinite(1.0_f32) == true)
+  assert(math.isfinite(-1.0_f32) == true)
+end
+
 do -- NaNs
   local NaN = 0.0/0.0
   assert(NaN ~= NaN)

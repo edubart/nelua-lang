@@ -60,6 +60,12 @@ end
   local function #|name|#(x: T): T <cimport(#[fname]#),cinclude(#[incname]#),nosideeffect> end
 ## end
 
+## local function import_cmath_func1_int(name, x)
+  ## local ftype, fname, incname = choose_cmath_func(name, x)
+  local T: type = #[ftype]#
+  local function #|name|#(x: T): cint <cimport(#[fname]#),cinclude(#[incname]#),nosideeffect> end
+## end
+
 ## local function import_cmath_func2(name, x, y)
   ## local ftype, fname, incname = choose_cmath_func(name, x, y)
   local T: type = #[ftype]#
@@ -586,6 +592,43 @@ function math.random(m: an_optional_scalar, n: an_optional_scalar): auto
   ## else
     return default_random:randomfloat()
   ## end
+end
+
+-- Returns true if value `x` is a NaN (not a number) floating point number.
+function math.isnan(x: an_scalar): boolean
+  ## if x.type.is_float then
+    if x ~= x then return true end -- early check, NaN cannot be equal to itself
+    --[[
+    Arbitrary way to check NaN without relying much on float format.
+    C99 `isnan` is intentionally not used here because it doesn't work under `-ffast-math`
+    while this method should work.
+    Note that it's fine to downcast to float32 just for NaN checking.
+    Also <volatile> must be used so the code is not optimized outwith '-ffast-math' on Clang.
+    ]]
+    local n: auto <volatile> = x
+    local UF2I: type = @union{f: float32, i: uint32}
+    local pinf: UF2I = {f=#[math.huge]#}
+    local ninf: UF2I = {f=#[-math.huge]#}
+    local ux: UF2I = {f=n}
+    return (ux.i & ninf.i == ninf.i and ux.i ~= ninf.i) or -- negative nan
+           (ux.i & pinf.i == pinf.i and ux.i ~= pinf.i and ux.i ~= ninf.i) -- positive nan
+  ## else
+    return false
+  ## end
+end
+
+-- Returns true if value `x` is an infinite floating point number.
+function math.isinf(x: an_scalar): boolean
+  ## if x.type.is_float then
+    return x + x == x and x ~= 0
+  ## else
+    return false
+  ## end
+end
+
+-- Returns true if value `x` is a finite floating point number (neither NaN or Inf).
+function math.isfinite(x: an_scalar): boolean
+  return not math.isnan(x) and not math.isinf(x)
 end
 
 -- Float value of PI.
