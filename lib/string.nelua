@@ -280,13 +280,13 @@ function string.concat(list: span(string), sep: facultative(string)): string
   local pos: usize = 0
   for i: usize=0,<list.size do
     if sep.size > 0 and i > 0 then
-      for j=0,<sep.size do
+      for j: usize=0,<sep.size do
         s.data[pos] = sep.data[j]
         pos = pos + 1
       end
     end
     local part: string = list[i]
-    for j=0,<part.size do
+    for j: usize=0,<part.size do
       s.data[pos] = part.data[j]
       pos = pos + 1
     end
@@ -751,7 +751,7 @@ function string.gsub(s: string, pattern: string, repl: auto, maxn: facultative(i
         ## end
         --TODO: handle numbers
         while true do -- replace captures
-          local found = memory.scan(&matchrepl.data[ri], '%'_b, matchrepl.size - ri)
+          local found: pointer = memory.scan(&matchrepl.data[ri], '%'_b, matchrepl.size - ri)
           if not found then break end
           local advance: usize = (@usize)(found) - (@usize)(&matchrepl.data[ri])
           sb:write((@string){&matchrepl.data[ri], advance})
