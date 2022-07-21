@@ -144,7 +144,11 @@ In case `check` is true then checks for underflow/overflow is performed.
 function CEmitter:add_typed_val(type, val, valtype, check)
   if check and not self.context.pragmas.nochecks and type.is_integral and valtype.is_scalar and
     not type:is_type_inrange(valtype) then
-    self:add_builtin('nelua_assert_narrow_', type, valtype) self:add('(', val, ')')
+    if traits.is_astnode(val) and bn.canbeintegral(val.attr.value) and type:is_inrange(val.attr.value) then
+      self:add_scalar_literal(val.attr.value, type, val.attr.base)
+    else
+      self:add_builtin('nelua_assert_narrow_', type, valtype) self:add('(', val, ')')
+    end
   else
     local innertype = type.is_pointer and type.subtype or type
     local surround = innertype.is_aggregate
@@ -188,7 +192,7 @@ function CEmitter:add_converted_val(type, val, valtype, force, untypedinit)
       self:add_cstring2string(val, valtype)
     elseif valattr.comptime and type.is_scalar and valtype.is_scalar and
            (type.is_float or valtype.is_integral) then -- comptime scalar -> scalar
-      self:add_scalar_literal(valattr.value, type, valattr.base, true)
+      self:add_scalar_literal(valattr.value, type, valattr.base)
     elseif type.is_pointer and valtype.is_aggregate then -- auto ref
       local cast = valtype ~= type.subtype
       if cast then

@@ -586,6 +586,8 @@ it("operation on comptime variables", function()
     local huge1f: float32 = #[math.huge]#
     local huge2f: float32 = #[-math.huge]#
     local nanf: float32 = #[0.0/0.0]#
+    local cllmin: clonglong = -9223372036854775808
+    local cllflt: clonglong = 11.0
   ]], {
     "huge1 = NELUA_INF",
     "huge2 = -NELUA_INF",
@@ -593,6 +595,8 @@ it("operation on comptime variables", function()
     "huge1f = NELUA_INFF",
     "huge2f = -NELUA_INFF",
     "nanf = NELUA_NANF",
+    "cllmin = (-9223372036854775807LL-1)",
+    "cllflt = 11",
   })
   expect.generate_c([[
     local s <comptime> = 'hello\n'_cstring
