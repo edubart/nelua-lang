@@ -17,7 +17,7 @@ Any failure when growing a hash map raises an error.
 
 require 'memory'
 require 'hash'
-require 'iterators'
+require 'span'
 
 -- Ceil integer division.
 local function ceilidiv(x: usize, y: usize): usize <inline>

@@ -13,7 +13,7 @@ can hold only sequences of a fixed value type.
 ]]
 
 require 'memory'
-require 'iterators'
+require 'span'
 
 ## local function make_sequenceT(T, Allocator)
   ## static_assert(traits.is_type(T), "invalid type '%s'", T)

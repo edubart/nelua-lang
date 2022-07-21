@@ -11,8 +11,6 @@ are agnostic to the input container type.
 Spans are also known as "fat pointer" or "slice" in some other languages.
 ]]
 
-require 'iterators'
-
 ## local function make_spanT(T)
   ##[[
   static_assert(traits.is_type(T), "invalid type '%s", T)
@@ -136,5 +134,8 @@ Generic used to instantiate a span type in the form of `span(T)`.
 Argument `T` is the value type that the span will store.
 ]]
 global span: type = #[generalize(make_spanT)]#
+
+-- Expose iterators to use with spans.
+require 'iterators'
 
 return span

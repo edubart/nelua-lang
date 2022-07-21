@@ -8,7 +8,6 @@ use a vector or sequence in that case.
 ]]
 
 require 'memory'
-require 'iterators'
 
 ## local function make_listT(T, Allocator)
   ## static_assert(traits.is_type(T), "invalid type '%s'", T)
@@ -325,5 +324,8 @@ Argument `Allocator` is an allocator type for the container storage,
 in case absent then then `DefaultAllocator` is used.
 ]]
 global list: type = #[generalize(make_listT)]#
+
+-- Expose iterators to use with lists.
+require 'iterators'
 
 return list

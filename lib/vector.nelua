@@ -9,7 +9,7 @@ otherwise the behavior is undefined, in case this is needed then try the `sequen
 ]]
 
 require 'memory'
-require 'iterators'
+require 'span'
 
 ## local function make_vectorT(T, Allocator)
   ## static_assert(traits.is_type(T), "invalid type '%s'", T)
