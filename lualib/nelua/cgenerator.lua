@@ -85,6 +85,7 @@ typevisitors[types.ArrayType] = function(context, type)
 end
 
 typevisitors[types.PointerType] = function(context, type)
+  if context.ctypedefs[type.codename] then return end
   local decemitter = CEmitter(context)
   local subtype = type.subtype
   if type.is_unbounded_pointer then
@@ -99,6 +100,8 @@ typevisitors[types.PointerType] = function(context, type)
     table.insert(context.latedecls, subtype)
     context.ctypedefs[subcodename] = true
     decemitter:add_ln('typedef ', subcodename, '* ', type.codename, ';')
+  elseif context.ctypedefs[subcodename] then
+    decemitter:add_ln('typedef ', subcodename, '* ', type.codename, ';')
   else
     decemitter:add_ln('typedef ', subtype, '* ', type.codename, ';')
   end
@@ -106,12 +109,13 @@ typevisitors[types.PointerType] = function(context, type)
 end
 
 local function typevisitor_CompositeType(context, type)
-  local decemitter = CEmitter(context)
   local kindname = type.is_record and 'struct' or 'union'
   if not context.ctypedefs[type.codename] and not context.pragmas.noctypedefs then
+    local decemitter = CEmitter(context)
     decemitter:add_ln('typedef ', kindname, ' ', type.codename, ' ', type.codename, ';')
+    table.insert(context.declarations, decemitter:generate())
+    context.ctypedefs[type.codename] = true
   end
-  table.insert(context.declarations, decemitter:generate())
   local defemitter = CEmitter(context)
   defemitter:add(kindname)
   defemitter:add_type_qualifiers(type)
