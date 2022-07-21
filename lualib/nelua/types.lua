@@ -2021,6 +2021,9 @@ function RecordType:update_fields()
           field.name, fieldtype)
       end
       field.index = i
+      if fields[field.name] and fields[field.name] ~= field then
+        ASTNode.raisef(self.node, "duplicate record field '%s'", field.name, fieldtype)
+      end
       fields[field.name] = field
 
       local fieldsize = fieldtype.size

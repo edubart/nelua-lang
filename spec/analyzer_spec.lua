@@ -1277,6 +1277,9 @@ it("records", function()
   expect.analyze_error([[
     local Node = @record{x: integer, leafs: *[4]Node}
   ]], "cannot nest")
+  expect.analyze_error([[
+    local Record = @record{x: integer, x: boolean}
+  ]], "duplicate record field")
 end)
 
 it("records metamethods", function()
