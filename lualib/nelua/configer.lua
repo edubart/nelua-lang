@@ -58,11 +58,11 @@ local function build_configs(conf)
   -- fill missing configs
   merge_configs(conf, defconfig)
 
-  if config.no_color then -- disable console coloring
+  if conf.no_color then -- disable console coloring
     console.set_colors_enabled(false)
   end
 
-  if config.verbose then -- print all loaded configs
+  if conf.verbose then -- print all loaded configs
     for _,file in ipairs(loadedconfigs) do
       print(string.format("using config file '%s'", file))
     end
@@ -73,7 +73,7 @@ local function build_configs(conf)
   elseif conf.print_assembly then
     conf.assembly = true
   end
-  if (config.code or conf.binary or conf.assembly or conf.object or
+  if (conf.code or conf.binary or conf.assembly or conf.object or
      conf.static_lib or conf.shared_lib) then
     conf.compile_only = true
   elseif conf.output then --luacov:disable
@@ -149,8 +149,8 @@ local function build_configs(conf)
   end
 
   -- determine output directory
-  if config.output then
-    conf.output_dir = fs.dirname(fs.abspath(config.output))
+  if conf.output then
+    conf.output_dir = fs.dirname(fs.abspath(conf.output))
   else
     conf.output_dir = conf.cache_dir
   end
