@@ -45,7 +45,7 @@ Now run again with:
 nelua --verbose examples/helloworld.nelua
 ```
 
-You will notice some messages of what the compiler doing,
+You will notice some messages of what the compiler is doing,
 and notice that it generated a file called `helloworld.c`.
 This is your program translated to C source code.
 If you know how to read C, I encourage you to open it and have a look.
@@ -66,7 +66,7 @@ Syntax definitions for the language are available for
 Sublime Text with [nelua-sublime](https://github.com/edubart/nelua-sublime).
 At the moment, only Sublime Text has a full definition, so I recommend giving it a try.
 If you use another code editor you can use Lua syntax highlighting,
-as it very similar (but of course, incomplete).
+as it is very similar (but of course, incomplete).
 
 I recommend using the syntax highlighter,
 as it makes the experience of playing around with the language more pleasant, since
