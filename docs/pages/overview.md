@@ -2289,10 +2289,10 @@ print(sum_container(&b)) -- outputs: 55
 
 ### Concept that infers to another type
 
-Sometimes is useful to infer a concept to a different type
+Sometimes it is useful to infer a concept to a different type
 from the incoming `attr`. For example, suppose you want to specialize a function
 that optionally accepts any kind of scalar, but you really want it to be implemented
-as an number:
+as a number:
 
 ```nelua
 local facultative_number_concept = #[concept(function(attr)
@@ -2302,7 +2302,7 @@ local facultative_number_concept = #[concept(function(attr)
     return true
   end
   -- instead of returning true, we return the desired type to be implemented,
-  -- the compiler will take care to implicit cast the incoming attr to the desired type,
+  -- the compiler will take care to implicitly cast the incoming attr to the desired type,
   -- or throw an error if not possible,
   -- here we want to force the function using this concept to implement as a 'number'
   return primtypes.number
