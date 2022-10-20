@@ -37,7 +37,7 @@ HDRS=$(wildcard src/*.h) \
 	 $(wildcard src/lua/*.c) \
 	 $(wildcard src/lpeglabel/*.h)
 CFLAGS=-O2
-OPT_CFLAGS=-O3 -flto -fno-plt -fno-stack-protector
+OPT_CFLAGS=-O3 -flto=auto -fno-plt -fno-stack-protector
 ifeq ($(SYS), Linux)
 	CFLAGS=-std=gnu99 -O2
 	CC=gcc
