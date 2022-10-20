@@ -1158,8 +1158,9 @@ function visitors.Continue(context, _, emitter)
 end
 
 -- Emits `fallthrough` statement.
-function visitors.Fallthrough(_, _, emitter)
-  emitter:add_indent_ln('/* fallthrough */')
+function visitors.Fallthrough(context, _, emitter)
+  context:ensure_builtin('NELUA_FALLTHROUGH')
+  emitter:add_indent_ln('NELUA_FALLTHROUGH(); /* fallthrough */')
 end
 
 function visitors.NoOp() end

@@ -291,6 +291,18 @@ function cbuiltins.NELUA_UBSAN_UNREACHABLE(context)
 ]], 'directives')
 end
 
+-- Used by `fallthrough` statement.
+function cbuiltins.NELUA_FALLTHROUGH(context)
+  context:define_builtin_macro('NELUA_FALLTHROUGH', [[
+/* Macro used to silence fallthrough warnings. */
+#if defined(__GNUC__) && __GNUC__ >= 7
+  #define NELUA_FALLTHROUGH() __attribute__((fallthrough))
+#else
+  #define NELUA_FALLTHROUGH() ((void)0)
+#endif
+]], 'directives')
+end
+
 -- Used by `nil` type at runtime.
 function cbuiltins.nlniltype(context)
   context:define_builtin_decl('nlniltype',
