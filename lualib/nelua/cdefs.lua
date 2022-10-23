@@ -332,9 +332,9 @@ cdefs.target_info_code = [[
   is_bsd = true;
 #elif defined(__NetBSD__)
   is_netbsd = true;
-  is_openbsd = true;
   is_bsd = true;
 #elif defined(__OpenBSD__)
+  is_netbsd = true;
   is_openbsd = true;
   is_bsd = true;
 #elif defined(__bsdi__)
