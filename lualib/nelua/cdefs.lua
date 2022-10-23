@@ -326,18 +326,20 @@ cdefs.target_info_code = [[
 #if defined(__FreeBSD__)
   is_freebsd = true;
   is_bsd = true;
-#elif defined(__DragonFly__)
+#endif
+#if defined(__DragonFly__)
   is_dragonfly = true;
-  is_freebsd = true;
   is_bsd = true;
-#elif defined(__NetBSD__)
+#endif
+#if defined(__NetBSD__)
   is_netbsd = true;
+  is_bsd = true;
+#endif
+#if defined(__OpenBSD__)
   is_openbsd = true;
   is_bsd = true;
-#elif defined(__OpenBSD__)
-  is_openbsd = true;
-  is_bsd = true;
-#elif defined(__bsdi__)
+#endif
+#if defined(__bsdi__)
   is_bsd = true;
 #endif
 #if defined(__sun) && defined(__SVR4)

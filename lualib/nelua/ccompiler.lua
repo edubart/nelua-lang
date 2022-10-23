@@ -136,6 +136,10 @@ local function get_compiler_cflags(compileopts)
       (not ccinfo.is_mirc and not ccinfo.is_apple) then
       cflags:add(' -lm')
     end
+    if ccinfo.is_freebsd then
+      -- FreeBSD installs packages to /usr/local
+      cflags:add(' -I/usr/local/include -L/usr/local/lib')
+    end
   end
   return cflags:tostring():sub(2)
 end
