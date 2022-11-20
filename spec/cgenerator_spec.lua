@@ -2978,6 +2978,7 @@ it("annotations", function()
   expect.generate_c("do local a <static> = 1 end", "static int64_t a = 1;", true)
   expect.generate_c("local a: int64 <cattribute 'vector_size(16)'>", "int64_t __attribute__((vector_size(16))) a")
   expect.generate_c("local a: number <cqualifier 'in'> = 1", "in double a = 1.0;")
+  expect.generate_c("local a: number <cpostqualifier 'in'> = 1", "double in a = 1.0;")
   expect.generate_c("local R <aligned(16)> = @record{x: integer}; local r: R",
     {"struct NELUA_ALIGNED(16) R", "sizeof(R) == 16"})
   expect.generate_c("local R <packed> = @record{x: integer, y: byte}; local r: R",

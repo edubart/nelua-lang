@@ -503,6 +503,9 @@ function CEmitter:add_qualified_declaration(attr, type, name)
   else
     self:add(type, ' ')
   end
+  if attr.cpostqualifier then
+    self:add(attr.cpostqualifier, ' ')
+  end
   -- late type qualifiers
   if attr.restrict then
     self:add('__restrict ')

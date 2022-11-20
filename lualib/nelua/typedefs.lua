@@ -331,6 +331,8 @@ typedefs.function_annots = {
   codename = shaper.shape{shaper.string},
   -- A C qualifier to use when declaring the function. (e.g. 'extern')
   cqualifier = shaper.shape{shaper.string},
+  -- A C qualifier to use when declaring the variable (placed just after C type specifier). (e.g. 'const')
+  cpostqualifier = shaper.shape{shaper.string},
   -- A C attribute to use when declaring the function, it uses '__attribute((...))' in C.
   cattribute = shaper.shape{shaper.string},
   -- Whether the function is deprecated, generating warnings when compiling.
@@ -376,8 +378,10 @@ typedefs.variable_annots = {
   cinclude = shaper.shape{shaper.string},
   -- Custom name used for the variable when generating the C code (implicitly sets `nodce`).
   codename = shaper.shape{shaper.string},
-  -- A C qualifier to use when declaring the variable. (e.g. 'extern')
+  -- A C qualifier to use when declaring the variable (placed jus before C type specifier). (e.g. 'volatile')
   cqualifier = shaper.shape{shaper.string},
+  -- A C qualifier to use when declaring the variable (placed just after C type specifier). (e.g. 'const')
+  cpostqualifier = shaper.shape{shaper.string},
   -- A C attribute to use when declaring the variable.
   cattribute = shaper.shape{shaper.string},
   -- Custom alignment to use with the variable.
