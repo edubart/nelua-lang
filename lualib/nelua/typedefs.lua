@@ -378,7 +378,7 @@ typedefs.variable_annots = {
   cinclude = shaper.shape{shaper.string},
   -- Custom name used for the variable when generating the C code (implicitly sets `nodce`).
   codename = shaper.shape{shaper.string},
-  -- A C qualifier to use when declaring the variable (placed jus before C type specifier). (e.g. 'volatile')
+  -- A C qualifier to use when declaring the variable (placed just before C type specifier). (e.g. 'volatile')
   cqualifier = shaper.shape{shaper.string},
   -- A C qualifier to use when declaring the variable (placed just after C type specifier). (e.g. 'const')
   cpostqualifier = shaper.shape{shaper.string},
