@@ -35,7 +35,9 @@ function strconv.str2int(s: string, base: uinteger): (boolean, integer)
       end
     end
   end
-  assert(base >= 2 and base <= 36, "base out of range")
+  if not (base >= 2 and base <= 36) then
+    return false, 0
+  end
   local n: uinteger = 0
   while pos < s.size do
     local x: uinteger = strchar.getbasedigit(s.data[pos])
