@@ -820,11 +820,14 @@ function cbuiltins.calls.assert(context, node)
   local condtype = nargs > 0 and argattrs[1].type or primtypes.void
   local rettype = builtintype.rettypes[1] or primtypes.void
   local wherenode = nargs > 0 and node[1][1] or node
-  local where = wherenode:format_message('runtime error', assertmsg)
+  local fullassertmsg = assertmsg
+  if not context.pragmas.noassertloc then
+    fullassertmsg = wherenode:format_message('runtime error', assertmsg)
+  end
   emitter:add_ln('{')
   if nargs == 2 then
-    local pos = where:find(assertmsg)
-    local msg1, msg2 = where:sub(1, pos-1), where:sub(pos + #assertmsg)
+    local pos = fullassertmsg:find(assertmsg)
+    local msg1, msg2 = fullassertmsg:sub(1, pos-1), fullassertmsg:sub(pos + #assertmsg)
     local emsg1, emsg2 = pegger.double_quote_c_string(msg1), pegger.double_quote_c_string(msg2)
     emitter:add([[
   if(NELUA_UNLIKELY(!]]) emitter:add_val2boolean('cond', condtype) emitter:add([[)) {
@@ -835,18 +838,18 @@ function cbuiltins.calls.assert(context, node)
   }
 ]])
   elseif nargs == 1 then
-    local msg = pegger.double_quote_c_string(where)
+    local msg = pegger.double_quote_c_string(fullassertmsg)
     emitter:add([[
   if(NELUA_UNLIKELY(!]]) emitter:add_val2boolean('cond', condtype) emitter:add([[)) {
-    nelua_write_stderr(]],msg,[[,  ]],#where,[[, true);
+    nelua_write_stderr(]],msg,[[,  ]],#fullassertmsg,[[, true);
     nelua_abort();
   }
 ]])
   else -- nargs == 0
-    local msg = pegger.double_quote_c_string(where)
+    local msg = pegger.double_quote_c_string(fullassertmsg)
     qualifier = 'NELUA_NORETURN'
     emitter:add([[
-  nelua_write_stderr(]],msg,[[, ]],#where,[[, true);
+  nelua_write_stderr(]],msg,[[, ]],#fullassertmsg,[[, true);
   nelua_abort();
 ]])
   end

@@ -58,6 +58,9 @@ function errorer.get_pretty_source_pos_errmsg(loc, errmsg, errname)
   -- generate the error message
   local msg = ''
   if srcname then
+    if errcolor == '' then -- no colored output
+      srcname = srcname:match('[^/\\]+$') -- remove path prefix
+    end
     msg = msg..srcname..colbright..':'
     if lineno then
       msg = msg..lineno..':'
