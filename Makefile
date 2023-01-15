@@ -36,16 +36,14 @@ HDRS=$(wildcard src/*.h) \
 	 $(wildcard src/lua/*.h) \
 	 $(wildcard src/lua/*.c) \
 	 $(wildcard src/lpeglabel/*.h)
-CFLAGS=-O2
-OPT_CFLAGS=-O3 -flto=auto -fno-plt -fno-stack-protector
+OPTCFLAGS=-O2
+MAXOPTCFLAGS=-O3 -flto=auto -fno-plt -fno-stack-protector
 ifeq ($(SYS), Linux)
-	CFLAGS=-std=gnu99 -O2
 	CC=gcc
-	DEFS+=-DLUA_USE_LINUX
-	LIBS+=-lm -ldl
-	LDFLAGS+=-Wl,-E
+	DEFS+=-std=gnu99 -DLUA_USE_LINUX
+	LIBS+=-lm -ldl -Wl,-E
 	ifeq ($(CC), musl-gcc)
-		LDFLAGS+=-static
+		LIBS+=-static
 	endif
 else ifeq ($(SYS), Windows)
 	ifneq (,$(findstring cygdrive,$(ORIGINAL_PATH)))
@@ -57,13 +55,12 @@ else ifeq ($(SYS), Windows)
 	else # gcc (MSYS)
 		CC=gcc
 	endif
-	LDFLAGS+=-static
 	DEFS+=-D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_WARNINGS
+	LIBS+=-static
 else ifeq ($(SYS), Darwin)
 	CC=clang
 	DEFS+=-DLUA_USE_MACOSX
-	LIBS+=-lm
-	LDFLAGS+=-rdynamic
+	LIBS+=-lm -rdynamic
 else # probably POSIX
 	CC=gcc
 	DEFS+=-DLUA_USE_POSIX
@@ -75,6 +72,7 @@ ifndef NO_RPMALLOC
 	HDRS+=src/srpmalloc/srpmalloc.h
 	LUA_DEFS+=-DLUA_USE_RPMALLOC
 endif
+export CC
 
 # The default target.
 default: $(NELUALUA)
@@ -84,18 +82,18 @@ $(NELUALUA): $(SRCS) $(HDRS)
 	$(CC) \
 		$(LUA_DEFS) $(DEFS) $(MYDEFS) \
 		$(INCS) $(MYINCS) \
-		$(CFLAGS) $(MYCFLAGS) \
+		$(OPTCFLAGS) $(CFLAGS) $(MYCFLAGS) \
 		$(SRCS) $(MYSRCS) \
 		-o $(NELUALUA) \
-		$(LDFLAGS) $(MYLDFLAGS) $(LIBS) $(MYLIBS)
+		 $(LIBS) $(MYLIBS) $(LDFLAGS) $(MYLDFLAGS)
 
 # Compile Nelua's bundled Lua interpreter using PGO (Profile Guided optimization) and native,
 # this can usually speed up compilation speed by ~6%.
 optimized-nelua-lua:
 	$(RM_DIR) pgo
-	$(MAKE) --no-print-directory CFLAGS="-march=native $(OPT_CFLAGS) -fprofile-generate=pgo" clean-nelualua default
+	$(MAKE) --no-print-directory MYCFLAGS="-march=native $(MAXOPTCFLAGS) -fprofile-generate=pgo" clean-nelualua default
 	$(NELUA_RUN) -qb tests/all_test.nelua
-	$(MAKE) --no-print-directory CFLAGS="-march=native $(OPT_CFLAGS) -fprofile-use=pgo" clean-nelualua default
+	$(MAKE) --no-print-directory MYCFLAGS="-march=native $(MAXOPTCFLAGS) -fprofile-use=pgo" clean-nelualua default
 	$(RM_DIR) pgo
 
 ###############################################################################
@@ -114,7 +112,7 @@ $(NELUALUAC): $(LUAC_SRCS) $(LUAC_HDRS)
 		$(CFLAGS) $(MYCFLAGS) \
 		$(LUAC_SRCS) \
 		-o $(NELUALUAC) \
-		$(LDFLAGS) $(MYLDFLAGS) $(LIBS) $(MYLIBS)
+		$(LIBS) $(MYLIBS) $(LDFLAGS) $(MYLDFLAGS)
 
 ###############################################################################
 ## Lua init script

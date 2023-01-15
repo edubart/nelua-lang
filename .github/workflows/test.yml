@@ -17,7 +17,7 @@ jobs:
     runs-on: ${{matrix.os}}
     env:
       CC: ${{matrix.cc}}
-      CFLAGS: -Wextra -Werror
+      CFLAGS: -Wextra -Werror -Wno-implicit-fallthrough
     steps:
     - uses: actions/checkout@master
       with:
@@ -25,9 +25,9 @@ jobs:
     - name: Show C compiler information
       run: ${{matrix.cc}} -v
     - name: Compile
-      run: make
+      run: make CC=${{matrix.cc}}
     - name: Test
-      run: make test
+      run: make test CC=${{matrix.cc}}
     - name: Install (Unix)
       if: ${{ matrix.os != 'windows-latest' }}
       run: sudo make install
@@ -36,7 +36,7 @@ jobs:
       run: make install
     - name: Run hello world example
       if: ${{ matrix.os != 'windows-latest' }}
-      run: nelua examples/helloworld.nelua
+      run: nelua --verbose examples/helloworld.nelua
 
   test-32bits:
     runs-on: ubuntu-latest
@@ -55,8 +55,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@master
-    - uses: leafo/gh-actions-lua@v8.0.0
-    - uses: leafo/gh-actions-luarocks@v4.0.0
+    - uses: leafo/gh-actions-lua@v9
+    - uses: leafo/gh-actions-luarocks@v4
     - name: Install luacov
       run: luarocks install cluacov
     - name: Coverage
@@ -68,8 +68,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@master
-    - uses: leafo/gh-actions-lua@v8.0.0
-    - uses: leafo/gh-actions-luarocks@v4.0.0
+    - uses: leafo/gh-actions-lua@v9
+    - uses: leafo/gh-actions-luarocks@v4
     - name: Install luacheck
       run: luarocks install luacheck
     - name: Check
@@ -78,7 +78,6 @@ jobs:
   sanitize:
     runs-on: ubuntu-latest
     env:
-      CC: clang
       CFLAGS: -fsanitize=address -fsanitize=undefined
     steps:
     - uses: actions/checkout@master
