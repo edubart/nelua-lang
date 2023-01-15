@@ -2975,6 +2975,7 @@ it("annotations", function()
   expect.generate_c("local a: cint <cimport>", "NELUA_CIMPORT int a;")
   expect.generate_c("local a: int64 <noinit>; a = 2", {"a;", "a = 2;"})
   expect.generate_c("local a: int64 <cexport>", "NELUA_CEXPORT int64_t a;")
+  expect.generate_c("local a: int64 <cexport'myvar'>", "NELUA_CEXPORT int64_t myvar;")
   expect.generate_c("do local a <static> = 1 end", "static int64_t a = 1;", true)
   expect.generate_c("local a: int64 <cattribute 'vector_size(16)'>", "int64_t __attribute__((vector_size(16))) a")
   expect.generate_c("local a: number <cqualifier 'in'> = 1", "in double a = 1.0;")
@@ -3292,9 +3293,12 @@ it("context pragmas", function()
 
   expect.generate_c([[
     ## context.pragmas.unitname = 'mylib'
-    local function foo() <cexport>
-    end
-  ]], "NELUA_CEXPORT void mylib_foo(void);")
+    local function foo() <cexport> end
+    local function foo2() <cexport'myfunc'> end
+  ]], {
+    "NELUA_CEXPORT void mylib_foo(void);",
+    "NELUA_CEXPORT void myfunc(void);"
+  })
 end)
 
 it("pragma writestderr", function()

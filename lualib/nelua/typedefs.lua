@@ -327,6 +327,10 @@ typedefs.function_annots = {
   -- If no name is supplied then the function identifier name is used in C,
   -- the function is declared unless 'nodecl' annotation is also used.
   cimport = shaper.shape{shaper.string:is_optional()},
+  -- Whether to export the function in C, declaring it with the 'extern' C qualifier.
+  -- If no name is supplied then compiler will automatically generate a symbol name
+  -- based on the file and function name.
+  cexport = shaper.shape{shaper.string:is_optional()},
   -- C file to include when using the function.
   cinclude = shaper.shape{shaper.string},
   -- Custom name used for the function when generating the C code (implicitly sets `nodce`).
@@ -359,8 +363,6 @@ typedefs.function_annots = {
   -- Whether to use the function as the entry point of the application (the C main),
   -- the entry point is called before evaluating any file and is responsible for calling `nelua_main`.
   entrypoint = true,
-  -- Whether to export the function in C, declaring it with the 'extern' C qualifier.
-  cexport = true,
   -- Force a function to be polymorphic so it can be declared on demand.
   polymorphic = true,
   -- Force a function to always be polymorphic (evaluate a new function for each call).
@@ -376,6 +378,10 @@ typedefs.variable_annots = {
   -- if no name is supplied then the same variable name is used in C,
   -- the variable is declared unless 'nodecl' annotations is also used.
   cimport = shaper.shape{shaper.string:is_optional()},
+  -- Whether to export the variable in C, declaring it with the 'extern' C qualifier.
+  -- If no name is supplied then the compiler will automatically generate a symbol name
+  -- based on the file and variable name.
+  cexport = shaper.shape{shaper.string:is_optional()},
   -- C file to include when using the variable.
   cinclude = shaper.shape{shaper.string},
   -- Custom name used for the variable when generating the C code (implicitly sets `nodce`).
@@ -413,8 +419,6 @@ typedefs.variable_annots = {
   nodce = true,
   -- Weather the GC should not scan the variable for registers even if it contains pointers.
   nogcscan = true,
-  -- Whether to export the variable in C, declaring it with the 'extern' C qualifier.
-  cexport = true,
   -- Whether the variable should be only available and used at compile time.
   comptime = true,
   -- Whether the variable should be closed by calling '__close' metamethod on scope termination.

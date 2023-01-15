@@ -608,7 +608,10 @@ function visitors.Annotation(context, node, opts)
     if objattr._type then
       objattr:update_fields()
     end
-  elseif name == 'codename' then
+  elseif name == 'codename' or (name == 'cexport' and params ~= true) then
+    if name == 'cexport' then
+      objattr.codename = params
+    end
     objattr.fixedcodename = params
     objattr.nodce = true
     if objattr.type and objattr.type.is_polyfunction then
