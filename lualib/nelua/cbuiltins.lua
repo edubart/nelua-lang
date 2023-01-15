@@ -811,7 +811,6 @@ end
 function cbuiltins.calls.assert(context, node)
   local builtintype = node.attr.builtintype
   local argattrs = builtintype.argattrs
-  local funcname = context.rootscope:generate_name('nelua_assert_line')
   local emitter = CEmitter(context)
   context:ensure_builtins('NELUA_UNLIKELY', 'nelua_write_stderr', 'nelua_abort', 'false', 'true')
   local nargs = #argattrs
@@ -829,7 +828,8 @@ function cbuiltins.calls.assert(context, node)
     local pos = fullassertmsg:find(assertmsg)
     local msg1, msg2 = fullassertmsg:sub(1, pos-1), fullassertmsg:sub(pos + #assertmsg)
     local emsg1, emsg2 = pegger.double_quote_c_string(msg1), pegger.double_quote_c_string(msg2)
-    emitter:add([[
+    if #msg1 > 0 and #msg2 > 0 then
+      emitter:add([[
   if(NELUA_UNLIKELY(!]]) emitter:add_val2boolean('cond', condtype) emitter:add([[)) {
     nelua_write_stderr(]],emsg1,[[, ]],#msg1,[[, false);
     nelua_write_stderr((const char*)msg.data, msg.size, false);
@@ -837,6 +837,14 @@ function cbuiltins.calls.assert(context, node)
     nelua_abort();
   }
 ]])
+    else
+      emitter:add([[
+  if(NELUA_UNLIKELY(!]]) emitter:add_val2boolean('cond', condtype) emitter:add([[)) {
+    nelua_write_stderr((const char*)msg.data, msg.size, true);
+    nelua_abort();
+  }
+]])
+    end
   elseif nargs == 1 then
     local msg = pegger.double_quote_c_string(fullassertmsg)
     emitter:add([[
@@ -857,6 +865,19 @@ function cbuiltins.calls.assert(context, node)
     emitter:add_ln('  return cond;')
   end
   emitter:add('}')
+  local funcname
+  if not context.pragmas.noassertloc then
+    funcname = 'nelua_assert_line'
+    funcname = context.rootscope:generate_name(funcname)
+  else
+    if nargs == 2 then
+      funcname = 'nelua_assert_msg_'..rettype.codename
+    elseif nargs == 1 then
+      funcname = 'nelua_assert_'..rettype.codename
+    elseif nargs == 0 then
+      funcname = 'nelua_assert'
+    end
+  end
   context:define_function_builtin(funcname, qualifier, rettype, argattrs, emitter:generate())
   return funcname
 end
