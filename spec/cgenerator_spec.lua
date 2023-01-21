@@ -3067,6 +3067,10 @@ it("entrypoint", function()
 end)
 
 it("hook main", function()
+  expect.generate_c([[
+    local function nelua_main(argc: cint, nelua_argv: *cstring): cint <cimport,nodecl,noinline> end
+    nelua_main(0, nilptr)
+  ]], "NELUA_NOINLINE static int nelua_main(int argc, char** argv);")
   expect.run_c([[
     local function nelua_main(argc: cint, nelua_argv: *cstring): cint <cimport,nodecl> end
     local function main(argc: cint, argv: *cstring): cint <entrypoint>

@@ -1693,7 +1693,12 @@ function cgenerator.emit_nelua_main(context, ast, emitter)
       emitter:add_indent_ln("  return 0;") -- ensures that an int is always returned
     end
     emitter:add_ln("}") -- end bock
-    context:add_declaration('static int nelua_main(int argc, char** argv);\n', 'nelua_main')
+    local maindecl = 'static int nelua_main(int argc, char** argv);\n'
+    if context.hookmain and context.hookmain.noinline then
+      context:ensure_builtin('NELUA_NOINLINE')
+      maindecl = 'NELUA_NOINLINE '..maindecl
+    end
+    context:add_declaration(maindecl, 'nelua_main')
   else -- empty main, we can skip `nelua_main` usage
     emitter:rollback(rollbackpos) -- revert text added for begin block
   end

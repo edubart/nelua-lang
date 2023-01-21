@@ -2711,7 +2711,7 @@ local function visitor_function_annotations(context, node, annotnodes, blocknode
         blocknode:raisef("body of a function declaration must be empty")
       end
       if attr.codename == 'nelua_main' then
-        context.hookmain = true
+        context.hookmain = attr
       end
     end
 
