@@ -1,7 +1,6 @@
 local lester = require 'nelua.thirdparty.lester'
 local describe, it = lester.describe, lester.it
 
-local ccompiler = require 'nelua.ccompiler'
 local fs = require 'nelua.utils.fs'
 local config = require 'nelua.configer'.get()
 local expect = require 'spec.tools.expect'
@@ -2966,8 +2965,8 @@ it("annotations", function()
   expect.generate_c("local huge: number <cimport'HUGE_VAL',cinclude'<math.h>',nodecl>", "include <math.h>")
   expect.generate_c("local a: int64 <volatile, codename 'a'>", "volatile int64_t a")
   expect.generate_c("local R <nickname 'RR'> = @record{x:integer} local r: R", "struct RR {")
-  expect.generate_c("do local a: int64 <register> end",
-    (ccompiler.get_cc_info().is_cpp and "" or "NELUA_REGISTER ").."int64_t a")
+  expect.generate_c("do local a: int64 <register> end", "NELUA_REGISTER int64_t a")
+  expect.generate_c("do local a: int64 <register'r12',noinit> end", [[register int64_t a asm("r12");]])
   expect.generate_c("local a: pointer <restrict>", "void* __restrict a")
   expect.generate_c("local a: int64 <atomic>", "NELUA_ATOMIC(int64_t) a")
   expect.generate_c("local a: int64 <threadlocal>", "NELUA_THREAD_LOCAL int64_t a")

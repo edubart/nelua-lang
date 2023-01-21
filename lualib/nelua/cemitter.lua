@@ -457,6 +457,7 @@ function CEmitter:add_qualified_declaration(attr, type, name)
   if attr.cinclude then
     context:ensure_include(attr.cinclude)
   end
+  local asmregister = false
   -- storage specifiers
   if attr.aligned then
     self:add(context:ensure_builtin('NELUA_ALIGNAS'), '(', attr.aligned, ') ')
@@ -471,7 +472,12 @@ function CEmitter:add_qualified_declaration(attr, type, name)
     (attr.staticstorage and not attr.entrypoint and not attr.nocstatic and not pragmas.nocstatic) then
     self:add('static ')
   elseif attr.register then
-    self:add(context:ensure_builtin('NELUA_REGISTER'), ' ')
+    if attr.register == true then
+      self:add(context:ensure_builtin('NELUA_REGISTER'), ' ')
+    else
+      self:add('register ')
+      asmregister = true
+    end
   end
   -- function specifiers
   if attr.inline and not pragmas.nocinlines then
@@ -514,6 +520,9 @@ function CEmitter:add_qualified_declaration(attr, type, name)
     self:add(string.format('__attribute__((%s)) ', attr.cattribute))
   end
   self:add(name)
+  if asmregister then
+    self:add(' asm("', attr.register, '")')
+  end
 end
 
 return CEmitter

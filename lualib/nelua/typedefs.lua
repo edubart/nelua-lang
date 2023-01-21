@@ -401,7 +401,8 @@ typedefs.variable_annots = {
   static = true,
   -- Whether the compiler should try to use the variable in a register,
   -- it uses the 'register' qualifier in C.
-  register = true,
+  -- If name is supplied, it will associate with the specified register.
+  register = shaper.shape{shaper.string:is_optional()},
   -- Whether to use the '__restrict' qualifier in C.
   restrict = true,
   -- Whether to perform atomic operations on the variable (requires C11).
