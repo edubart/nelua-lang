@@ -3791,21 +3791,22 @@ it("function assignment", function()
   ]=])
 end)
 
-it("importing type of uknown sizes", function()
+it("importing type of unknown sizes", function()
   expect.run_c([=[
-    local FILE <cimport,nodecl,cinclude'<stdio.h>',cincomplete> = @record{}
-    local f: FILE
-    assert(#FILE > 0)
-    local FileRec = @record{f: FILE}
-    assert(#FileRec == #FILE)
-    local FileUn = @union{f: FILE, b: byte}
-    assert(#FileUn == #FILE)
+    ## cemitdecl[[typedef struct DUMMY_FILE {unsigned char fd;} DUMMY_FILE;]]
+    local DUMMY_FILE <cimport,nodecl,cincomplete> = @record{}
+    local f: DUMMY_FILE
+    assert(#DUMMY_FILE == 1)
+    local FileRec = @record{f: DUMMY_FILE}
+    assert(#FileRec == #DUMMY_FILE)
+    local FileUn = @union{f: DUMMY_FILE, b: byte}
+    assert(#FileUn == #DUMMY_FILE)
 
-    local FILE <cimport,nodecl,cinclude'<stdio.h>',cincomplete,forwarddecl> = @record{}
-    FILE = @record{
+    local DUMMY_FILE <cimport,nodecl,cincomplete,forwarddecl> = @record{}
+    DUMMY_FILE = @record{
       x: byte
     }
-    assert(#FILE ~= 1 and #FILE > 0)
+    assert(#DUMMY_FILE == 1 and #DUMMY_FILE > 0)
   ]=])
 end)
 
