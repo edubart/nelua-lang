@@ -60,15 +60,14 @@ end
 
 -- Used by `<cexport>`.
 function cbuiltins.NELUA_CEXPORT(context)
-  context:ensure_builtin('NELUA_EXTERN')
   context:define_builtin_macro('NELUA_CEXPORT', [[
 /* Macro used to export C functions. */
 #ifdef _WIN32
-  #define NELUA_CEXPORT NELUA_EXTERN __declspec(dllexport)
+  #define NELUA_CEXPORT __declspec(dllexport)
 #elif defined(__GNUC__)
-  #define NELUA_CEXPORT NELUA_EXTERN __attribute__((visibility("default")))
+  #define NELUA_CEXPORT __attribute__((visibility("default")))
 #else
-  #define NELUA_CEXPORT NELUA_EXTERN
+  #define NELUA_CEXPORT
 #endif
 ]], 'directives')
 end
