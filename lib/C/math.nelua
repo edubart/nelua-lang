@@ -7,6 +7,8 @@ see [C math documentation](https://www.cplusplus.com/reference/cmath/).
 
 require 'C'
 
+## linklib 'm'
+
 -- Basic operations
 
 function C.fabs(x: float64): float64 <cimport,cinclude'<math.h>'> end

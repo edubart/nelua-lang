@@ -12,6 +12,8 @@ local an_optional_integral: type = #[concept(function(x) return x.type.is_integr
 
 -- Compile time utilities.
 ##[[
+linklib 'm'
+
 local function choose_float_type(x)
   local type
   if x.type.is_float then

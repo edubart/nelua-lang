@@ -127,14 +127,15 @@ local function get_compiler_cflags(compileopts)
           cflags:add(' '..lib)
         elseif lib:find('%.[A-Za-z]+$') then -- contains library extension
           cflags:add(' -l:'..lib..'')
+        elseif lib == 'm' then
+          -- libm should never be linked in some platforms
+          if ccinfo.is_unix and (not ccinfo.is_mirc and not ccinfo.is_apple) then
+            cflags:add(' -l'..lib)
+          end
         else
           cflags:add(' -l'..lib)
         end
       end
-    end
-    if ccinfo.is_unix and -- always link math library on unix
-      (not ccinfo.is_mirc and not ccinfo.is_apple) then
-      cflags:add(' -lm')
     end
     if ccinfo.is_freebsd then
       -- FreeBSD installs packages to /usr/local

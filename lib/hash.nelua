@@ -57,6 +57,7 @@ function hash.hash(v: auto): usize <nosideeffect>
   ## elseif v.type.is_integral then
     return (@usize)(v)
   ## elseif v.type.is_float then
+    ## linklib 'm'
     ## if v.type.is_cfloat then
     local function frexp(x: cfloat, exp: *cint): cfloat <cimport'frexpf',cinclude'<math.h>',nosideeffect> end
     ## else

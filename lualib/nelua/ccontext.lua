@@ -244,7 +244,11 @@ function CContext:ensure_cmath_func(name, type)
     name = name..'l'
   elseif type.is_float128 then
     name = name..'q'
+  end
+  if type.is_float128 then
     self:ensure_linklib('quadmath')
+  else
+    self:ensure_linklib('m')
   end
   self:ensure_builtin(name)
   return name
@@ -277,6 +281,7 @@ end
 function CContext:ensure_linklib(libname)
   local linklibs = self.linklibs
   if linklibs[libname] then return end
+  if libname == 'm' and self.pragmas.nolibm then return end
   linklibs[libname] = true
   linklibs[#linklibs+1] = libname
   table.insert(self.compileopts.linklibs, libname)
