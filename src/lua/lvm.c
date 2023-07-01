@@ -1142,7 +1142,9 @@ void luaV_finishOp (lua_State *L) {
 #define vmcase(l)	case l:
 #define vmbreak		break
 
-
+#if defined(__GNUC__) && __GNUC__ >= 5
+__attribute((optimize("no-crossjumping,no-gcse")))
+#endif
 void luaV_execute (lua_State *L, CallInfo *ci) {
   LClosure *cl;
   TValue *k;

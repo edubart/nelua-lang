@@ -609,6 +609,7 @@ static void doREPL (lua_State *L) {
 
 /* }================================================================== */
 
+LUALIB_API void lua_luainit(lua_State *L);
 
 /*
 ** Main body of stand-alone interpreter (to be called in protected mode).
@@ -635,6 +636,7 @@ static int pmain (lua_State *L) {
   createargtable(L, argv, argc, script);  /* create table 'arg' */
   lua_gc(L, LUA_GCRESTART);  /* start GC... */
   lua_gc(L, LUA_GCGEN, 0, 0);  /* ...in generational mode */
+  lua_luainit(L); /* run script that adjusts 'package.path' */
   if (!(args & has_E)) {  /* no option '-E'? */
     if (handle_luainit(L) != LUA_OK)  /* run LUA_INIT */
       return 0;  /* error running LUA_INIT */
@@ -658,10 +660,39 @@ static int pmain (lua_State *L) {
   return 1;
 }
 
+#ifdef LUA_USE_RPMALLOC
+
+#include "../srpmalloc/srpmalloc.h"
+
+static void *L_alloc (void *ud, void *ptr, size_t osize, size_t nsize) {
+  (void)ud;  /* not used */
+  if (nsize == 0) {
+    rpfree(ptr);
+    return NULL;
+  }
+  else
+    return rpaligned_realloc(ptr, 16, nsize, osize, 0);
+}
+
+static lua_State *newstate (void) {
+  lua_State *L = lua_newstate(L_alloc, NULL);
+  if (L) {
+    lua_atpanic(L, &panic);
+    lua_setwarnf(L, warnfoff, L);  /* default is warnings off */
+  }
+  return L;
+}
+
+#endif /* LUA_USE_RPMALLOC */
 
 int main (int argc, char **argv) {
   int status, result;
+#ifdef LUA_USE_RPMALLOC
+  rpmalloc_initialize();
+  lua_State *L = newstate();  /* create state */
+#else
   lua_State *L = luaL_newstate();  /* create state */
+#endif
   if (L == NULL) {
     l_message(argv[0], "cannot create state: not enough memory");
     return EXIT_FAILURE;
@@ -674,6 +705,9 @@ int main (int argc, char **argv) {
   result = lua_toboolean(L, -1);  /* get result */
   report(L, status);
   lua_close(L);
+#ifdef LUA_USE_RPMALLOC
+  rpmalloc_finalize();
+#endif
   return (result && status == LUA_OK) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 

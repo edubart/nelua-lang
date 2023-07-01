@@ -120,7 +120,12 @@
 #else				/* }{ */
 
 /* ISO C definitions */
-#define LUA_TMPNAMBUFSIZE	L_tmpnam
+#ifdef _WIN32
+/* use a fixed value instead because of bug https://sourceforge.net/p/mingw-w64/bugs/915/ */
+#define LUA_TMPNAMBUFSIZE 260
+#else
+#define LUA_TMPNAMBUFSIZE L_tmpnam
+#endif
 #define lua_tmpnam(b,e)		{ e = (tmpnam(b) == NULL); }
 
 #endif				/* } */
