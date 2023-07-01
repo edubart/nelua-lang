@@ -1,12 +1,12 @@
 /*  
-** $Id: lptree.h $
+** $Id: lpltree.h $
 */
 
-#if !defined(lptree_h)
-#define lptree_h
+#if !defined(lpltree_h)
+#define lpltree_h
 
 
-#include "lptypes.h" 
+#include "lpltypes.h"
 
 
 /*

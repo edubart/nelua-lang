@@ -1,13 +1,13 @@
 /*
-** $Id: lpcap.c $
+** $Id: lplcap.c $
 ** Copyright 2007, Lua.org & PUC-Rio  (see 'lpeg.html' for license)
 */
 
 #include "lua.h"
 #include "lauxlib.h"
 
-#include "lpcap.h"
-#include "lptypes.h"
+#include "lplcap.h"
+#include "lpltypes.h"
 
 
 #define captype(cap)	((cap)->kind)
@@ -159,7 +159,7 @@ static int backrefcap (CapState *cs) {
 static int tablecap (CapState *cs) {
   lua_State *L = cs->L;
   int n = 0;
-  lua_createtable(L, 6, 6); /* hint capture table size (optimization) */
+  lua_newtable(L);
   if (isfullcap(cs->cap++))
     return 1;  /* table is empty */
   while (!isclosecap(cs->cap)) {

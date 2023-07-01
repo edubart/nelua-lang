@@ -1,5 +1,5 @@
 /*
-** $Id: lptree.c $
+** $Id: lpltree.c $
 ** Copyright 2013, Lua.org & PUC-Rio  (see 'lpeg.html' for license)
 */
 
@@ -11,11 +11,11 @@
 #include "lua.h"
 #include "lauxlib.h"
 
-#include "lptypes.h"
-#include "lpcap.h"
-#include "lpcode.h"
-#include "lpprint.h"
-#include "lptree.h"
+#include "lpltypes.h"
+#include "lplcap.h"
+#include "lplcode.h"
+#include "lplprint.h"
+#include "lpltree.h"
 
 
 /* number of siblings for each tree */
@@ -1386,8 +1386,8 @@ static struct luaL_Reg metareg[] = {
   {NULL, NULL}
 };
 
-LUAMOD_API int luaopen_lpeglabel (lua_State *L);  /* labeled failure */
-LUAMOD_API int luaopen_lpeglabel (lua_State *L) { /* labeled failure */
+int luaopen_lpeglabel (lua_State *L);  /* labeled failure */
+int luaopen_lpeglabel (lua_State *L) { /* labeled failure */
   luaL_newmetatable(L, PATTERN_T);
   lua_pushnumber(L, MAXBACK);  /* initialize maximum backtracking */
   lua_setfield(L, LUA_REGISTRYINDEX, MAXSTACKIDX);

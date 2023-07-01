@@ -1,12 +1,12 @@
 /*
-** $Id: lptypes.h $
+** $Id: lpltypes.h $
 ** LPeg - PEG pattern matching for Lua
 ** Copyright 2007-2019, Lua.org & PUC-Rio  (see 'lpeg.html' for license)
 ** written by Roberto Ierusalimschy
 */
 
-#if !defined(lptypes_h)
-#define lptypes_h
+#if !defined(lpltypes_h)
+#define lpltypes_h
 
 
 #include <assert.h>
@@ -15,7 +15,7 @@
 #include "lua.h"
 
 
-#define VERSION         "1.6.0"
+#define VERSION         "1.6.1"
 
 
 #define PATTERN_T	"lpeglabel-pattern"
@@ -143,6 +143,10 @@ typedef struct Charset {
 #define testchar(st,c)	(((int)(st)[((c) >> 3)] & (1 << ((c) & 7))))
 
 /* labeled failure begin */
+#if !defined(LUAI_FUNC)
+#define LUAI_FUNC    extern
+#endif
+
 #define LFAIL 0
 
 /* update the farthest failure */

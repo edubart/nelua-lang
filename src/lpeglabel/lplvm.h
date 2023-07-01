@@ -1,11 +1,11 @@
 /*
-** $Id: lpvm.h $
+** $Id: lplvm.h $
 */
 
-#if !defined(lpvm_h)
-#define lpvm_h
+#if !defined(lplvm_h)
+#define lplvm_h
 
-#include "lpcap.h"
+#include "lplcap.h"
 
 
 /* Virtual Machine's instructions */

@@ -1,12 +1,12 @@
 /*
-** $Id: lpcap.h $
+** $Id: lplcap.h $
 */
 
-#if !defined(lpcap_h)
-#define lpcap_h
+#if !defined(lplcap_h)
+#define lplcap_h
 
 
-#include "lptypes.h"
+#include "lpltypes.h"
 
 
 /* kinds of captures */

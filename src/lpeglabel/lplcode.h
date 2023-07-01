@@ -1,15 +1,15 @@
 /*
-** $Id: lpcode.h $
+** $Id: lplcode.h $
 */
 
-#if !defined(lpcode_h)
-#define lpcode_h
+#if !defined(lplcode_h)
+#define lplcode_h
 
 #include "lua.h"
 
-#include "lptypes.h"
-#include "lptree.h"
-#include "lpvm.h"
+#include "lpltypes.h"
+#include "lpltree.h"
+#include "lplvm.h"
 
 LUAI_FUNC int tocharset (TTree *tree, Charset *cs);
 LUAI_FUNC int checkaux (TTree *tree, int pred);

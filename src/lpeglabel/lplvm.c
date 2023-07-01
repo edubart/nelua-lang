@@ -1,5 +1,5 @@
 /*
-** $Id: lpvm.c $
+** $Id: lplvm.c $
 ** Copyright 2007, Lua.org & PUC-Rio  (see 'lpeg.html' for license)
 */
 
@@ -10,10 +10,10 @@
 #include "lua.h"
 #include "lauxlib.h"
 
-#include "lpcap.h"
-#include "lptypes.h"
-#include "lpvm.h"
-#include "lpprint.h"
+#include "lplcap.h"
+#include "lpltypes.h"
+#include "lplvm.h"
+#include "lplprint.h"
 
 
 /* initial size for call/backtrack stack */

@@ -1,14 +1,14 @@
 /*
-** $Id: lpprint.h $
+** $Id: lplprint.h $
 */
 
 
-#if !defined(lpprint_h)
-#define lpprint_h
+#if !defined(lplprint_h)
+#define lplprint_h
 
 
-#include "lptree.h"
-#include "lpvm.h"
+#include "lpltree.h"
+#include "lplvm.h"
 
 
 #if defined(LPEG_DEBUG)

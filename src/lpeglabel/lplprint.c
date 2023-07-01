@@ -1,5 +1,5 @@
 /*
-** $Id: lpprint.c $
+** $Id: lplprint.c $
 ** Copyright 2007, Lua.org & PUC-Rio  (see 'lpeg.html' for license)
 */
 
@@ -8,9 +8,9 @@
 #include <stdio.h>
 
 
-#include "lptypes.h"
-#include "lpprint.h"
-#include "lpcode.h"
+#include "lpltypes.h"
+#include "lplprint.h"
+#include "lplcode.h"
 
 
 #if defined(LPEG_DEBUG)

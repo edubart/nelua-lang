@@ -1,5 +1,5 @@
 /*
-** $Id: lpcode.c $
+** $Id: lplcode.c $
 ** Copyright 2007, Lua.org & PUC-Rio  (see 'lpeg.html' for license)
 */
 
@@ -9,8 +9,8 @@
 #include "lua.h"
 #include "lauxlib.h"
 
-#include "lptypes.h"
-#include "lpcode.h"
+#include "lpltypes.h"
+#include "lplcode.h"
 
 
 /* signals a "no-instruction */
