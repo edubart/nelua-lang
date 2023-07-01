@@ -3256,7 +3256,7 @@ local function override_binary_op(context, node, opname, lnode, rnode, ltype, rt
   else
     mtname = '__' .. opname
   end
-  if mtname == '__eq' and ltype ~= rtype and not ltype.is_stringy == rtype.is_stringy then
+  if mtname == '__eq' and ltype ~= rtype and not (ltype.is_stringy and ltype.is_stringy == rtype.is_stringy) then
     -- __eq metamethod is called only for same record types (except for stringy types)
     return
   end
