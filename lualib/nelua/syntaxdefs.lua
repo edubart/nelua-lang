@@ -253,11 +253,10 @@ EXTRA_TOKENS    <-- `[[` `[=` `--` `##` -- Force defining these tokens.
 
 -- List of syntax errors.
 local errors = {
+["Expected_end"]            = "unexpected statement syntax, did you forgot an `end` or are using an invalid syntax?",
+["Expected_until"]          = "unexpected statement syntax, did you forgot an `until` or are using an invalid syntax?",
 ["Expected_do"]             = "expected `do` keyword to begin a statement block",
 ["Expected_then"]           = "expected `then` keyword to begin a statement block",
-["Expected_end"]            = "expected `end` keyword to close a statement block",
-["Expected_until"]          = "expected `until` keyword to close a `repeat` statement",
-["Expected_cases"]          = "expected `case` keyword in `switch` statement",
 ["Expected_in"]             = "expected `in` keyword in `for` statement",
 ["Expected_Annotation"]     = "expected an annotation expression",
 ["Expected_expr"]           = "expected an expression",
