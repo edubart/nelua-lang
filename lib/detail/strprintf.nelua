@@ -2260,23 +2260,12 @@ int npf_parse_format_spec(char const *format, npf_format_spec_t *out_spec) {
   while (*++cur) { // cur points at the leading '%' character
     switch (*cur) { // Optional flags
 #if NANOPRINTF_USE_FIELD_WIDTH_FORMAT_SPECIFIERS == 1
-      case '-':
-        out_spec->left_justified = '-';
-        out_spec->leading_zero_pad = 0;
-        continue;
-      case '0':
-        out_spec->leading_zero_pad = !out_spec->left_justified;
-        continue;
+      case '-': out_spec->left_justified = '-'; out_spec->leading_zero_pad = 0; continue;
+      case '0': out_spec->leading_zero_pad = !out_spec->left_justified; continue;
 #endif
-      case '+':
-        out_spec->prepend = '+';
-        continue;
-      case ' ':
-        if (out_spec->prepend == 0) { out_spec->prepend = ' '; }
-        continue;
-      case '#':
-        out_spec->alt_form = '#';
-        continue;
+      case '+': out_spec->prepend = '+'; continue;
+      case ' ': if (out_spec->prepend == 0) { out_spec->prepend = ' '; } continue;
+      case '#': out_spec->alt_form = '#'; continue;
       default: break;
     }
     break;
@@ -2318,6 +2307,7 @@ int npf_parse_format_spec(char const *format, npf_format_spec_t *out_spec) {
   }
 #endif
 
+  int tmp_conv = -1;
   out_spec->length_modifier = NPF_FMT_SPEC_LEN_MOD_NONE;
   switch (*cur++) { // Length modifier
     case 'h':
@@ -2337,86 +2327,68 @@ int npf_parse_format_spec(char const *format, npf_format_spec_t *out_spec) {
 #endif
       break;
 #if NANOPRINTF_USE_FLOAT_FORMAT_SPECIFIERS == 1
-    case 'L':
-      out_spec->length_modifier = NPF_FMT_SPEC_LEN_MOD_LONG_DOUBLE;
-      break;
+    case 'L': out_spec->length_modifier = NPF_FMT_SPEC_LEN_MOD_LONG_DOUBLE; break;
 #endif
 #if NANOPRINTF_USE_LARGE_FORMAT_SPECIFIERS == 1
-    case 'j':
-      out_spec->length_modifier = NPF_FMT_SPEC_LEN_MOD_LARGE_INTMAX;
-      break;
-    case 'z':
-      out_spec->length_modifier = NPF_FMT_SPEC_LEN_MOD_LARGE_SIZET;
-      break;
-    case 't':
-      out_spec->length_modifier = NPF_FMT_SPEC_LEN_MOD_LARGE_PTRDIFFT;
-      break;
+    case 'j': out_spec->length_modifier = NPF_FMT_SPEC_LEN_MOD_LARGE_INTMAX; break;
+    case 'z': out_spec->length_modifier = NPF_FMT_SPEC_LEN_MOD_LARGE_SIZET; break;
+    case 't': out_spec->length_modifier = NPF_FMT_SPEC_LEN_MOD_LARGE_PTRDIFFT; break;
 #endif
     default: --cur; break;
   }
 
   switch (*cur++) { // Conversion specifier
-    case '%':
-      out_spec->conv_spec = NPF_FMT_SPEC_CONV_PERCENT;
+    case '%': out_spec->conv_spec = NPF_FMT_SPEC_CONV_PERCENT;
 #if NANOPRINTF_USE_PRECISION_FORMAT_SPECIFIERS == 1
       out_spec->prec_opt = NPF_FMT_SPEC_OPT_NONE;
 #endif
       break;
-    case 'c':
-      out_spec->conv_spec = NPF_FMT_SPEC_CONV_CHAR;
+
+    case 'c': out_spec->conv_spec = NPF_FMT_SPEC_CONV_CHAR;
 #if NANOPRINTF_USE_PRECISION_FORMAT_SPECIFIERS == 1
       out_spec->prec_opt = NPF_FMT_SPEC_OPT_NONE;
 #endif
       break;
-    case 's':
-      out_spec->conv_spec = NPF_FMT_SPEC_CONV_STRING;
+
+    case 's': out_spec->conv_spec = NPF_FMT_SPEC_CONV_STRING;
 #if NANOPRINTF_USE_FIELD_WIDTH_FORMAT_SPECIFIERS == 1
       out_spec->leading_zero_pad = 0;
 #endif
       break;
 
     case 'i':
-    case 'd':
-      out_spec->conv_spec = NPF_FMT_SPEC_CONV_SIGNED_INT;
-      break;
-
-    case 'o':
-      out_spec->conv_spec = NPF_FMT_SPEC_CONV_OCTAL;
-      break;
-    case 'u':
-      out_spec->conv_spec = NPF_FMT_SPEC_CONV_UNSIGNED_INT;
-      break;
-
-    case 'X':
-      out_spec->case_adjust = 0;
-    case 'x':
-      out_spec->conv_spec = NPF_FMT_SPEC_CONV_HEX_INT;
+    case 'd': tmp_conv = NPF_FMT_SPEC_CONV_SIGNED_INT;
+    case 'o': if (tmp_conv == -1) { tmp_conv = NPF_FMT_SPEC_CONV_OCTAL; }
+    case 'u': if (tmp_conv == -1) { tmp_conv = NPF_FMT_SPEC_CONV_UNSIGNED_INT; }
+    case 'X': if (tmp_conv == -1) { out_spec->case_adjust = 0; }
+    case 'x': if (tmp_conv == -1) { tmp_conv = NPF_FMT_SPEC_CONV_HEX_INT; }
+      out_spec->conv_spec = (npf_format_spec_conversion_t)tmp_conv;
+#if (NANOPRINTF_USE_FIELD_WIDTH_FORMAT_SPECIFIERS == 1) && \
+    (NANOPRINTF_USE_PRECISION_FORMAT_SPECIFIERS == 1)
+      if (out_spec->prec_opt != NPF_FMT_SPEC_OPT_NONE) { out_spec->leading_zero_pad = 0; }
+#endif
       break;
 
 #if NANOPRINTF_USE_FLOAT_FORMAT_SPECIFIERS == 1
-    case 'F':
-      out_spec->case_adjust = 0;
+    case 'F': out_spec->case_adjust = 0;
     case 'f':
       out_spec->conv_spec = NPF_FMT_SPEC_CONV_FLOAT_DEC;
       if (out_spec->prec_opt == NPF_FMT_SPEC_OPT_NONE) { out_spec->prec = 6; }
       break;
 
-    case 'E':
-      out_spec->case_adjust = 0;
+    case 'E': out_spec->case_adjust = 0;
     case 'e':
       out_spec->conv_spec = NPF_FMT_SPEC_CONV_FLOAT_SCI;
       if (out_spec->prec_opt == NPF_FMT_SPEC_OPT_NONE) { out_spec->prec = 6; }
       break;
 
-    case 'G':
-      out_spec->case_adjust = 0;
+    case 'G': out_spec->case_adjust = 0;
     case 'g':
       out_spec->conv_spec = NPF_FMT_SPEC_CONV_FLOAT_SHORTEST;
       if (out_spec->prec_opt == NPF_FMT_SPEC_OPT_NONE) { out_spec->prec = 6; }
       break;
 
-    case 'A':
-      out_spec->case_adjust = 0;
+    case 'A': out_spec->case_adjust = 0;
     case 'a':
       out_spec->conv_spec = NPF_FMT_SPEC_CONV_FLOAT_HEX;
       if (out_spec->prec_opt == NPF_FMT_SPEC_OPT_NONE) { out_spec->prec = 6; }
@@ -3084,7 +3056,6 @@ int npf_vsnprintf(char *buffer, size_t bufsz, char const *format, va_list vlist)
   ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
   OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
-
 ]==]
 
 -- minify the code removing comments and spaces
