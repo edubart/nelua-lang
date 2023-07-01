@@ -138,6 +138,8 @@ The iterators library provides iterators functions such as
 
 The functions provided here can be used with the `for in` construction.
 
+Most containers in the standard library already requires this library.
+
 ### ipairs
 
 ```nelua
