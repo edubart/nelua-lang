@@ -276,6 +276,12 @@ do -- new with initialization
   allocator:delete(v)
 end
 
+do -- new of empty record
+  local v = allocator:new(@record{})
+  assert(v ~= nilptr)
+  allocator:delete(v)
+end
+
 do -- span new
   local i = allocator:new(@int8, 2)
   delete(i)
@@ -303,6 +309,13 @@ do -- span new with initialization
   allocator:delete(v)
 end
 
+do -- span new with 0 elements
+  local v = allocator:new(@int8, 0)
+  assert(v.data == nilptr)
+  assert(v.size == 0)
+  allocator:delete(v)
+end
+
 --------------------------------------------------------------------------------
 -- global new and delete
 
@@ -319,6 +332,12 @@ end
 do -- new with initialization
   local v = new((@int8)(2))
   assert($v == 2)
+  delete(v)
+end
+
+do -- new of empty record
+  local v = new(@record{})
+  assert(v ~= nilptr)
   delete(v)
 end
 
@@ -353,6 +372,13 @@ do -- span new with initialization
   v[1].x = 3 v[1].y = 4
   assert(v[0].x == 1 and v[0].y == 2)
   assert(v[1].x == 3 and v[1].y == 4)
+  delete(v)
+end
+
+do -- span new with 0 elements
+  local v = new(@int8, 0)
+  assert(v.data == nilptr)
+  assert(v.size == 0)
   delete(v)
 end
 

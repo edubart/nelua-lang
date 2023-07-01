@@ -15,6 +15,7 @@ Spans are also known as "fat pointer" or "slice" in some other languages.
   ##[[
   static_assert(traits.is_type(T), "invalid type '%s", T)
   static_assert(not T.is_comptime, "spans cannot be of type '%s'", T)
+  static_assert(T.size ~= 0, "spans cannot be of empty type '%s'", T)
   ]]
   local T: type = @#[T]#
 

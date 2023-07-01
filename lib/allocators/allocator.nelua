@@ -302,13 +302,16 @@ global AllocatorFlags: type = @enum(usize){
   - In case the value has the `__new` metamethod, it will be called immediately after the allocation.
   - In case the value has a finalizer, and the allocator supports finalizers,
   such as `GCAllocator`, the value is marked to be finalized when deallocated.
+  - In case the value record size is 0, a valid pointer (different from nullptr) is guaranteed to be returned.
   ]]
   function Allocator:new(what: auto, size: facultative(usize), flags: facultative(usize)): auto
     local T: type = #[what.type.is_type and what.value or what.type]#
     ## local callnew = T.value.is_record and T.value.metafields.__new
     ## if size.type.is_niltype then -- new pointer
       ## Allocator_parse_type_flags(flags, T)
-      ## if what.type.is_type then
+      ## if T.value.size == 0 then
+      local ptr: *T = (@*T)(self:xalloc0(1, flags))
+      ## elseif what.type.is_type then
       local ptr: *T = (@*T)(self:xalloc0(#T, flags))
       ## else
       local ptr: *T = (@*T)(self:xalloc(#T, flags))

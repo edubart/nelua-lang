@@ -740,6 +740,7 @@ and its contents are zero initialized.
 - If `size` is present, then returns a span with `size` elements of `what`, instead of a pointer.
 - In case the value has the `__new` metamethod, it will be called immediately after the allocation.
 - In case the value has the `__gc` metamethod, it will be called once the value is collected.
+- In case the value record size is 0, a valid pointer (different from nullptr) is guaranteed to be returned.
 ]]
 function GCAllocator:new(what: auto, size: facultative(usize), flags: facultative(usize)): auto <noinline>
   local T: type = #[what.type.is_type and what.value or what.type]#
@@ -754,7 +755,10 @@ function GCAllocator:new(what: auto, size: facultative(usize), flags: facultativ
     local finalizer: GCFinalizerCallback = nilptr
     ## end
     local ptr: *T <noinit>
-    ## if what.type.is_type then
+    ## if T.value.size == 0 then
+    ptr = (@*T)(gc_allocator:alloc0(1, flags, finalizer, nilptr))
+    assert(ptr ~= nilptr, 'out of memory')
+    ## elseif what.type.is_type then
     ptr = (@*T)(gc_allocator:alloc0(#T, flags, finalizer, nilptr))
     assert(ptr ~= nilptr, 'out of memory')
     ## else

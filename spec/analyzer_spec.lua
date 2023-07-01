@@ -1150,6 +1150,10 @@ it("spans", function()
       return priv
     end
   ]], 'cannot perform conversion')
+  expect.analyze_error([[
+    require 'span'
+    local a: span(record{})
+  ]], 'spans cannot be of empty type')
 end)
 
 it("arrays", function()
