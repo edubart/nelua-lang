@@ -159,7 +159,7 @@ static int backrefcap (CapState *cs) {
 static int tablecap (CapState *cs) {
   lua_State *L = cs->L;
   int n = 0;
-  lua_newtable(L);
+  lua_createtable(L, 6, 6); /* hint capture table size (optimization) */
   if (isfullcap(cs->cap++))
     return 1;  /* table is empty */
   while (!isclosecap(cs->cap)) {
