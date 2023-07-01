@@ -142,6 +142,7 @@ do -- next and mnext
   ok, k, mv = mnext(map); assert(ok == true and k == 1 and $mv == 10)
   ok, k, mv = mnext(map, 1); assert(ok == true and k == 2 and $mv == 20)
   ok, k, mv = mnext(map, 2); assert(ok == false)
+  map:destroy()
 end
 
 do -- remove while iterating

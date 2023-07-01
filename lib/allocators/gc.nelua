@@ -196,7 +196,7 @@ local function GC_markroot(self: *GC): void <noinline>
 end
 
 -- Mark pointers in the stack.
-local function GC_markstack(self: *GC): void <noinline>
+local function GC_markstack(self: *GC): void <noinline,cinclude'@NELUA_GC_NO_SANITIZE',cqualifier'NELUA_GC_NO_SANITIZE'>
   -- dump CPU registers
   local jmp_buf: type <cimport,cinclude'<setjmp.h>',cincomplete> = @record{}
   local function setjmp(env: jmp_buf): void <cimport,cinclude'<setjmp.h>'> end

@@ -399,7 +399,9 @@ function compiler.setup_env(cflags)
         sys.setenv('UBSAN_OPTIONS', 'print_stacktrace=1')
       end
       if not os.getenv('ASAN_OPTIONS') and not platform.is_windows then
-        sys.setenv('ASAN_OPTIONS', 'detect_leaks=1')
+        -- we cannot use detect_stack_use_after_return with GC,
+        -- see https://github.com/edubart/nelua-lang/issues/219
+        sys.setenv('ASAN_OPTIONS', 'detect_leaks=1:detect_stack_use_after_return=0')
       end
     end
   end
