@@ -1,5 +1,5 @@
 --[[--
-lua-bint - v0.4.1 - 17/Aug/2021
+lua-bint - v0.5.1 - 26/Jun/2023
 Eduardo Bart - edub4rt@gmail.com
 https://github.com/edubart/lua-bint
 
@@ -49,6 +49,7 @@ Then when you need create a bint, you can use one of the following functions:
 * @{bint.fromuinteger} (convert from lua integers, but read as unsigned integer)
 * @{bint.frominteger} (convert from lua integers, preserving the sign)
 * @{bint.frombase} (convert from arbitrary bases, like hexadecimal)
+* @{bint.fromstring} (convert from arbitrary string, support binary/hexadecimal/decimal)
 * @{bint.trunc} (convert from lua numbers, truncating the fractional part)
 * @{bint.new} (convert from anything, asserts on invalid integers)
 * @{bint.tobint} (convert from anything, returns nil on invalid integers)
@@ -115,6 +116,7 @@ local math_min = math.min
 local string_format = string.format
 local table_insert = table.insert
 local table_concat = table.concat
+local table_unpack = table.unpack
 
 local memo = {}
 
@@ -141,6 +143,8 @@ end
 assert(bits % wordbits == 0, 'bitsize is not multiple of word bitsize')
 assert(2*wordbits <= intbits, 'word bitsize must be half of the lua integer bitsize')
 assert(bits >= 64, 'bitsize must be >= 64')
+assert(wordbits >= 8, 'wordbits must be at least 8')
+assert(bits % 8 == 0, 'bitsize must be multiple of 8')
 
 -- Create bint module
 local bint = {}
@@ -151,10 +155,12 @@ bint.bits = bits
 
 -- Constants used internally
 local BINT_BITS = bits
+local BINT_BYTES = bits // 8
 local BINT_WORDBITS = wordbits
 local BINT_SIZE = BINT_BITS // BINT_WORDBITS
 local BINT_WORDMAX = (1 << BINT_WORDBITS) - 1
 local BINT_WORDMSB = (1 << (BINT_WORDBITS - 1))
+local BINT_LEPACKFMT = '<'..('I'..(wordbits // 8)):rep(BINT_SIZE)
 local BINT_MATHMININTEGER, BINT_MATHMAXINTEGER
 local BINT_MININTEGER
 
@@ -324,6 +330,53 @@ function bint.frombase(s, base)
 end
 local bint_frombase = bint.frombase
 
+--- Create a new bint from a string.
+-- The string can by a decimal number, binary number prefixed with '0b' or hexadecimal number prefixed with '0x'.
+-- @param s A string convertible to a bint.
+-- @return A new bint or nil in case the conversion failed.
+-- @see bint.frombase
+function bint.fromstring(s)
+  if type(s) ~= 'string' then
+    return
+  end
+  if s:find('^[+-]?[0-9]+$') then
+    return bint_frombase(s, 10)
+  elseif s:find('^[+-]?0[xX][0-9a-fA-F]+$') then
+    return bint_frombase(s:gsub('0[xX]', '', 1), 16)
+  elseif s:find('^[+-]?0[bB][01]+$') then
+    return bint_frombase(s:gsub('0[bB]', '', 1), 2)
+  end
+end
+local bint_fromstring = bint.fromstring
+
+--- Create a new bint from a buffer of little-endian bytes.
+-- @param buffer Buffer of bytes, extra bytes are trimmed from the right, missing bytes are padded to the right.
+-- @raise An assert is thrown in case buffer is not an string.
+-- @return A bint.
+function bint.fromle(buffer)
+  assert(type(buffer) == 'string', 'buffer is not a string')
+  if #buffer > BINT_BYTES then -- trim extra bytes from the right
+    buffer = buffer:sub(1, BINT_BYTES)
+  elseif #buffer < BINT_BYTES then -- add missing bytes to the right
+    buffer = buffer..('\x00'):rep(BINT_BYTES - #buffer)
+  end
+  return setmetatable({BINT_LEPACKFMT:unpack(buffer)}, bint)
+end
+
+--- Create a new bint from a buffer of big-endian bytes.
+-- @param buffer Buffer of bytes, extra bytes are trimmed from the left, missing bytes are padded to the left.
+-- @raise An assert is thrown in case buffer is not an string.
+-- @return A bint.
+function bint.frombe(buffer)
+  assert(type(buffer) == 'string', 'buffer is not a string')
+  if #buffer > BINT_BYTES then -- trim extra bytes from the left
+    buffer = buffer:sub(-BINT_BYTES, #buffer)
+  elseif #buffer < BINT_BYTES then -- add missing bytes to the left
+    buffer = ('\x00'):rep(BINT_BYTES - #buffer)..buffer
+  end
+  return setmetatable({BINT_LEPACKFMT:unpack(buffer:reverse())}, bint)
+end
+
 --- Create a new bint from a value.
 -- @param x A value convertible to a bint (string, number or another bint).
 -- @return A new bint, guaranteed to be a new reference in case needed.
@@ -334,11 +387,12 @@ function bint.new(x)
   if getmetatable(x) ~= bint then
     local ty = type(x)
     if ty == 'number' then
-      return bint_frominteger(x)
+      x = bint_frominteger(x)
     elseif ty == 'string' then
-      return bint_frombase(x, 10)
+      x = bint_fromstring(x)
     end
-    error('value cannot be represented by a bint')
+    assert(x, 'value cannot be represented by a bint')
+    return x
   end
   -- return a clone
   local n = setmetatable({}, bint)
@@ -372,7 +426,7 @@ function bint.tobint(x, clone)
   if ty == 'number' then
     return bint_frominteger(x)
   elseif ty == 'string' then
-    return bint_frombase(x, 10)
+    return bint_fromstring(x)
   end
 end
 local tobint = bint.tobint
@@ -554,9 +608,42 @@ function bint.tobase(x, base, unsigned)
   return table_concat(ss)
 end
 
-
 local function bint_assert_convert(x)
   return assert(tobint(x), 'value has not integer representation')
+end
+
+--- Convert a bint to a buffer of little-endian bytes.
+-- @param x A bint or lua integer.
+-- @param[opt] trim If true, zero bytes on the right are trimmed.
+-- @return A buffer of bytes representing the input.
+-- @raise Asserts in case input is not convertible to an integer.
+function bint.tole(x, trim)
+  x = bint_assert_convert(x)
+  local s = BINT_LEPACKFMT:pack(table_unpack(x))
+  if trim then
+    s = s:gsub('\x00+$', '')
+    if s == '' then
+      s = '\x00'
+    end
+  end
+  return s
+end
+
+--- Convert a bint to a buffer of big-endian bytes.
+-- @param x A bint or lua integer.
+-- @param[opt] trim If true, zero bytes on the left are trimmed.
+-- @return A buffer of bytes representing the input.
+-- @raise Asserts in case input is not convertible to an integer.
+function bint.tobe(x, trim)
+  x = bint_assert_convert(x)
+  local s = BINT_LEPACKFMT:pack(table_unpack(x)):reverse()
+  if trim then
+    s = s:gsub('^\x00+', '')
+    if s == '' then
+      s = '\x00'
+    end
+  end
+  return s
 end
 
 --- Check if a number is 0 considering bints.
@@ -769,7 +856,7 @@ function bint:_dec()
     local tmp = self[i]
     local v = (tmp - 1) & BINT_WORDMAX
     self[i] = v
-    if not (v > tmp) then
+    if v <= tmp then
       break
     end
   end

@@ -247,6 +247,23 @@ local function mkrex()
       end
       G.TOKEN = TOKEN
     end
+    if lpegrex.debug then
+      for k, patt in pairs(G) do
+        if k ~= 1 then
+          local enter = lpeg.Cmt(lpeg.P(true), function(s, p)
+            local lineno, colno = lpegrex.calcline(s, p)
+            io.stderr:write(string.format('ENTER %s (%d:%d)\n', k, lineno, colno))
+            return true
+          end)
+          local leave = lpeg.Cmt(lpeg.P(true), function(s, p)
+            local lineno, colno = lpegrex.calcline(s, p)
+            io.stderr:write(string.format('LEAVE %s (%d:%d)\n', k, lineno, colno))
+            return true
+          end)
+          G[k] = enter * patt * leave
+        end
+      end
+    end
     -- cleanup grammar context
     G, Gkeywords, Gtokens = nil, nil, nil
     return l.P(t)
