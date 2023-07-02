@@ -31,3 +31,4 @@ tempCodeRunner.*
 preview.md
 test_file.tmp
 require_tmp.nelua
+*-bindings.nelua

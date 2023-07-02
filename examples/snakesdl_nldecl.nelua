@@ -1,0 +1,248 @@
+##[==[
+-- import Nelua Decl plugin and filesystem utils.
+local nldecl = require 'nelua.plugins.nldecl'
+local fs = require 'nelua.utils.fs'
+
+-- generate nelua bindings file if it does not exists yet.
+if not fs.isfile('sdl2-bindings.nelua') then
+  nldecl.generate_bindings_file{
+    output_file = 'sdl2-bindings.nelua',
+    -- what C file we should generate bindings for and parse?
+    parse_includes = {'<SDL2/SDL.h>'},
+    -- what symbol name prefix should we import from that file?
+    include_names = {'^SDL_'}
+  }
+end
+
+-- include SDL2 header
+cinclude '<SDL2/SDL.h>'
+-- link SDL2 library
+if ccinfo.is_emscripten then
+  cflags '-s USE_SDL=2 -s ASYNCIFY=1'
+else
+  linklib 'SDL2'
+end
+]==]
+
+require 'sdl2-bindings'
+require 'math'
+
+-- game types
+local Point2D = @record{x: integer, y: integer}
+local Direction = @enum(byte){NONE=0, UP, DOWN, RIGHT, LEFT}
+local Color = @record{r: byte, g: byte, b: byte}
+
+-- game constants
+local TILE_SIZE <comptime> = 64
+local GRID_SIZE <comptime> = 12
+local SCREEN_SIZE <comptime> = TILE_SIZE * GRID_SIZE
+local MOVE_DELAY <comptime> = 128
+local COLOR_RED <const> = Color{r=255, g=96, b=96}
+local COLOR_GREEN <const> = Color{r=96, g=255, b=96}
+local COLOR_BLACK <const> = Color{r=0, g=0, b=0}
+
+-- game state variables
+local renderer
+local movedir
+local quit = false
+local nextmove
+local score
+local headpos, tailpos, applepos
+local tiles: [GRID_SIZE][GRID_SIZE]Direction
+
+local function move_point(pos: Point2D, dir: Direction)
+  switch dir
+  case Direction.UP then
+    pos.y = pos.y - 1
+  case Direction.DOWN then
+    pos.y = pos.y + 1
+  case Direction.RIGHT then
+    pos.x = pos.x + 1
+  case Direction.LEFT then
+    pos.x = pos.x - 1
+  end
+  return pos
+end
+
+local function set_tile(pos: Point2D, dir: Direction)
+  tiles[pos.x][pos.y] = dir
+end
+
+local function reset_tile(pos: Point2D)
+  tiles[pos.x][pos.y] = Direction.NONE
+end
+
+local function get_tile(pos: Point2D)
+  return tiles[pos.x][pos.y]
+end
+
+local function has_tile(pos: Point2D)
+  return tiles[pos.x][pos.y] ~= Direction.NONE
+end
+
+local function respawn_apple()
+  -- respawn until there is no collision with its body
+  repeat
+    applepos = Point2D{
+      x = math.random(GRID_SIZE) - 1,
+      y = math.random(GRID_SIZE) - 1
+    }
+  until not has_tile(applepos)
+end
+
+local function init_game()
+  tiles = {}
+  headpos = Point2D{x=GRID_SIZE//2, y=GRID_SIZE//2}
+  tailpos = Point2D{x=headpos.x,    y=headpos.y+1}
+  movedir = Direction.UP
+  score = 0
+  nextmove = 0
+  set_tile(headpos, Direction.UP)
+  set_tile(tailpos, Direction.UP)
+  respawn_apple()
+  print 'NEW GAME'
+end
+
+local function game_over()
+  print 'GAME OVER.'
+  init_game()
+end
+
+local function poll_events()
+  local event: SDL_Event
+  while SDL_PollEvent(&event) ~= 0 do
+    switch event.type
+    case SDL_QUIT then
+      quit = true
+    case SDL_KEYDOWN then
+      local kevent = (@*SDL_KeyboardEvent)(&event)
+      local headdir = get_tile(headpos)
+      switch kevent.keysym.sym
+      case SDLK_UP then
+        if headdir ~= Direction.DOWN then
+          movedir = Direction.UP
+        end
+      case SDLK_DOWN then
+        if headdir ~= Direction.UP then
+          movedir = Direction.DOWN
+        end
+      case SDLK_RIGHT then
+        if headdir ~= Direction.LEFT then
+          movedir = Direction.RIGHT
+        end
+      case SDLK_LEFT then
+        if headdir ~= Direction.RIGHT then
+          movedir = Direction.LEFT
+        end
+      end
+    end
+  end
+end
+
+local function poll_game()
+  local now = SDL_GetTicks()
+  if now < nextmove then return end
+  nextmove = now + MOVE_DELAY
+
+  -- move the head
+  set_tile(headpos, movedir)
+  headpos = move_point(headpos, movedir)
+
+  -- check collision with map boundaries
+  if headpos.x >= GRID_SIZE or headpos.y >= GRID_SIZE or
+     headpos.x < 0 or headpos.y < 0 then
+    game_over()
+    return
+  end
+
+  -- check collisions with its body
+  if has_tile(headpos) then
+    game_over()
+    return
+  end
+
+  -- place head on next tile
+  set_tile(headpos, movedir)
+
+  -- check collision with apple
+  if headpos.x == applepos.x and headpos.y == applepos.y then
+    respawn_apple()
+
+    score = score + 1
+    print('SCORE', score)
+  else
+    -- eat tail
+    local taildir = get_tile(tailpos)
+    reset_tile(tailpos)
+    tailpos = move_point(tailpos, taildir)
+  end
+end
+
+local function draw_background(color: Color)
+  SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, 255)
+  SDL_RenderClear(renderer)
+end
+
+local function draw_tile(pos: Point2D, color: Color)
+  SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, 255)
+  local rect = SDL_Rect{
+    x = pos.x * TILE_SIZE,
+    y = pos.y * TILE_SIZE,
+    w = TILE_SIZE,
+    h = TILE_SIZE
+  }
+  SDL_RenderFillRect(renderer, &rect)
+end
+
+local function draw_apple()
+  draw_tile(applepos, COLOR_RED)
+end
+
+local function draw_snake()
+  for x=0,GRID_SIZE-1 do
+    for y=0,GRID_SIZE-1 do
+      local pos = Point2D{x=x,y=y}
+      if has_tile(pos) then -- snake is present at this tile
+        draw_tile(pos, COLOR_GREEN)
+      end
+    end
+  end
+end
+
+local function draw()
+  draw_background(COLOR_BLACK)
+  draw_apple()
+  draw_snake()
+end
+
+local function go()
+  -- init sdl
+  SDL_Init(SDL_INIT_VIDEO)
+
+  local window = SDL_CreateWindow("An SDL2 Window",
+    SDL_WINDOWPOS_UNDEFINED_MASK, SDL_WINDOWPOS_UNDEFINED_MASK,
+    SCREEN_SIZE, SCREEN_SIZE, SDL_WINDOW_OPENGL)
+  assert(window, "Could not create window")
+
+  renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC)
+  assert(renderer, "Could not create renderer")
+
+  init_game()
+
+  -- draw loop
+  repeat
+    poll_events()
+    poll_game()
+    draw()
+
+    -- swap buffers
+    SDL_RenderPresent(renderer)
+  until quit
+
+  -- cleanup and finish
+  SDL_DestroyRenderer(renderer)
+  SDL_DestroyWindow(window)
+  SDL_Quit()
+end
+
+go()
