@@ -399,16 +399,6 @@ function fs.scriptname(level)
   return path
 end
 
--- Returns the path for the calling script at level `level`.
-function fs.scriptdir(level)
-  level = level or 2
-  local path = fs.scriptname(level+1)
-  if path then
-    path = fs.dirname(path)
-  end
-  return path
-end
-
 -- Iterate entries of a directory that matches the given pattern.
 function fs.dirmatch(path, patt)
   local nextentry, state = lfs.dir(path)

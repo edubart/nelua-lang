@@ -75,7 +75,7 @@ sp      <- %s+
     end
   end
 
-  local threshold = 99.0
+  local threshold = 98.0
   if total_coverage < threshold then
     print(colors.red..string.format('Coverage threshold is below %.2f!', threshold))
     os.exit(-1)

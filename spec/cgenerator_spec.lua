@@ -1260,6 +1260,8 @@ it("binary operator `idiv`", function()
   expect.generate_c("local a,b = 1_u,2_u; local x=a//b",      "x = (a / b);")
   expect.generate_c("local a,b = 1,2; local x=a//b",      "x = nelua_assert_idiv_nlint64(a, b);")
   expect.generate_c("local a,b = 1.0,2.0; local x=a//b",  "x = floor(a / b);")
+  expect.generate_c("local a,b = 1.0_f32,2.0_f32; local x=a//b",  "x = floorf(a / b);")
+  expect.generate_c("local a,b = 1.0_f128,2.0_f128; local x=a//b",  "x = floorq(a / b);")
   expect.run_c([[
     do
       local a, b = 7, 3

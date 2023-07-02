@@ -1870,6 +1870,12 @@ it("concepts", function()
     f(true)
   ]], "could not match concept")
   expect.analyze_error([[
+    local an_integral = #[concept(function(x)
+      return x.type.is_integral
+    end)]#
+    local function f(): an_integral end
+  ]], "cannot be of compile-time type")
+  expect.analyze_error([[
     local my_concept = #[concept(function(x)
       return primtypes.integer
     end)]#
