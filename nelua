@@ -19,7 +19,7 @@ fi
 # detect the current directory for this script
 SCRIPT=$(realpath "$0")
 SCRIPT_DIR=$(dirname "$SCRIPT")
-NELUA_LUA=$SCRIPT_DIR/nelua-lua
+NELUA_LUA="$SCRIPT_DIR/nelua-lua"
 
 # execute nelua compiler
-exec "$SCRIPT_DIR/nelua-lua" -lnelua nelua.lua "$@"
+exec "$NELUA_LUA" -lnelua nelua.lua "$@"
