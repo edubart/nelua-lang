@@ -195,6 +195,38 @@ The use of `<const>` annotation is mostly for aesthetic
 purposes. Its usage does not affect efficiency.
 {:.alert.alert-info}
 
+### To-be-closed variables
+
+A to-be-closed variable behaves like a constant local variable, except that its value is closed whenever the variable goes out of scope, including normal block termination, exiting its block by a break or return.
+
+Here, to close a value means to call its __close metamethod:
+
+```nelua
+local AbstractFile = @record{
+  name: string
+}
+
+function AbstractFile.open(name: string): AbstractFile
+  local file = AbstractFile{name=name}
+  print('opened', file.name)
+  return file
+end
+
+function AbstractFile:__close() -- define __close metamethod
+  print('closed', self.name)
+end
+
+do
+  local file <close> = AbstractFile.open('dummy') -- prints 'opened dummy'
+  -- when scope ends, AbstractFile:__close() is called and prints 'closed dummy'
+end
+```
+
+To-be-closed variables is meant to be used for **releasing resources** in a deterministic manner **on scope termination**. It is an evolution of [defer statement](https://nelua.io/overview/#defer).
+The syntax and functionality is inspired by the similar statement in the Lua language.
+It is guaranteed to be executed in reverse order before any `return`, `break` or `continue` statement.
+{:.alert.alert-info}
+
 ### Multiple variables assignment
 
 Multiple variables can be assigned in a single statement:

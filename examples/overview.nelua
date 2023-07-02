@@ -69,6 +69,27 @@ do print '## Const variables'
   --a = 2
 end
 
+do print '## To-be-closed variables'
+  local AbstractFile = @record{
+    name: string
+  }
+
+  function AbstractFile.open(name: string): AbstractFile
+    local file = AbstractFile{name=name}
+    print('opened', file.name)
+    return file
+  end
+
+  function AbstractFile:__close() -- define __close metamethod
+    print('closed', self.name)
+  end
+
+  do
+    local file: AbstractFile <close> = AbstractFile.open('dummy') -- prints 'opened dummy'
+    -- when scope ends, AbstractFile:__close() is called and prints 'closed dummy'
+  end
+end
+
 do print '### Multiple variables assignment'
   local a, b = 1, 2
   print(a, b) -- outputs: 1 2
