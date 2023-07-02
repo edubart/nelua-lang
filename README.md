@@ -19,7 +19,7 @@ inspired by Lua, which compiles to C and native code.
 - For small examples written in Nelua look the [Examples](./examples) folder .
 - For questions and discussions go to the [Discussions](https://github.com/edubart/nelua-lang/discussions).
 - For a chat with the community join the [Discord server](https://discord.gg/7aaGeG7).
-- For cool stuff made with Nelua check `#showcase` channel in the Discord server.
+- For cool stuff made with Nelua check [Awesome Nelua](https://github.com/edubart/nelua-lang/wiki/Awesome-Nelua) wiki page and `#showcase` channel in the Discord server.
 
 After installing, you might want to check out the featured example, a Snake
 game leveraging the famous [SDL2](https://www.libsdl.org) library:
