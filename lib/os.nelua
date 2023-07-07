@@ -684,7 +684,7 @@ function os.sleep(secs: number): boolean
       local function usleep(usec: cuint): cint <cimport,cinclude'@unistd.h'> end
       local us: uint64 <nodce> = (@uint64)(secs * 1000000)
       if us > 0 then
-        ok = usleep(us) == 0
+        ok = usleep((@cuint)(us)) == 0
       else
         ok = true
       end

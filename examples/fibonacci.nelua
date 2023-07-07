@@ -36,7 +36,7 @@ do -- Analytic solution.
   local function fibonacci(n: integer): integer
     local p = (1.0 + math.sqrt(5.0)) / 2.0
     local q = 1.0 / p
-    return math.floor((p^n + q^n) / math.sqrt(5.0))
+    return (@integer)(math.floor((p^n + q^n) / math.sqrt(5.0)))
   end
   print(fibonacci(10))
 end

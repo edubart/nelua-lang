@@ -133,9 +133,9 @@ end
 local function blend_pixel(x: integer, y: integer, col: vec4b <const>, opacity: number)
   local pcol = &pixels[SCREEN_HEIGHT - y - 1][x]
   local iopacity = 1-opacity
-  pcol.x = math.floor(pcol.x * iopacity + col.x*opacity)
-  pcol.y = math.floor(pcol.y * iopacity + col.y*opacity)
-  pcol.z = math.floor(pcol.z * iopacity + col.z*opacity)
+  pcol.x = math.ifloor(pcol.x * iopacity + col.x*opacity)
+  pcol.y = math.ifloor(pcol.y * iopacity + col.y*opacity)
+  pcol.z = math.ifloor(pcol.z * iopacity + col.z*opacity)
 end
 
 local function lerp(v0: number, v1: number, t: number): number
@@ -171,10 +171,10 @@ end
 local INTERP_RADIUS <comptime> = 1
 
 local function draw_circle(p: vec2, radius: number)
-  local sx: integer = math.floor(math.max(p.x-radius-INTERP_RADIUS, 0))
-  local ex: integer = math.floor(math.min(p.x+radius+INTERP_RADIUS, SCREEN_WIDTH-1))
-  local sy: integer = math.floor(math.max(p.y-radius-INTERP_RADIUS, 0))
-  local ey: integer = math.floor(math.min(p.y+radius+INTERP_RADIUS, SCREEN_HEIGHT-1))
+  local sx: integer = math.ifloor(math.max(p.x-radius-INTERP_RADIUS, 0))
+  local ex: integer = math.ifloor(math.min(p.x+radius+INTERP_RADIUS, SCREEN_WIDTH-1))
+  local sy: integer = math.ifloor(math.max(p.y-radius-INTERP_RADIUS, 0))
+  local ey: integer = math.ifloor(math.min(p.y+radius+INTERP_RADIUS, SCREEN_HEIGHT-1))
   for iy=sy,ey do
     for ix=sx,ex do
       local d = math.sqrt((ix-p.x)*(ix-p.x) + (iy-p.y)*(iy-p.y))
@@ -200,10 +200,10 @@ local function draw_line(a: vec2, b: vec2, radius: number, opacity: number)
   local sx, sy = delta.x >= 0 and 1 or -1, delta.y >= 0 and 1 or -1
   if math.abs(delta.y) < 1 or math.abs(delta.x) < 1 then return end
   for j=-INTERP_RADIUS-radius,math.abs(delta.x)+radius+INTERP_RADIUS do
-    local ix: integer = math.floor(a.x + j*sx)
+    local ix: integer = math.ifloor(a.x + j*sx)
     if ix >= 0 and ix < SCREEN_WIDTH then
       for i=-INTERP_RADIUS-radius,math.abs(delta.y)+radius+INTERP_RADIUS do
-        local iy: integer = math.floor(a.y + i*sy)
+        local iy: integer = math.ifloor(a.y + i*sy)
         if iy >= 0 and iy < SCREEN_HEIGHT then
           local p = vec2{ix, iy}
           local d = line_dist(a, b, p)

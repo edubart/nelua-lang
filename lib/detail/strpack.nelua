@@ -47,10 +47,10 @@ local function packint(sb: *stringbuilder, a: auto, size: usize, maxalign: usize
   if not sb:writebyte(0, pads) then return false end
   local buff: span(byte) = sb:prepare(size)
   if buff:empty() then return false end
-  buff[islittle and 0 or size - 1] = n & 0xff -- first byte
+  buff[islittle and 0_usize or size - 1] = (@byte)(n & 0xff) -- first byte
   for i: usize=1,<size do
     n = n >> 8
-    buff[islittle and i or size-1-i] = n & 0xff
+    buff[islittle and i or size-1-i] = (@byte)(n & 0xff)
   end
   if size > #@uint64 and neg then -- negative number, need sign extension?
     for i: usize=#@uint64,<size do

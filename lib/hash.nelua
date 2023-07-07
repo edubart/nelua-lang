@@ -97,7 +97,7 @@ function hash.hash(v: auto): usize <nosideeffect>
     if #v > 0 then -- hash all elements
       h = hash.hash(v[0])
       for i:isize=1,<#v do
-        h = hash.combine(h, v[i])
+        h = hash.combine(h, hash.hash(v[i]))
       end
     end
     return h

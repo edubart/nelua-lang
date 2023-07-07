@@ -63,8 +63,8 @@ local function utf8esc(x: uint32): ([8]byte, int32)
     until x <= mfb -- still needs continuation byte?
     buf[8 - n] = (@byte)((~mfb << 1) | x) -- add first byte
   end
-  memory.move(&buf[0], &buf[8-n], n)
-  memory.zero(&buf[n], 8-n)
+  memory.move(&buf[0], &buf[8-n], (@usize)(n))
+  memory.zero(&buf[n], (@usize)(8-n))
   return buf, n
 end
 

@@ -257,8 +257,7 @@ end
       end
     ## end if primtypes.clonglong:is_convertible_from(arg1.type) then
       if c == 'd'_b or c == 'i'_b then
-        local lenmod: cstring = 'lli'
-        addlenmod(form, lenmod, #lenmod - 1)
+        addlenmod(form, 'lli', 2)
         local n: clonglong = (@clonglong)(arg1)
         nb = strprintf.snprintf((@cstring)(buf.data), MAX_ITEM, &form[0], n)
         goto next
@@ -267,8 +266,7 @@ end
       if c == 'o'_b or
          c == 'u'_b or
          c == 'x'_b or c == 'X'_b then
-        local lenmod: cstring = 'llu'
-        addlenmod(form, lenmod, #lenmod - 1)
+        addlenmod(form, 'llu', 2)
         ## if arg1.type.is_integral then
         local n: culonglong = (@culonglong)((#[arg1.type:unsigned_type()]#)(arg1))
         ## else
@@ -283,14 +281,12 @@ end
          c == 'e'_b or c == 'E'_b or
          c == 'g'_b or c == 'G'_b then
         ## if arg1.type.is_clongdouble then
-        local lenmod: cstring = 'Lf'
-        addlenmod(form, lenmod, #lenmod - 1)
+        addlenmod(form, 'Lf', 1)
         nb = strprintf.snprintf((@cstring)(buf.data), MAX_ITEM, &form[0], arg1)
         ## elseif arg1.type.is_float128 then
         ## linklib 'quadmath'
         local function quadmath_snprintf(s: cstring, maxlen: csize, format: cstring, ...: cvarargs): cint <cimport,cinclude'<quadmath.h>'> end
-        local lenmod: cstring = 'Qf'
-        addlenmod(form, lenmod, #lenmod - 1)
+        addlenmod(form, 'Qf', 1)
         nb = quadmath_snprintf((@cstring)(buf.data), MAX_ITEM, &form[0], arg1)
         ## else
         local n: float64 = (@float64)(arg1)

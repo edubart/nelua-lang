@@ -834,7 +834,7 @@ A third, optional argument specifies where to start the search, its default valu
 ]]
 function string.match(s: string, pattern: string, init: facultative(isize)): (boolean, sequence(string))
   local ok: boolean, seq: sequence(string) = string_match(s, pattern, init)
-  for i: isize = 1, #seq do
+  for i: usize = 1, (@usize)(#seq) do
     seq[i] = string.copy(seq[i])
   end
   return ok, seq
