@@ -11,6 +11,7 @@ local pegger = require 'nelua.utils.pegger'
 local bn = require 'nelua.utils.bn'
 local Emitter = require 'nelua.emitter'
 local typedefs = require 'nelua.typedefs'
+local console = require 'nelua.utils.console'
 local primtypes = typedefs.primtypes
 
 -- The C emitter class.
@@ -148,6 +149,10 @@ function CEmitter:add_typed_val(type, val, valtype, check)
       self:add_scalar_literal(val.attr.value, type, val.attr.base)
     else
       self:add_builtin('nelua_assert_narrow_', type, valtype) self:add('(', val, ')')
+      if self.context.pragmas.warnnarrow then
+        local node = traits.is_astnode(val) and val or self.context:get_visiting_node()
+        console.logerr(node:format_message('warning', "implicit narrow casting from `%s` to type `%s`", valtype, type))
+      end
     end
   else
     local innertype = type.is_pointer and type.subtype or type

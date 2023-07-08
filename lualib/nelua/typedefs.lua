@@ -321,6 +321,8 @@ typedefs.pragmas = {
   nolibm = shaper.optional_boolean,
   -- Mark all variables declarations as volatile.
   volatile = shaper.optional_boolean,
+  -- Warn about implicit emitted narrowing conversions in the C code generation.
+  warnnarrow = shaper.optional_boolean,
 }
 
 -- List of possible annotations for function types.

@@ -2849,6 +2849,11 @@ it("narrow casting", function()
     end
   ]])
   expect.run_error_c([[
+    ## pragmas.warnnarrow = true
+    local a: float64 = -15
+    local b: int64 = a
+  ]], "implicit narrow casting", true)
+  expect.run_error_c([[
     local a: float64 = 1.5
     local b: int64 = a
   ]], "narrow casting")
