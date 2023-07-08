@@ -96,7 +96,7 @@ function GCItem:ismarked(): boolean <inline>
 end
 
 -- Record used store ranges to be scanned when marking.
-local GCMarkRange: type = @record{low: usize, high: usize}
+local GCScanRange: type = @record{low: usize, high: usize}
 
 -- The garbage collector record.
 global GC: type = @record{
@@ -110,8 +110,9 @@ global GC: type = @record{
   stacktop: usize, -- Stack top address.
   stackbottom: usize, -- Stack bottom address.
   frees: vector(pointer, GeneralAllocator), -- List of pointers to be freed.
-  markranges: vector(GCMarkRange, GeneralAllocator), -- List of ranges to be scanned.
+  scanranges: vector(GCScanRange, GeneralAllocator), -- List of ranges to be scanned.
   items: hashmap(pointer, GCItem, nil, nil, GeneralAllocator), -- Map of all tracked allocations.
+  rootitems: hashmap(pointer, usize, nil, nil, GeneralAllocator), -- Map of all tracked root allocations.
 }
 
 -- The global GC instance.
@@ -125,7 +126,7 @@ function GC:unregister(ptr: pointer, finalize: facultative(boolean)): void
   if unlikely(not ptr) then return end
   local item: GCItem = self.items:remove(ptr)
   assert(item.ptr == ptr, 'invalid unregister pointer')
-  if not hasflag(item.flags, GCFlags.ROOT) then
+  if likely(not hasflag(item.flags, GCFlags.ROOT)) then -- only count memory of non root items
     self.membytes = self.membytes - item.size -- update memory
     -- remove from to be free items
     for i:usize=0,<self.frees.size do
@@ -134,6 +135,8 @@ function GC:unregister(ptr: pointer, finalize: facultative(boolean)): void
         break
       end
     end
+  else
+    self.rootitems:remove(ptr)
   end
   -- finalize
   ## if finalize.type.is_boolean then
@@ -143,14 +146,13 @@ function GC:unregister(ptr: pointer, finalize: facultative(boolean)): void
   ## end
 end
 
--- Scan and mark pointers between `low` and `high` addresses.
-local function GC_markptrs(self: *GC, low: usize, high: usize): void <noinline,cinclude'@NELUA_GC_NO_SANITIZE',cqualifier'NELUA_GC_NO_SANITIZE'>
+-- Scan pointers and mark items.
+local function GC_markptrs(self: *GC): void <noinline,cinclude'@NELUA_GC_NO_SANITIZE',cqualifier'NELUA_GC_NO_SANITIZE'>
   local addrtestmask: usize = ~self.addrormask | self.addrandmask
   local addrandmask: usize = self.addrandmask
   local items: auto = &self.items
-  self.markranges:push{low, high}
-  while self.markranges.size > 0 do
-    local range: GCMarkRange = self.markranges:pop()
+  while self.scanranges.size > 0 do
+    local range: GCScanRange = self.scanranges:pop()
     for memaddr: usize=range.low,<range.high,#@pointer do
       local addr: usize = $(@*usize)(memaddr)
       if (addr & addrtestmask) == addrandmask then
@@ -158,7 +160,7 @@ local function GC_markptrs(self: *GC, low: usize, high: usize): void <noinline,c
         if item and not item:ismarked() then -- unmarked reference found
           item.flags = item.flags | GCFlags.MARK -- mark
           if not hasflag(item.flags, GCFlags.LEAF) then -- don't scan leafs
-            self.markranges:push{addr, addr + item.size}
+            self.scanranges:push{addr, addr + item.size}
           end
         end
       end
@@ -166,38 +168,24 @@ local function GC_markptrs(self: *GC, low: usize, high: usize): void <noinline,c
   end
 end
 
--- Mark single pointer and scan it.
-local function GC_markptr(self: *GC, ptr: pointer): void <noinline>
+local function GC_scanrange(self: *GC, low: usize, high: usize): void <noinline>
+  self.scanranges:push{low, high}
+end
+
+-- Set a single pointer to be scanned.
+local function GC_scanptr(self: *GC, ptr: pointer): void <noinline>
   local item: *GCItem = self.items:peek(ptr)
   if item and not item:ismarked() then -- unmarked reference found
     item.flags = item.flags | GCFlags.MARK -- mark
     if not hasflag(item.flags, GCFlags.LEAF) then -- don't scan leafs
       local addr: usize = (@usize)(ptr)
-      GC_markptrs(self, addr, addr + item.size)
+      self.scanranges:push{addr, addr + item.size}
     end
   end
 end
 
--- Unmark all items.
-local function GC_unmarkall(self:* GC): void <noinline>
-  for ptr: pointer, item: *GCItem in mpairs(self.items) do
-    item.flags = item.flags & ~GCFlags.MARK -- unmark
-  end
-end
-
--- Mark all root items.
-local function GC_markroot(self: *GC): void <noinline>
-  -- TODO: optimize to traverse only root items?
-  for ptr: pointer, item: *GCItem in mpairs(self.items) do
-    if hasflag(item.flags, GCFlags.ROOT) then
-      local addr: usize = (@usize)(ptr)
-      GC_markptrs(self, addr, addr + item.size)
-    end
-  end
-end
-
--- Mark pointers in the stack.
-local function GC_markstack(self: *GC): void <noinline,cinclude'@NELUA_GC_NO_SANITIZE',cqualifier'NELUA_GC_NO_SANITIZE'>
+-- Set pointers in the stack to be scanned.
+local function GC_scanstack(self: *GC): void <noinline,cinclude'@NELUA_GC_NO_SANITIZE',cqualifier'NELUA_GC_NO_SANITIZE'>
   -- dump CPU registers
   local jmp_buf: type <cimport,cinclude'<setjmp.h>',cincomplete> = @record{}
   local function setjmp(env: jmp_buf): void <cimport,cinclude'<setjmp.h>'> end
@@ -221,31 +209,39 @@ local function GC_markstack(self: *GC): void <noinline,cinclude'@NELUA_GC_NO_SAN
   end
   low = align_forward(low, #@pointer)
   -- mark stack and registers
-  GC_markptrs(self, low, high)
-  GC_markptrs(self, (@usize)(&regsbuf), (@usize)(&regsbuf) + (@usize)(#RegsBuf))
+  GC_scanrange(self, low, high)
+  GC_scanrange(self, (@usize)(&regsbuf), (@usize)(&regsbuf) + (@usize)(#RegsBuf))
   ## cemit '#if defined(__GNUC__) || defined(__clang__)'
-  GC_markptr(self, sp)
+  GC_scanptr(self, sp)
   ## cemit '#endif'
 end
 
 -- Mark phase, mark all reachable pointers.
 local function GC_mark(self: *GC): void
-  GC_unmarkall(self)
-  GC_markroot(self)
+  -- mark root items to be scanned
+  for ptr: pointer, item_size: usize in pairs(self.rootitems) do
+    local addr: usize = (@usize)(ptr)
+    self.scanranges:push{addr, addr + item_size}
+  end
+  -- mark stack to be scanned
 ## if not ccinfo.is_wasm then
   if self.stackbottom ~= 0 then
-    local markstack: auto <volatile> = GC_markstack -- avoid inline
-    markstack(self)
+    local scanstack: auto <volatile> = GC_scanstack -- avoid inline
+    scanstack(self)
   end
 ## end
+  -- scan pointers and mark items
+  GC_markptrs(self)
 end
 
--- Sweep phase, collect unmarked items.
+-- Sweep phase, collect unmarked items and unmark marked items.
 local function GC_sweep(self: *GC): void <noinline>
-  -- collect all unmarked items
   local finalize: boolean = false
+  -- unmark marked items and list unmarked items
   for ptr: pointer, item: *GCItem in mpairs(self.items) do
-    if not item:ismarked() then
+    if item:ismarked() then
+      item.flags = item.flags & ~GCFlags.MARK -- unmark it
+    else -- add to collect list
       self.frees:push(ptr)
       if not finalize and item.finalizer then
         finalize = true
@@ -306,6 +302,10 @@ function GC:collect(): void <noinline>
   -- shrink items hash map when its load factor is below 25%
   if self.items.size * 4 < self.items.buckets.size and self.items.buckets.size > 8 then
     self.items:rehash(0)
+  end
+  -- shrink root items hash map when its load factor is below 25%
+  if self.rootitems.size * 4 < self.rootitems.buckets.size and self.rootitems.buckets.size > 8 then
+    self.rootitems:rehash(0)
   end
   self.collecting = false -- collect cycle finished
 end
@@ -398,6 +398,8 @@ function GC:register(ptr: pointer, size: usize, flags: usize,
     if self.running then
       self:step()
     end
+  else
+    self.rootitems[ptr] = size
   end
 end
 
@@ -413,7 +415,7 @@ function GC:reregister(oldptr: pointer, newptr: pointer, newsize: usize): void
     assert(item ~= nilptr, 'invalid reregister pointer')
     oldsize = item.size
     item.size = newsize -- just update the size
-    if likely(not hasflag(item.flags, GCFlags.ROOT)) then
+    if likely(not hasflag(item.flags, GCFlags.ROOT)) then -- only count memory of non root items
       if newsize > oldsize then -- memory growing
         self.membytes = self.membytes + (newsize - oldsize)
         if self.running then
@@ -427,7 +429,7 @@ function GC:reregister(oldptr: pointer, newptr: pointer, newsize: usize): void
     local item: GCItem = self.items:remove(oldptr)
     assert(item.ptr ~= nilptr, 'invalid reregister pointer')
     oldsize = item.size
-    if likely(not hasflag(item.flags, GCFlags.ROOT)) then
+    if likely(not hasflag(item.flags, GCFlags.ROOT)) then -- only count memory of non root items
       self.membytes = self.membytes - oldsize -- update memory
       -- update to be free items
       for i:usize=0,<self.frees.size do
@@ -436,6 +438,8 @@ function GC:reregister(oldptr: pointer, newptr: pointer, newsize: usize): void
           break
         end
       end
+    else
+      self.rootitems:remove(oldptr)
     end
     -- register again
     self:register(newptr, newsize, item.flags, item.finalizer, item.userdata)
@@ -522,11 +526,11 @@ This is called automatically when the application finishes with success.
 The GC is not expected to be used after calling this.
 ]]
 function GC:destroy(): void <noinline>
-  GC_unmarkall(self)
   GC_sweep(self)
   self.items:destroy()
+  self.rootitems:destroy()
   self.frees:destroy()
-  self.markranges:destroy()
+  self.scanranges:destroy()
   $self = {}
 end
 
