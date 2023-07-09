@@ -90,11 +90,6 @@ local GCItem: type = @record{
   userdata: pointer, -- Finalizer user data.
 }
 
--- Checks whether the GC item has been marked.
-function GCItem:ismarked(): boolean <inline>
-  return hasflag(self.flags, GCFlags.MARK | GCFlags.ROOT) -- root items are always marked
-end
-
 -- Record used store ranges to be scanned when marking.
 local GCScanRange: type = @record{low: usize, high: usize}
 
@@ -109,7 +104,7 @@ global GC: type = @record{
   addrandmask: usize, -- AND bit mask for pointer address being tracked by the GC.
   stacktop: usize, -- Stack top address.
   stackbottom: usize, -- Stack bottom address.
-  frees: vector(pointer, GeneralAllocator), -- List of pointers to be freed.
+  finalizeitems: vector(pointer, GeneralAllocator), -- List of pointers to be finalized.
   scanranges: vector(GCScanRange, GeneralAllocator), -- List of ranges to be scanned.
   items: hashmap(pointer, GCItem, nil, nil, GeneralAllocator), -- Map of all tracked allocations.
   rootitems: hashmap(pointer, usize, nil, nil, GeneralAllocator), -- Map of all tracked root allocations.
@@ -128,10 +123,10 @@ function GC:unregister(ptr: pointer, finalize: facultative(boolean)): void
   assert(item.ptr == ptr, 'invalid unregister pointer')
   if likely(not hasflag(item.flags, GCFlags.ROOT)) then -- only count memory of non root items
     self.membytes = self.membytes - item.size -- update memory
-    -- remove from to be free items
-    for i:usize=0,<self.frees.size do
-      if self.frees[i] == ptr then
-        self.frees[i] = nilptr
+    -- remove from finalize items
+    for i:usize=0,<self.finalizeitems.size do
+      if self.finalizeitems[i] == ptr then
+        self.finalizeitems[i] = nilptr
         break
       end
     end
@@ -157,7 +152,7 @@ local function GC_markptrs(self: *GC): void <noinline,cinclude'@NELUA_GC_NO_SANI
       local addr: usize = $(@*usize)(memaddr)
       if (addr & addrtestmask) == addrandmask then
         local item: *GCItem = items:peek((@pointer)(addr))
-        if item and not item:ismarked() then -- unmarked reference found
+        if item and not hasflag(item.flags, GCFlags.MARK | GCFlags.ROOT) then -- unmarked reference found
           item.flags = item.flags | GCFlags.MARK -- mark
           if not hasflag(item.flags, GCFlags.LEAF) then -- don't scan leafs
             self.scanranges:push{addr, addr + item.size}
@@ -175,7 +170,7 @@ end
 -- Set a single pointer to be scanned.
 local function GC_scanptr(self: *GC, ptr: pointer): void <noinline>
   local item: *GCItem = self.items:peek(ptr)
-  if item and not item:ismarked() then -- unmarked reference found
+  if item and not hasflag(item.flags, GCFlags.MARK | GCFlags.ROOT) then -- unmarked reference found
     item.flags = item.flags | GCFlags.MARK -- mark
     if not hasflag(item.flags, GCFlags.LEAF) then -- don't scan leafs
       local addr: usize = (@usize)(ptr)
@@ -236,39 +231,45 @@ end
 
 -- Sweep phase, collect unmarked items and unmark marked items.
 local function GC_sweep(self: *GC): void <noinline>
-  local finalize: boolean = false
   -- unmark marked items and list unmarked items
   for ptr: pointer, item: *GCItem in mpairs(self.items) do
-    if item:ismarked() then
-      item.flags = item.flags & ~GCFlags.MARK -- unmark it
-    else -- add to collect list
-      self.frees:push(ptr)
-      if not finalize and item.finalizer then
-        finalize = true
-      end
-    end
-  end
-  -- call all finalizers before deallocating
-  if finalize then
-    local i: usize = 0
-    while i < self.frees.size do
-      local ptr: pointer = self.frees[i]
-      if ptr then -- it's possible that the item was removed while iterating
-        local item: *GCItem = self.items:peek(ptr)
-        check(item ~= nilptr, 'gc item not found to finalize')
-        if item and item.finalizer then
-          local finalizer: GCFinalizerCallback = item.finalizer
-          item.finalizer = nilptr -- avoid finalizing again
-          finalizer(ptr, item.userdata)
+    local item_flags: usize = item.flags
+    if hasflag(item_flags, GCFlags.MARK) then
+      item.flags = item_flags & ~GCFlags.MARK -- unmark it
+    elseif not hasflag(item_flags, GCFlags.ROOT) then -- deallocate
+      if unlikely(item.finalizer) then
+        -- we cannot deallocate items that have a finalizer inside this loop,
+        -- because the finalizer may rehash items hashmap while we are iterating
+        self.finalizeitems:push(ptr)
+      else
+        -- the hashmap implementation in use is safe to remove items while iterating
+        self.membytes = self.membytes - item.size -- update memory
+        self.items:remove(ptr)
+        if not hasflag(item_flags, GCFlags.EXTERN) then -- deallocate
+          general_allocator:dealloc(ptr)
         end
       end
-      i = i + 1
     end
   end
-  -- deallocate
+  -- call finalizers before deallocating items
   local i: usize = 0
-  while i < self.frees.size do
-    local ptr: pointer = self.frees[i]
+  while i < self.finalizeitems.size do
+    local ptr: pointer = self.finalizeitems[i]
+    if ptr then -- it's possible that the item was removed while iterating
+      local item: *GCItem = self.items:peek(ptr)
+      check(item ~= nilptr, 'gc item not found to finalize')
+      if item and item.finalizer then
+        local finalizer: GCFinalizerCallback = item.finalizer
+        item.finalizer = nilptr -- avoid finalizing again
+        finalizer(ptr, item.userdata)
+      end
+    end
+    i = i + 1
+  end
+  -- deallocate items marked to be finalized
+  local i: usize = 0
+  while i < self.finalizeitems.size do
+    local ptr: pointer = self.finalizeitems[i]
     if ptr then -- it's possible that the item was removed by a finalizer
       local item: GCItem = self.items:remove(ptr)
       check(item.ptr == ptr, 'gc item not found to deallocate')
@@ -281,7 +282,21 @@ local function GC_sweep(self: *GC): void <noinline>
     end
     i = i + 1
   end
-  self.frees:clear()
+  self.finalizeitems:clear()
+end
+
+-- Finish collect cycle, computing new memory usage and possibly compressing hash maps.
+local function GC_finishcollect(self: *GC): void <noinline>
+  -- update last collection memory bytes
+  self.lastmembytes = self.membytes
+  -- shrink items hash map when its load factor is below 25%
+  if self.items.size * 4 < self.items.buckets.size and self.items.buckets.size > 8 then
+    self.items:rehash(0)
+  end
+  -- shrink root items hash map when its load factor is below 25%
+  if self.rootitems.size * 4 < self.rootitems.buckets.size and self.rootitems.buckets.size > 8 then
+    self.rootitems:rehash(0)
+  end
 end
 
 --[[
@@ -297,16 +312,7 @@ function GC:collect(): void <noinline>
   -- mark and sweep
   GC_mark(self)
   GC_sweep(self)
-  -- update last collection memory bytes
-  self.lastmembytes = self.membytes
-  -- shrink items hash map when its load factor is below 25%
-  if self.items.size * 4 < self.items.buckets.size and self.items.buckets.size > 8 then
-    self.items:rehash(0)
-  end
-  -- shrink root items hash map when its load factor is below 25%
-  if self.rootitems.size * 4 < self.rootitems.buckets.size and self.rootitems.buckets.size > 8 then
-    self.rootitems:rehash(0)
-  end
+  GC_finishcollect(self)
   self.collecting = false -- collect cycle finished
 end
 
@@ -375,9 +381,7 @@ function GC:register(ptr: pointer, size: usize, flags: usize,
                      finalizer: function(pointer, pointer): void, userdata: pointer): void
   if unlikely(not ptr) then return end
   -- small allocations that can't store pointers are always leafs
-  if unlikely(size < #@usize) then
-    flags = flags | GCFlags.LEAF
-  end
+  if unlikely(size < #@usize) then flags = flags | GCFlags.LEAF end
   -- make item for the pointer
   local item: *GCItem = &self.items[ptr]
   check(item.ptr == nilptr, 'cannot register pointer twice')
@@ -431,10 +435,10 @@ function GC:reregister(oldptr: pointer, newptr: pointer, newsize: usize): void
     oldsize = item.size
     if likely(not hasflag(item.flags, GCFlags.ROOT)) then -- only count memory of non root items
       self.membytes = self.membytes - oldsize -- update memory
-      -- update to be free items
-      for i:usize=0,<self.frees.size do
-        if self.frees[i] == oldptr then -- this is very unlikely (realloc on a finalized item)
-          self.frees[i] = newptr
+      -- update finalize items
+      for i:usize=0,<self.finalizeitems.size do
+        if self.finalizeitems[i] == oldptr then -- this is very unlikely (realloc on a finalized item)
+          self.finalizeitems[i] = newptr
           break
         end
       end
@@ -529,7 +533,7 @@ function GC:destroy(): void <noinline>
   GC_sweep(self)
   self.items:destroy()
   self.rootitems:destroy()
-  self.frees:destroy()
+  self.finalizeitems:destroy()
   self.scanranges:destroy()
   $self = {}
 end
