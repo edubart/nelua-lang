@@ -530,7 +530,9 @@ This is called automatically when the application finishes with success.
 The GC is not expected to be used after calling this.
 ]]
 function GC:destroy(): void <noinline>
+  self.collecting = true
   GC_sweep(self)
+  self.collecting = false
   self.items:destroy()
   self.rootitems:destroy()
   self.finalizeitems:destroy()
