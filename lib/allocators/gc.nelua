@@ -120,8 +120,7 @@ If `finalize` is `true` and the pointer has a finalizer, then it's called.
 function GC:unregister(ptr: pointer, finalize: facultative(boolean)): void
   if unlikely(not ptr) then return end
   local item: GCItem = self.items:remove(ptr)
-  assert(item.ptr == ptr, 'invalid unregister pointer')
-  if likely(not hasflag(item.flags, GCFlags.ROOT)) then -- only count memory of non root items
+  if item.ptr then -- removed usual item
     self.membytes = self.membytes - item.size -- update memory
     -- remove from finalize items
     for i:usize=0,<self.finalizeitems.size do
@@ -130,15 +129,16 @@ function GC:unregister(ptr: pointer, finalize: facultative(boolean)): void
         break
       end
     end
-  else
-    self.rootitems:remove(ptr)
+    -- finalize
+    ## if finalize.type.is_boolean then
+    if finalize and item.finalizer then -- finalize
+      item.finalizer(ptr, item.userdata)
+    end
+    ## end
+  else -- can only be a root item
+    local oldsize: usize = self.rootitems:remove(ptr)
+    assert(oldsize ~= 0, 'invalid unregister pointer')
   end
-  -- finalize
-  ## if finalize.type.is_boolean then
-  if finalize and item.finalizer then -- finalize
-    item.finalizer(ptr, item.userdata)
-  end
-  ## end
 end
 
 -- Scan pointers and mark items.
@@ -152,7 +152,7 @@ local function GC_markptrs(self: *GC): void <noinline,cinclude'@NELUA_GC_NO_SANI
       local addr: usize = $(@*usize)(memaddr)
       if (addr & addrtestmask) == addrandmask then
         local item: *GCItem = items:peek((@pointer)(addr))
-        if item and not hasflag(item.flags, GCFlags.MARK | GCFlags.ROOT) then -- unmarked reference found
+        if item and not hasflag(item.flags, GCFlags.MARK) then -- unmarked reference found
           item.flags = item.flags | GCFlags.MARK -- mark
           if not hasflag(item.flags, GCFlags.LEAF) then -- don't scan leafs
             self.scanranges:push{addr, addr + item.size}
@@ -170,7 +170,7 @@ end
 -- Set a single pointer to be scanned.
 local function GC_scanptr(self: *GC, ptr: pointer): void <noinline>
   local item: *GCItem = self.items:peek(ptr)
-  if item and not hasflag(item.flags, GCFlags.MARK | GCFlags.ROOT) then -- unmarked reference found
+  if item and not hasflag(item.flags, GCFlags.MARK) then -- unmarked reference found
     item.flags = item.flags | GCFlags.MARK -- mark
     if not hasflag(item.flags, GCFlags.LEAF) then -- don't scan leafs
       local addr: usize = (@usize)(ptr)
@@ -236,7 +236,7 @@ local function GC_sweep(self: *GC): void <noinline>
     local item_flags: usize = item.flags
     if hasflag(item_flags, GCFlags.MARK) then
       item.flags = item_flags & ~GCFlags.MARK -- unmark it
-    elseif not hasflag(item_flags, GCFlags.ROOT) then -- deallocate
+    else -- deallocate
       if unlikely(item.finalizer) then
         -- we cannot deallocate items that have a finalizer inside this loop,
         -- because the finalizer may rehash items hashmap while we are iterating
@@ -365,8 +365,7 @@ end
 
 -- Trigger a collection cycle when the memory has grown above pause threshold.
 function GC:step(): boolean
-  if not self.collecting and
-     self.membytes * 100 >= self.lastmembytes * self.pause then
+  if not self.collecting and self.membytes * 100 >= self.lastmembytes * self.pause then
     self:collect()
     return true
   end
@@ -380,19 +379,19 @@ If `finalizer` is present, then it will be called when the pointer is collected.
 function GC:register(ptr: pointer, size: usize, flags: usize,
                      finalizer: function(pointer, pointer): void, userdata: pointer): void
   if unlikely(not ptr) then return end
-  -- small allocations that can't store pointers are always leafs
-  if unlikely(size < #@usize) then flags = flags | GCFlags.LEAF end
-  -- make item for the pointer
-  local item: *GCItem = &self.items[ptr]
-  check(item.ptr == nilptr, 'cannot register pointer twice')
-  $item = GCItem{
-    flags = flags,
-    size = size,
-    ptr = ptr,
-    finalizer = finalizer,
-    userdata = userdata,
-  }
-  if likely(not hasflag(flags, GCFlags.ROOT)) then -- skip root items, because they are always marked
+  if likely(not hasflag(flags, GCFlags.ROOT)) then -- usual items
+    -- small allocations that can't store pointers are always leafs
+    if unlikely(size < #@usize) then flags = flags | GCFlags.LEAF end
+    -- make item for the pointer
+    local item: *GCItem = &self.items[ptr]
+    check(item.ptr == nilptr, 'cannot register pointer twice')
+    $item = GCItem{
+      flags = flags,
+      size = size,
+      ptr = ptr,
+      finalizer = finalizer,
+      userdata = userdata,
+    }
     -- update collector address bounds
     local addr: usize = (@usize)(ptr)
     self.addrormask = self.addrormask | addr
@@ -402,7 +401,10 @@ function GC:register(ptr: pointer, size: usize, flags: usize,
     if self.running then
       self:step()
     end
-  else
+  else -- root item
+    assert(size > 0, 'attempt to register a root pointer with size zero')
+    assert(flags == GCFlags.ROOT, 'attempt to register a root pointer with invalid flags')
+    assert(finalizer == nilptr and userdata == nilptr, 'attempt to register a root pointer with finalizer')
     self.rootitems[ptr] = size
   end
 end
@@ -413,13 +415,11 @@ Called when reallocating a pointers.
 ]]
 function GC:reregister(oldptr: pointer, newptr: pointer, newsize: usize): void
   check(oldptr ~= nilptr and newptr ~= nilptr and newsize > 0, 'invalid reregister arguments')
-  local oldsize: usize
   if newptr == oldptr then
     local item: *GCItem = self.items:peek(oldptr)
-    assert(item ~= nilptr, 'invalid reregister pointer')
-    oldsize = item.size
-    item.size = newsize -- just update the size
-    if likely(not hasflag(item.flags, GCFlags.ROOT)) then -- only count memory of non root items
+    if likely(item) then
+      local oldsize: usize = item.size
+      item.size = newsize -- just update the size
       if newsize > oldsize then -- memory growing
         self.membytes = self.membytes + (newsize - oldsize)
         if self.running then
@@ -428,12 +428,15 @@ function GC:reregister(oldptr: pointer, newptr: pointer, newsize: usize): void
       elseif newsize < oldsize then -- memory shrinking
         self.membytes = self.membytes - (oldsize - newsize)
       end
+    else -- can only be a root
+      local oldsize: usize = self.rootitems:remove(oldptr)
+      assert(oldsize ~= 0, 'invalid reregister pointer')
+      self.rootitems[newptr] = newsize
     end
   else -- moved, remove and insert item again
     local item: GCItem = self.items:remove(oldptr)
-    assert(item.ptr ~= nilptr, 'invalid reregister pointer')
-    oldsize = item.size
-    if likely(not hasflag(item.flags, GCFlags.ROOT)) then -- only count memory of non root items
+    if likely(item.ptr) then
+      local oldsize: usize = item.size
       self.membytes = self.membytes - oldsize -- update memory
       -- update finalize items
       for i:usize=0,<self.finalizeitems.size do
@@ -442,11 +445,14 @@ function GC:reregister(oldptr: pointer, newptr: pointer, newsize: usize): void
           break
         end
       end
-    else
-      self.rootitems:remove(oldptr)
+      -- register again
+      self:register(newptr, newsize, item.flags, item.finalizer, item.userdata)
+    else -- can only be a root
+      local oldsize: usize = self.rootitems:remove(oldptr)
+      assert(oldsize ~= 0, 'invalid reregister pointer')
+      -- update
+      self.rootitems[newptr] = newsize
     end
-    -- register again
-    self:register(newptr, newsize, item.flags, item.finalizer, item.userdata)
   end
 end
 
