@@ -3658,6 +3658,20 @@ References to element values previously returned will remain valid.
 
 *Complexity*: Average case O(1).
 
+### hashmapT:erase
+
+```nelua
+function hashmapT:erase(key: K): boolean
+```
+
+Removes an element with a key from the container (if it exists).
+Returns the true if it was actually removed.
+
+It's safe to remove an element while iterating.
+References to element values previously returned will remain valid.
+
+*Complexity*: Average case O(1).
+
 ### hashmapT:loadfactor
 
 ```nelua
@@ -4003,6 +4017,7 @@ and its contents are zero initialized.
 - In case the value has the `__new` metamethod, it will be called immediately after the allocation.
 - In case the value has a finalizer, and the allocator supports finalizers,
 such as `GCAllocator`, the value is marked to be finalized when deallocated.
+- In case the value record size is 0, a valid pointer (different from nullptr) is guaranteed to be returned.
 
 ### Allocator:delete
 
@@ -4137,13 +4152,14 @@ global GC: type = @record{
   pause: usize, -- The collector pause (default 200).
   membytes: usize, -- Total allocated memory currently being tracked by the GC (in bytes).
   lastmembytes: usize, -- Total allocated memory tracked just after the last collection cycle.
-  minaddr: usize, -- Minimum pointer address tracked by the GC.
-  maxaddr: usize, -- Maximum pointer address tracked by the GC.
+  addrormask: usize, -- OR bit mask for pointer address being tracked by the GC.
+  addrandmask: usize, -- AND bit mask for pointer address being tracked by the GC.
   stacktop: usize, -- Stack top address.
   stackbottom: usize, -- Stack bottom address.
-  frees: vector(pointer, GeneralAllocator), -- List of pointers to be freed.
-  markranges: vector(GCMarkRange, GeneralAllocator), -- List of ranges to be scanned.
+  finalizeitems: vector(pointer, GeneralAllocator), -- List of pointers to be finalized.
+  scanranges: vector(GCScanRange, GeneralAllocator), -- List of ranges to be scanned.
   items: hashmap(pointer, GCItem, nil, nil, GeneralAllocator), -- Map of all tracked allocations.
+  rootitems: hashmap(pointer, usize, nil, nil, GeneralAllocator), -- Map of all tracked root allocations.
 }
 ```
 
@@ -4416,6 +4432,7 @@ and its contents are zero initialized.
 - If `size` is present, then returns a span with `size` elements of `what`, instead of a pointer.
 - In case the value has the `__new` metamethod, it will be called immediately after the allocation.
 - In case the value has the `__gc` metamethod, it will be called once the value is collected.
+- In case the value record size is 0, a valid pointer (different from nullptr) is guaranteed to be returned.
 
 ---
 ## allocators.arena

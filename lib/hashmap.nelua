@@ -26,9 +26,10 @@ end
 
 -- Hash modulo operation, `n` must always be a power of 2.
 local function hashmod(h: usize, n: usize): usize <inline>
-  -- the following would be faster but expects good hash of `h`
-  -- return h & (n - 1)
-  return h % ((n - 1) | 1)
+  -- the following is fast, but expects good hash of `h`
+  return h & (n - 1)
+  -- the following is slower, but works with bad hash of `h`
+  -- return h % ((n - 1) | 1)
 end
 
 -- Compute the smallest power of 2 not smaller than `n`.
@@ -358,6 +359,32 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
     $node = (@hashnodeT){next = self.free_index}
     self.free_index = node_index
     return value
+  end
+
+  --[[
+  Removes an element with a key from the container (if it exists).
+  Returns the true if it was actually removed.
+
+  It's safe to remove an element while iterating.
+  References to element values previously returned will remain valid.
+
+  *Complexity*: Average case O(1).
+  ]]
+  function hashmapT:erase(key: K): boolean
+    local node_index: usize, prev_node_index: usize, bucket_index: usize = self:_find(key)
+    if unlikely(node_index == INVALID_INDEX) then return false end
+    -- unlink the removed node
+    local node: *hashnodeT = &self.nodes[node_index]
+    if likely(prev_node_index == INVALID_INDEX) then
+      self.buckets[bucket_index] = node.next
+    else
+      self.nodes[prev_node_index].next = node.next
+    end
+    self.size = self.size - 1
+    -- link free node
+    $node = (@hashnodeT){next = self.free_index}
+    self.free_index = node_index
+    return true
   end
 
   -- Returns the average number of elements per bucket.

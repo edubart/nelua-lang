@@ -52,8 +52,13 @@ and it will be used when calling this function.
 ]]
 function hash.hash(v: auto): usize <nosideeffect>
   ## if v.type.is_pointer then
-    -- usually pointers are multiple of 8, thus we can discard the last 3 bits
-    return (@usize)(v) >> 3
+    ## if v.type.subtype and v.type.subtype.size and v.type.subtype.size > 0 then
+    -- use subtype information to shift
+    return (@usize)(v) >> #[math.log(1+v.type.subtype.size, 2)//1]#
+    ## else
+    -- usually pointers allocated by malloc() are multiple of 16, thus we can discard the last 4 bits
+    return ((@usize)(v) >> 4)
+    ## end
   ## elseif v.type.is_integral then
     return (@usize)(v)
   ## elseif v.type.is_float then

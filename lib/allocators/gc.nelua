@@ -212,7 +212,7 @@ local function GC_scanstack(self: *GC): void <noinline,cinclude'@NELUA_GC_NO_SAN
 end
 
 -- Mark phase, mark all reachable pointers.
-local function GC_mark(self: *GC): void
+local function GC_mark(self: *GC): void <noinline>
   -- mark root items to be scanned
   for ptr: pointer, item_size: usize in pairs(self.rootitems) do
     local addr: usize = (@usize)(ptr)
@@ -232,6 +232,7 @@ end
 -- Sweep phase, collect unmarked items and unmark marked items.
 local function GC_sweep(self: *GC): void <noinline>
   -- unmark marked items and list unmarked items
+  local membytes: usize = self.membytes
   for ptr: pointer, item: *GCItem in mpairs(self.items) do
     local item_flags: usize = item.flags
     if hasflag(item_flags, GCFlags.MARK) then
@@ -243,14 +244,16 @@ local function GC_sweep(self: *GC): void <noinline>
         self.finalizeitems:push(ptr)
       else
         -- the hashmap implementation in use is safe to remove items while iterating
-        self.membytes = self.membytes - item.size -- update memory
-        self.items:remove(ptr)
+        membytes = membytes - item.size -- update memory
+        local removed: boolean = self.items:erase(ptr)
+        check(removed, 'gc item not found to erase')
         if not hasflag(item_flags, GCFlags.EXTERN) then -- deallocate
           general_allocator:dealloc(ptr)
         end
       end
     end
   end
+  self.membytes = membytes
   -- call finalizers before deallocating items
   local i: usize = 0
   while i < self.finalizeitems.size do
@@ -285,10 +288,8 @@ local function GC_sweep(self: *GC): void <noinline>
   self.finalizeitems:clear()
 end
 
--- Finish collect cycle, computing new memory usage and possibly compressing hash maps.
-local function GC_finishcollect(self: *GC): void <noinline>
-  -- update last collection memory bytes
-  self.lastmembytes = self.membytes
+-- Compress hash maps when they are too big.
+local function GC_rehash(self: *GC): void <noinline>
   -- shrink items hash map when its load factor is below 25%
   if self.items.size * 4 < self.items.buckets.size and self.items.buckets.size > 8 then
     self.items:rehash(0)
@@ -312,7 +313,9 @@ function GC:collect(): void <noinline>
   -- mark and sweep
   GC_mark(self)
   GC_sweep(self)
-  GC_finishcollect(self)
+  GC_rehash(self)
+  -- update last collection memory bytes
+  self.lastmembytes = self.membytes
   self.collecting = false -- collect cycle finished
 end
 
@@ -320,7 +323,7 @@ end
 Registers all roots in the GC, called once when starting the application.
 All variables in the top scope of file that contains pointers is considered a root.
 ]]
-local function GC_registerroots(self: *GC): void
+local function GC_registerroots(self: *GC): void <noinline>
   ##[[
   local emit_mark_statics = hygienize(function(staticsyms)
     for i=1,#staticsyms do
