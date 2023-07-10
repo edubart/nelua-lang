@@ -85,7 +85,6 @@ local GCFinalizerCallback: type = @function(pointer, pointer): void
 local GCItem: type = @record{
   flags: usize, -- Allocation flags.
   size: usize, -- Allocation size.
-  ptr: pointer, -- Allocated pointer.
   finalizer: GCFinalizerCallback, -- Finalizer callback.
   userdata: pointer, -- Finalizer user data.
 }
@@ -120,7 +119,7 @@ If `finalize` is `true` and the pointer has a finalizer, then it's called.
 function GC:unregister(ptr: pointer, finalize: facultative(boolean)): void
   if unlikely(not ptr) then return end
   local item: GCItem = self.items:remove(ptr)
-  if item.ptr then -- removed usual item
+  if item.size ~= 0 then -- removed usual item
     self.membytes = self.membytes - item.size -- update memory
     -- remove from finalize items
     for i:usize=0,<self.finalizeitems.size do
@@ -275,8 +274,8 @@ local function GC_sweep(self: *GC): void <noinline>
     local ptr: pointer = self.finalizeitems[i]
     if ptr then -- it's possible that the item was removed by a finalizer
       local item: GCItem = self.items:remove(ptr)
-      check(item.ptr == ptr, 'gc item not found to deallocate')
-      if item.ptr then
+      check(item.size ~= 0, 'gc item not found to deallocate')
+      if item.size ~= 0 then
         self.membytes = self.membytes - item.size -- update memory
         if not hasflag(item.flags, GCFlags.EXTERN) then -- deallocate
           general_allocator:dealloc(ptr)
@@ -382,16 +381,16 @@ If `finalizer` is present, then it will be called when the pointer is collected.
 function GC:register(ptr: pointer, size: usize, flags: usize,
                      finalizer: function(pointer, pointer): void, userdata: pointer): void
   if unlikely(not ptr) then return end
+  assert(size > 0, 'attempt to register a pointer with size zero')
   if likely(not hasflag(flags, GCFlags.ROOT)) then -- usual items
     -- small allocations that can't store pointers are always leafs
     if unlikely(size < #@usize) then flags = flags | GCFlags.LEAF end
     -- make item for the pointer
     local item: *GCItem = &self.items[ptr]
-    check(item.ptr == nilptr, 'cannot register pointer twice')
+    check(item.size == 0, 'cannot register pointer twice')
     $item = GCItem{
       flags = flags,
       size = size,
-      ptr = ptr,
       finalizer = finalizer,
       userdata = userdata,
     }
@@ -405,7 +404,6 @@ function GC:register(ptr: pointer, size: usize, flags: usize,
       self:step()
     end
   else -- root item
-    assert(size > 0, 'attempt to register a root pointer with size zero')
     assert(flags == GCFlags.ROOT, 'attempt to register a root pointer with invalid flags')
     assert(finalizer == nilptr and userdata == nilptr, 'attempt to register a root pointer with finalizer')
     self.rootitems[ptr] = size
@@ -438,7 +436,7 @@ function GC:reregister(oldptr: pointer, newptr: pointer, newsize: usize): void
     end
   else -- moved, remove and insert item again
     local item: GCItem = self.items:remove(oldptr)
-    if likely(item.ptr) then
+    if likely(item.size ~= 0) then
       local oldsize: usize = item.size
       self.membytes = self.membytes - oldsize -- update memory
       -- update finalize items
