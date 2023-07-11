@@ -150,9 +150,10 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
     ## else
     local h: usize = hash.hash(key)
     ## end
-    local bucket_index: usize = hashmod(h, self.buckets.size)
+    local buckets_size: usize = self.buckets.size
+    local bucket_index: usize = hashmod(h, buckets_size)
     local prev_node_index: usize = INVALID_INDEX
-    if unlikely(self.buckets.size == 0) then -- container is empty
+    if unlikely(buckets_size == 0) then -- container is empty
       return INVALID_INDEX, prev_node_index, bucket_index
     end
     local node_index: usize = self.buckets[bucket_index]

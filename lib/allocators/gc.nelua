@@ -72,6 +72,7 @@ end
 -- Possible flags to set when registering a new pointer in the allocator.
 global GCFlags: type = @enum(usize) {
   MARK = 1 << 16, -- Marked for collection (used only internally).
+  FINALIZE = 1 << 17, -- Finalizer should be called before deallocating.
   ROOT = AllocatorFlags.GCRoot, -- Allocation always scanned and never collected.
   LEAF = AllocatorFlags.GCLeaf, -- Allocation never scanned (contains no pointers).
   BRANCH = AllocatorFlags.GCBranch, -- Allocation should be scanned despite being detected as leaf (contains pointers).
@@ -119,7 +120,7 @@ If `finalize` is `true` and the pointer has a finalizer, then it's called.
 function GC:unregister(ptr: pointer, finalize: facultative(boolean)): void
   if unlikely(not ptr) then return end
   local item: GCItem = self.items:remove(ptr)
-  if item.size ~= 0 then -- removed usual item
+  if likely(item.size ~= 0) then -- removed usual item
     self.membytes = self.membytes - item.size -- update memory
     -- remove from finalize items
     for i:usize=0,<self.finalizeitems.size do
@@ -144,13 +145,12 @@ end
 local function GC_markptrs(self: *GC): void <noinline,cinclude'@NELUA_GC_NO_SANITIZE',cqualifier'NELUA_GC_NO_SANITIZE'>
   local addrtestmask: usize = ~self.addrormask | self.addrandmask
   local addrandmask: usize = self.addrandmask
-  local items: auto = &self.items
   while self.scanranges.size > 0 do
     local range: GCScanRange = self.scanranges:pop()
     for memaddr: usize=range.low,<range.high,#@pointer do
       local addr: usize = $(@*usize)(memaddr)
       if (addr & addrtestmask) == addrandmask then
-        local item: *GCItem = items:peek((@pointer)(addr))
+        local item: *GCItem = self.items:peek((@pointer)(addr))
         if item and not hasflag(item.flags, GCFlags.MARK) then -- unmarked reference found
           item.flags = item.flags | GCFlags.MARK -- mark
           if not hasflag(item.flags, GCFlags.LEAF) then -- don't scan leafs
@@ -236,19 +236,17 @@ local function GC_sweep(self: *GC): void <noinline>
     local item_flags: usize = item.flags
     if hasflag(item_flags, GCFlags.MARK) then
       item.flags = item_flags & ~GCFlags.MARK -- unmark it
+    elseif unlikely(hasflag(item_flags, GCFlags.FINALIZE)) then
+      -- we cannot deallocate items that have a finalizer inside this loop,
+      -- because the finalizer may rehash items hashmap while we are iterating
+      self.finalizeitems:push(ptr)
     else -- deallocate
-      if unlikely(item.finalizer) then
-        -- we cannot deallocate items that have a finalizer inside this loop,
-        -- because the finalizer may rehash items hashmap while we are iterating
-        self.finalizeitems:push(ptr)
-      else
-        -- the hashmap implementation in use is safe to remove items while iterating
-        membytes = membytes - item.size -- update memory
-        local removed: boolean = self.items:erase(ptr)
-        check(removed, 'gc item not found to erase')
-        if not hasflag(item_flags, GCFlags.EXTERN) then -- deallocate
-          general_allocator:dealloc(ptr)
-        end
+      -- the hashmap implementation in use is safe to remove items while iterating
+      membytes = membytes - item.size -- update memory
+      local removed: boolean = self.items:erase(ptr)
+      check(removed, 'gc item not found to erase')
+      if likely(not hasflag(item_flags, GCFlags.EXTERN)) then -- deallocate
+        general_allocator:dealloc(ptr)
       end
     end
   end
@@ -257,10 +255,10 @@ local function GC_sweep(self: *GC): void <noinline>
   local i: usize = 0
   while i < self.finalizeitems.size do
     local ptr: pointer = self.finalizeitems[i]
-    if ptr then -- it's possible that the item was removed while iterating
+    if likely(ptr) then -- it's possible that the item was removed while iterating
       local item: *GCItem = self.items:peek(ptr)
       check(item ~= nilptr, 'gc item not found to finalize')
-      if item and item.finalizer then
+      if likely(item and item.finalizer) then
         local finalizer: GCFinalizerCallback = item.finalizer
         item.finalizer = nilptr -- avoid finalizing again
         finalizer(ptr, item.userdata)
@@ -272,12 +270,12 @@ local function GC_sweep(self: *GC): void <noinline>
   local i: usize = 0
   while i < self.finalizeitems.size do
     local ptr: pointer = self.finalizeitems[i]
-    if ptr then -- it's possible that the item was removed by a finalizer
+    if likely(ptr) then -- it's possible that the item was removed by a finalizer
       local item: GCItem = self.items:remove(ptr)
       check(item.size ~= 0, 'gc item not found to deallocate')
-      if item.size ~= 0 then
+      if likely(item.size ~= 0) then
         self.membytes = self.membytes - item.size -- update memory
-        if not hasflag(item.flags, GCFlags.EXTERN) then -- deallocate
+        if unlikely(not hasflag(item.flags, GCFlags.EXTERN)) then -- deallocate
           general_allocator:dealloc(ptr)
         end
       end
@@ -385,6 +383,7 @@ function GC:register(ptr: pointer, size: usize, flags: usize,
   if likely(not hasflag(flags, GCFlags.ROOT)) then -- usual items
     -- small allocations that can't store pointers are always leafs
     if unlikely(size < #@usize) then flags = flags | GCFlags.LEAF end
+    if unlikely(finalizer) then flags = flags | GCFlags.FINALIZE end
     -- make item for the pointer
     local item: *GCItem = &self.items[ptr]
     check(item.size == 0, 'cannot register pointer twice')
@@ -400,7 +399,7 @@ function GC:register(ptr: pointer, size: usize, flags: usize,
     self.addrandmask = self.addrandmask & addr
     -- add memory
     self.membytes = self.membytes + size
-    if self.running then
+    if likely(self.running) then
       self:step()
     end
   else -- root item
@@ -421,9 +420,9 @@ function GC:reregister(oldptr: pointer, newptr: pointer, newsize: usize): void
     if likely(item) then
       local oldsize: usize = item.size
       item.size = newsize -- just update the size
-      if newsize > oldsize then -- memory growing
+      if likely(newsize > oldsize) then -- memory growing
         self.membytes = self.membytes + (newsize - oldsize)
-        if self.running then
+        if likely(self.running) then
           self:step()
         end
       elseif newsize < oldsize then -- memory shrinking
@@ -689,7 +688,7 @@ function GCAllocator:realloc(ptr: pointer, newsize: usize, oldsize: usize): poin
     return ptr
   else -- shrinking or growing
     local newptr: pointer = general_allocator:realloc(ptr, newsize, oldsize)
-    if newptr then
+    if likely(newptr) then
       gc:reregister(ptr, newptr, newsize)
     end
     return newptr
