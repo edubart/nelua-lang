@@ -2268,16 +2268,26 @@ end
 
 local function emit_c_includes_code(opts)
   local cemitter = Emitter()
-  if opts.parse_defines then
-    for _,define in ipairs(opts.parse_defines) do
+  if opts.parse_head then
+    cemitter:add(opts.parse_head)
+  end
+  local defines = opts.parse_defines or opts.defines
+  if defines then -- defines
+    for _,define in ipairs(defines) do
       cemitter:add_ln('#define ', define)
     end
   end
-  for _,include in ipairs(opts.parse_includes) do
-    if not include:match('^[<"].*[>"]$') then
-      include = '<'..include..'>'
+  local includes = opts.parse_includes or opts.includes
+  if includes then -- includes
+    for _,include in ipairs(includes) do
+      if not include:match('^[<"].*[>"]$') then
+        include = '<'..include..'>'
+      end
+      cemitter:add_ln('#include ', include)
     end
-    cemitter:add_ln('#include ', include)
+  end
+  if opts.parse_foot then
+    cemitter:add(opts.parse_foot)
   end
   return cemitter:generate()
 end
@@ -2292,6 +2302,13 @@ local function preprocess_c_code(ccode, opts)
       table.insert(ccargs, incdir)
     end
   end
+  if opts.cflags then
+    if type(opts.cflags) == 'table' then
+      tabler.insertvalues(ccargs, opts.cflags)
+    elseif type(opts.cflags) == 'string' then
+      tabler.insertvalues(ccargs, pegger.split_execargs(opts.cflags))
+    end
+  end
   local ok, _, stdout, stderr = executor.execex(cc, ccargs)
   fs.deletefile(cfilename)
   assert(ok and stdout, stderr or 'failed to preprocess C code')
@@ -2301,7 +2318,18 @@ end
 function nldecl.generate_bindings_file(opts)
   local ccode = emit_c_includes_code(opts)
   ccode = preprocess_c_code(ccode, opts)
+  if opts.preprocess then
+    ccode = opts.preprocess(ccode)
+  end
   local neluacode = nldecl.generate_bindings_from_c_code(ccode, opts)
+  if opts.gsubs then
+    for _,entry in ipairs(opts.gsubs) do
+      neluacode = neluacode:gsub(table.unpack(entry))
+    end
+  end
+  if opts.output_postprocess then
+    neluacode = opts.output_postprocess(neluacode)
+  end
   if opts.output_head then
     neluacode = opts.output_head..neluacode
   end
