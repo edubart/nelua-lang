@@ -872,6 +872,7 @@ function BindingContext.create(opts)
     visitors = {},
     exclude_names = exclude_names,
     include_names = opts.include_names,
+    enum_types = opts.enum_types,
     incomplete_names = incomplete_names,
   }, BindingContext_mt)
   return context
@@ -923,7 +924,7 @@ function BindingContext:mark_imports_for_node(node)
     -- mark itself
     local fullname = node[1]
     local name = fullname:gsub('^[a-z]+#', '') -- remove struct/union/enum prefix
-    if common_exclude_names[name] then -- ignore internal names
+    if common_exclude_names[name] or self.exclude_names and self.exclude_names[name]  then -- ignore internal names
       return
     end
     node.import = true
@@ -1529,9 +1530,14 @@ local function parse_enum(context, node, attr)
           minvalue = fieldvalue
         end
         if minvalue and maxvalue then
-          if minvalue >= 0 and maxvalue >= 0x80000000 then
-            inttype = 'unsigned int'
-            typenode[1] = inttype
+          if minvalue >= 0 then
+            if maxvalue > 0xffffffff then
+              inttype = 'uint64_t'
+              typenode[1] = inttype
+            elseif minvalue >= 0 and maxvalue >= 0x80000000 then
+              inttype = 'unsigned int'
+              typenode[1] = inttype
+            end
           end
         end
         if not fieldexprvalue then
@@ -2043,7 +2049,7 @@ end
 function generate_bindings_visitors.CEnumType(context, node, emitter, params)
   local cintname, name, fields = node[1], node[2], node[3]
   local importname, generated = context:get_or_generate_import_name(name, node)
-  local intname = ctype_to_nltype[cintname]
+  local intname = context.enum_types and context.enum_types[importname] or ctype_to_nltype[cintname]
   local decl = params and params.decl
   if not decl then -- not a declaration, just emit enum name
     emitter:add(importname or intname)
