@@ -860,6 +860,10 @@ function BindingContext.create(opts)
   if opts.incomplete_names ~= nil then
     incomplete_names = opts.incomplete_names
   end
+  local force_exclude_names = tabler.copy(common_exclude_names)
+  if opts.force_exclude_names then
+    tabler.update(force_exclude_names, opts.force_exclude_names)
+  end
   local context = setmetatable({
     types_ast = {},
     defines_ast = {},
@@ -874,6 +878,7 @@ function BindingContext.create(opts)
     include_names = opts.include_names,
     enum_types = opts.enum_types,
     incomplete_names = incomplete_names,
+    force_exclude_names = force_exclude_names,
   }, BindingContext_mt)
   return context
 end
@@ -892,7 +897,7 @@ function BindingContext:can_include_name(name)
   if self.include_names and self.include_names[name] then
     return true
   end
-  if common_exclude_names[name] or self.exclude_names and self.exclude_names[name] then
+  if self.force_exclude_names[name] or self.exclude_names and self.exclude_names[name] then
     return false
   end
   if self.exclude_names then
@@ -924,7 +929,7 @@ function BindingContext:mark_imports_for_node(node)
     -- mark itself
     local fullname = node[1]
     local name = fullname:gsub('^[a-z]+#', '') -- remove struct/union/enum prefix
-    if common_exclude_names[name] or self.exclude_names and self.exclude_names[name]  then -- ignore internal names
+    if self.force_exclude_names[name] then -- ignore internal names
       return
     end
     node.import = true
