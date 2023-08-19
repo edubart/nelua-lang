@@ -408,7 +408,7 @@ function fs.scriptname(level, dirlevel)
     end
   end
   if path and dirlevel then
-    path = fs.dirname(fs.realpath(path), dirlevel)
+    path = fs.dirname(fs.abspath(path), dirlevel)
   end
   return path
 end
@@ -422,7 +422,7 @@ end
 
 -- Returns the current working directory.
 function fs.curdir()
-  return fs.realpath('.')
+  return fs.abspath('.')
 end
 
 -- Iterate entries of a directory that matches the given pattern.
