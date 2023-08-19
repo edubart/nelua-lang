@@ -477,14 +477,14 @@ function visitors.Pair(context, node)
 end
 
 function visitors.Directive(context, node)
-  local name, params = node[1], node[2]
+  local name, args = node[1], node[2]
   -- check directive shape
   if not node.checked then
     local paramshape = typedefs.pp_directives[name]
     if not paramshape then
       node:raisef("directive '%s' is undefined", name)
     end
-    local ok, err = paramshape(params)
+    local ok, err = paramshape(args)
     if not ok then
       node:raisef("invalid arguments for directive '%s': %s", name, err)
     end
@@ -492,10 +492,13 @@ function visitors.Directive(context, node)
   end
   -- handle directive
   if name == 'pragmapush' then
-    local pragmas = params[1]
-    context:push_forked_pragmas(pragmas)
+    context:push_forked_pragmas(args[1])
   elseif name == 'pragmapop' then
     context:pop_pragmas()
+  elseif name == 'pragma' then
+    tabler.update(context.pragmas, args[1])
+  elseif name == 'libpath' then
+    table.insert(context.libpaths, args[1])
   else
     node.done = true
   end

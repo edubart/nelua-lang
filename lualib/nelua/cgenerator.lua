@@ -2,6 +2,7 @@ local CEmitter = require 'nelua.cemitter'
 local iters = require 'nelua.utils.iterators'
 local traits = require 'nelua.utils.traits'
 local stringer = require 'nelua.utils.stringer'
+local tabler = require 'nelua.utils.tabler'
 local bn = require 'nelua.utils.bn'
 local pegger = require 'nelua.utils.pegger'
 local cdefs = require 'nelua.cdefs'
@@ -502,6 +503,8 @@ function visitors.Directive(context, node, emitter)
     context:push_forked_pragmas(args[1])
   elseif name == 'pragmapop' then
     context:pop_pragmas()
+  elseif name == 'pragma' then
+    tabler.update(context.pragmas, args[1])
   end
 end
 

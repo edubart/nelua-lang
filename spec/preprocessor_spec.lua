@@ -814,4 +814,13 @@ it("run brainfuck", function()
   expect.run('--generator c examples/brainfuck.nelua', 'Hello World!')
 end)
 
+it("add library path", function()
+  expect.analyze_ast([=[
+##[[
+libpath(fs.join(fs.curdir(), 'tests', '?/init.nelua'))
+]]
+require 'myclib'
+]=])
+end)
+
 end)

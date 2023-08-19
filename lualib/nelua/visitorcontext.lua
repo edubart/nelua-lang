@@ -28,6 +28,7 @@ function VisitorContext:_init(visitors, rootscope)
   self.scope = rootscope
   self.scopestack = {}
   self.rootpragmas = {}
+  self.libpaths = {}
   -- pragmas
   self.pragmas = self.rootpragmas
   self.pragmastack = {}

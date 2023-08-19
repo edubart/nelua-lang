@@ -487,8 +487,10 @@ typedefs.pp_directives = {
   cincdir = shaper.shape{n=shaper.number, shaper.string},
   linkdir = shaper.shape{n=shaper.number, shaper.string},
   linklib = shaper.shape{n=shaper.number, shaper.string},
+  libpath = shaper.shape{n=shaper.number, shaper.string},
   ldflags = shaper.shape{n=shaper.number, shaper.string},
   stripflags = shaper.shape{n=shaper.number, shaper.string},
+  pragma = shaper.shape{n=shaper.number, shaper.table},
   pragmapush = shaper.shape{n=shaper.number, shaper.table},
   pragmapop = shaper.shape{n=shaper.number},
 }
@@ -542,6 +544,8 @@ typedefs.pp_constants = {
   executor = function() return require 'nelua.utils.executor' end,
   -- Memoize function.
   memoize = function() return require 'nelua.utils.memoize' end,
+  -- Filesystem module.
+  fs = function() return require 'nelua.utils.fs' end,
   -- Aster module.
   aster = function() return require 'nelua.aster' end,
   -- Version module.

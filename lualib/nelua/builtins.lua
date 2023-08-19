@@ -8,6 +8,7 @@ local Attr = require 'nelua.attr'
 local Symbol = require 'nelua.symbol'
 local primtypes = typedefs.primtypes
 local pegger = require 'nelua.utils.pegger'
+local stringer = require 'nelua.utils.stringer'
 local aster = require 'nelua.aster'
 
 function builtins.require(context, node, argnodes)
@@ -28,7 +29,14 @@ function builtins.require(context, node, argnodes)
       node:raisef('runtime require unsupported, use require with a compile time string')
     end
     local reldir = argnode.src.name and fs.dirname(argnode.src.name) or nil
-    local filepath, err = fs.findmodule(reqname, config.path, reldir, 'nelua')
+    local libpath = config.path
+    if #context.libpaths > 0 then -- try to insert the lib path after the local lib path
+      local addpath = ';'..table.concat(context.libpaths, ';')
+      local localpath = fs.join('.','?.nelua')..';'..fs.join('.','?','init.nelua')
+      libpath = stringer.insertafter(libpath, localpath, addpath) or
+                  addpath:sub(2)..';'..libpath
+    end
+    local filepath, err = fs.findmodule(reqname, libpath, reldir, 'nelua')
     if not filepath then
       if context.generator == 'lua' then
         return

@@ -3280,6 +3280,18 @@ it("context pragmas", function()
   })
 
   expect.generate_c([[
+    do
+      ## pragma{noinit = true}
+      local a: integer
+      ## pragma{noinit = false}
+      local b: integer
+    end
+  ]], {
+    "int64_t a;\n",
+    "int64_t b = 0;\n"
+  })
+
+  expect.generate_c([[
     ## pragmapush{nocstatic = true}
     local a: integer
     local function f() end
