@@ -2338,14 +2338,14 @@ function nldecl.generate_bindings_file(opts)
       neluacode = neluacode:gsub(table.unpack(entry))
     end
   end
-  if opts.output_postprocess then
-    neluacode = opts.output_postprocess(neluacode)
-  end
   if opts.output_head then
     neluacode = opts.output_head..neluacode
   end
   if opts.output_foot then
     neluacode = neluacode..opts.output_foot
+  end
+  if opts.output_postprocess then
+    neluacode = opts.output_postprocess(neluacode, ccode)
   end
   assert(fs.makefile(opts.output_file, neluacode))
 end
