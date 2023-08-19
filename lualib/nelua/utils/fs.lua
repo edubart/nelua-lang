@@ -262,6 +262,11 @@ function fs.getmodtime(p)
   return lfs.attributes(p, 'modification')
 end
 
+-- Return size of the file.
+function fs.getsize(p)
+  return lfs.attributes(p, 'size')
+end
+
 -- Follow file symbolic links.
 function fs.readlink(p) --luacov:disable
   local fileat = lfs.symlinkattributes(p)

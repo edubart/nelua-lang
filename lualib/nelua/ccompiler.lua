@@ -418,7 +418,9 @@ function compiler.compile_binary(cfile, outfile, compileopts)
   if not config.no_cache then
     local cfile_mtime = fs.getmodtime(cfile)
     local binfile_mtime = fs.getmodtime(binfile)
-    if cfile_mtime and binfile_mtime and cfile_mtime <= binfile_mtime then
+    local binfile_size = fs.getsize(binfile)
+    if cfile_mtime and binfile_mtime and cfile_mtime <= binfile_mtime and
+       binfile_size and binfile_size > 0 then
       if config.verbose then console.info("using cached binary " .. binfile) end
       return binfile, isexe
     end
