@@ -96,6 +96,8 @@ If the second (or later) path is absolute then we return the last absolute path
 Empty elements (except the last) will be ignored.
 ]]
 function fs.join(p1, p2, ...)
+  p1 = p1 or ''
+  p2 = p2 or ''
   if select('#',...) > 0 then
     local p = fs.join(p1,p2)
     local args = {...}
@@ -104,6 +106,7 @@ function fs.join(p1, p2, ...)
     end
     return p
   end
+  if p2 == '' then return p1 end
   if fs.isabspath(p2) then return p2 end
   local endpos = #p1
   local endc = p1:sub(endpos,endpos)
@@ -385,8 +388,11 @@ function fs.tmpfile()
   return f, name
 end
 
--- Returns the path for the calling script at level `level`.
-function fs.scriptname(level)
+--[[
+Returns the path for the calling script at level `level`.
+If `dirlevel` is present, then return directory of the script at that level.
+]]
+function fs.scriptname(level, dirlevel)
   level = level or 2
   local info = debug.getinfo(level, 'S')
   local path
@@ -396,7 +402,20 @@ function fs.scriptname(level)
       path = path:gsub(':@%w+$', '') -- remove :@ppcode (used by the preprocessor)
     end
   end
+  if path and dirlevel then
+    path = fs.dirname(fs.realpath(path), dirlevel)
+  end
   return path
+end
+
+-- Returns the current directory for the calling script.
+function fs.scriptdir()
+  return fs.scriptname(3, 2)
+end
+
+-- Returns the current working directory.
+function fs.curdir()
+  return fs.realpath('.')
 end
 
 -- Iterate entries of a directory that matches the given pattern.
