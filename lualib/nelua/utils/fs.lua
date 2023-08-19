@@ -414,8 +414,10 @@ function fs.scriptname(level, dirlevel)
 end
 
 -- Returns the current directory for the calling script.
-function fs.scriptdir()
-  return fs.scriptname(3, 2)
+function fs.scriptdir(dirlevel)
+  dirlevel = dirlevel and dirlevel or 1
+  local path = fs.scriptname(3, dirlevel)
+  return path
 end
 
 -- Returns the current working directory.
