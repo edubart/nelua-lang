@@ -131,7 +131,6 @@ local function build_configs(conf)
       local localpath = fs.join('.','?.lua')..platform.luapath_separator..fs.join('.','?','init.lua')
       conf.lua_path = stringer.insertafter(conf.lua_path, localpath, addpath) or
                       addpath:sub(2)..platform.luapath_separator..conf.lua_path
-      package.path = conf.lua_path
     end
   end
 

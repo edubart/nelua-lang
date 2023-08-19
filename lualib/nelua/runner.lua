@@ -112,6 +112,12 @@ end
 local function run(args, redirect)
   load_nelua_init()
   local options = configer.parse(args) -- parse options
+  -- set lua path and restore it when run ends
+  local oldluapath = package.path
+  package.path = options.lua_path
+  local _ <close> = setmetatable({}, {__close = function()
+    package.path = oldluapath
+  end})
   -- handle actions that exits early
   if config.version then
     return runner.show_version()
