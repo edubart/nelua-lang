@@ -358,6 +358,12 @@ function compiler.find_binutil(binname) --luacov:disable
   -- transform for example 'x86_64-pc-linux-gnu-gcc-11.1.0' -> 'x86_64-pc-linux-gnu-ar'
   bin = cc:gsub('%-[0-9.]+$',''):gsub('[%w+_.]+$', binname)
   if bin:find(binname..'$') and fs.findbinfile(bin) then return bin end
+  -- try to get from -dumpmachine
+  local dumpmachine_stdout = executor.evalex(cc .. ' -dumpmachine')
+  if dumpmachine_stdout and #dumpmachine_stdout > 0 then
+    bin = dumpmachine_stdout:match('[^\n]+')..'-'..binname
+    if fs.findbinfile(bin) then return bin end
+  end
   return binname
 end --luacov:enable
 
