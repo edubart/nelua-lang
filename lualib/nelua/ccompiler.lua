@@ -323,12 +323,16 @@ local function detect_output_extension(outfile, ccinfo)
       return '.so'
     end
   else -- binary executable
-    if ccinfo.is_wasm then
-      if ccinfo.is_emscripten and not outfile:find('%.wasm$') and not config.runner then
-        return '.html', true
-      else
+    if ccinfo.is_emscripten then
+      if outfile:find('%.js$') then
+        return '.js'
+      elseif outfile:find('%.wasm$') then
         return '.wasm', true
+      elseif not config.runner then
+        return '.html', true
       end
+    elseif ccinfo.is_wasm then
+      return '.wasm', true
     elseif ccinfo.is_windows or ccinfo.is_cygwin then
       return '.exe', true
     elseif ccinfo.is_mirc then
