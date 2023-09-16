@@ -451,7 +451,7 @@ function filestream:printf(...: varargs): void
   self:flush()
 end
 
--- Like `filestream:print`, but writes to `io.stdout` using `io.write`.
+-- Like `print`, but writes to a filestream.
 function filestream:print(...: varargs): void
   ## for i=1,select('#', ...) do
     ## if i > 1 then

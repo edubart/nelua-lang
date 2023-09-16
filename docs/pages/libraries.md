@@ -626,7 +626,7 @@ Like `filestream:writef` but also flushes the standard output.
 function filestream:print(...: varargs): void
 ```
 
-Like `filestream:print`, but writes to `io.stdout` using `io.write`.
+Like `print`, but writes to a filestream.
 
 ### filestream:lines
 
@@ -2581,6 +2581,9 @@ function utf8.char(...: varargs): string
 Receives zero or more integers, converts each one to its corresponding UTF-8 byte sequence,
 and returns a string with the concatenation of all these sequences.
 
+Containers of integers (e.g vector, sequence or span) are also accepted as arguments,
+returning a string with the concatenation of all their elements.
+
 ### utf8.codes
 
 ```nelua
@@ -4134,6 +4137,7 @@ Values smaller than 100 mean the collector will not wait to start a new cycle.
 ```nelua
 global GCFlags: type = @enum(usize) {
   MARK = 1 << 16, -- Marked for collection (used only internally).
+  FINALIZE = 1 << 17, -- Finalizer should be called before deallocating.
   ROOT = AllocatorFlags.GCRoot, -- Allocation always scanned and never collected.
   LEAF = AllocatorFlags.GCLeaf, -- Allocation never scanned (contains no pointers).
   BRANCH = AllocatorFlags.GCBranch, -- Allocation should be scanned despite being detected as leaf (contains pointers).

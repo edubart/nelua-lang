@@ -1,4 +1,6 @@
 require 'utf8'
+require 'vector'
+require 'sequence'
 
 do -- utf8.charpattern
   local b: boolean, s: sequence(string)
@@ -16,6 +18,18 @@ do -- utf8.char
   s = utf8.char(0x41,0xe3,0xff); assert(s == 'A\u{e3}\u{ff}') s:destroy()
   s = utf8.char(0, 97, 98, 99, 1); assert(s == "\0abc\1") s:destroy()
   s = utf8.char(0x7fffffff); assert(s == '\xFD\xBF\xBF\xBF\xBF\xBF') s:destroy()
+end
+
+do -- utf8.char over containers
+  local s: string
+  local arr: [3]uint32 = {0x41,0xe3,0xff}
+  local spn: span(uint32) = {data=&arr, size=#arr}
+  local vec: vector(uint32) <close> = {0x41,0xe3,0xff}
+  local seq: sequence(uint32) <close> = {0x41,0xe3,0xff}
+  s = utf8.char(arr); assert(s == 'A\u{e3}\u{ff}') s:destroy()
+  s = utf8.char(spn); assert(s == 'A\u{e3}\u{ff}') s:destroy()
+  s = utf8.char(vec); assert(s == 'A\u{e3}\u{ff}') s:destroy()
+  s = utf8.char(seq); assert(s == 'A\u{e3}\u{ff}') s:destroy()
 end
 
 do -- utf8.codes
