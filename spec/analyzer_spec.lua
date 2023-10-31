@@ -1258,6 +1258,10 @@ it("records", function()
     local Record
     local a <comptime> = Record{}
   ]], "can only assign to compile time expressions")
+  expect.analyze_error([[
+    local Box = @record{n: number}
+    local b: Box <comptime> = {n=3}
+  ]], "compile time variables cannot be of type")
   expect.ast_type_equals(
     "local a: record{x: boolean}; local b = a.x",
     "local a: record{x: boolean}; local b: boolean = a.x")

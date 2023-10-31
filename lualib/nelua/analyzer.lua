@@ -2320,9 +2320,14 @@ function visitors.VarDecl(context, node)
           valtype = primtypes.niltype
         end
       end
-      if varnode.attr.comptime and not (valnode.attr.comptime and valtype) then
-        varnode:raisef("compile time variables can only assign to compile time expressions")
-      elseif vartype and vartype.is_auto then
+      if varnode.attr.comptime then
+        if not (valnode.attr.comptime and valtype) then
+          varnode:raisef("compile time variables can only assign to compile time expressions")
+        elseif (valnode.attr.value == nil and valnode.attr.type ~= primtypes.niltype) then
+          varnode:raisef("compile time variables cannot be of type '%s'", vartype)
+        end
+      end
+      if vartype and vartype.is_auto then
         if not valtype then
           varnode:raisef("auto variables must be assigned to expressions where type is known ahead")
         elseif valtype.is_nolvalue then
