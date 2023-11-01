@@ -3159,6 +3159,21 @@ it("sizeof builtin", function()
   ]])
 end)
 
+it("error builtin", function()
+  local noerrorloc = config.pragmas.noerrorloc
+  config.pragmas.noerrorloc = true
+  expect.generate_c(
+    "error()",
+    "nelua_error()")
+  expect.generate_c(
+    "error'ERROR'",
+    [[nelua_error_string(((nlstring){(uint8_t*)"ERROR", 5}))]])
+  config.pragmas.noerrorloc = noerrorloc
+
+  expect.run_error_c([[error()]], {'1:6:', 'runtime error', 'error!'})
+  expect.run_error_c([[error'FAILED']], {'1:6:', 'runtime error', 'FAILED'})
+end)
+
 it("assert builtin", function()
   local abort = config.pragmas.abort
   config.pragmas.abort = nil

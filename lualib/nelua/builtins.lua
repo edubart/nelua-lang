@@ -136,6 +136,25 @@ function builtins.require(context, node, argnodes)
   return type
 end
 
+function builtins.error(context, node, argnodes)
+  context:traverse_nodes(argnodes)
+  local argtypes = types.argtypes_from_argnodes(argnodes, 2)
+  if not argtypes then -- wait last argument type resolution
+    return false
+  end
+  local nargs = #argtypes
+  local argattrs
+  if nargs == 1 then
+    argattrs = {Attr{name='msg', type=primtypes.string}}
+  elseif nargs == 0 then
+    argattrs = {}
+  end
+  local type = types.FunctionType(argattrs, {}, node)
+  type.sideeffect = true
+  type.noreturn = true
+  return type
+end
+
 function builtins.assert(context, node, argnodes)
   local attr = node.attr
   local statement = attr.checkbuiltin or context:get_visiting_node(1).is_Block

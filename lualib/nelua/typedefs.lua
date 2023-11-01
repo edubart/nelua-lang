@@ -292,8 +292,8 @@ typedefs.pragmas = {
   Please care changing this, as it will change the semantics of many code.
   ]]
   noinit = shaper.optional_boolean,
-  -- Disable showing the source location in runtime asserts (created to minify the output binary).
-  noassertloc = shaper.optional_boolean,
+  -- Disable showing the source location in runtime errors (created to have reproducible builds).
+  noerrorloc = shaper.optional_boolean,
   -- Disable configuration warning in the C code generation (created to minify the C codegen).
   nocwarnpragmas = shaper.optional_boolean,
   --[[

@@ -70,6 +70,11 @@ Currently this is an alias to `panic` and terminates the application,
 but in the future, in case the language get an exception system,
 it may be changed to an exception being thrown.
 
+Remarks: Error messages are dependent on the host environment the program is being compiled in,
+it may include terminal color codes and path to host machine files to make debugging error locations easier.
+You can disable this behavior by enabling the pragma `noerrorloc`,
+it will make the program error messages reproducible when building across different host machines.
+
 ### assert
 
 ```nelua
@@ -78,6 +83,11 @@ global function assert(v: auto, message: facultative(string))
 
 Raises an error if the value `v` is evaluated to `false`, otherwise, returns `v`.
 In case of error, `message` is the error message, when absent defaults to `"assertion failed!"`.
+
+Remarks: Error messages are dependent on the host environment the program is being compiled in,
+it may include terminal color codes and path to host machine files to make debugging error locations easier.
+You can disable this behavior by using the pragma `noerrorloc`,
+it will make the program error messages reproducible when building across different host machines.
 
 ### check
 
@@ -88,6 +98,11 @@ global function check(cond: boolean, message: facultative(string)): void
 If `cond` is true it does nothing, otherwise raises an error with `message` and terminates the application.
 Similar to `assert` however it's completely omitted when compiling in release mode or with pragma `nochecks`.
 Use for assertive programming, to check if conditions are met without impacting performance of production code.
+
+Remarks: Error messages are dependent on the host environment the program is being compiled in,
+it may include terminal color codes and path to host machine files to make debugging error locations easier.
+You can disable this behavior by using the pragma `noerrorloc`,
+it will make the program error messages reproducible when building across different host machines.
 
 ### likely
 

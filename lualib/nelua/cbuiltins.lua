@@ -797,8 +797,57 @@ function cbuiltins.calls.panic(context)
 end
 
 -- Implementation of `error` builtin.
-function cbuiltins.calls.error(context)
-  return context:ensure_builtin('nelua_panic_string')
+function cbuiltins.calls.error(context, node)
+  local nargs = #node[1]
+  local emitter = CEmitter(context)
+  context:ensure_builtins('nelua_write_stderr', 'nelua_abort')
+  local errormsg = 'error!'
+  local wherenode = nargs > 0 and node[1][1] or node
+  local fullerrormsg = errormsg
+  if not context.pragmas.noerrorloc then
+    fullerrormsg = wherenode:format_message('runtime error', errormsg)
+  end
+  emitter:add_ln('{')
+  local funcargs
+  if nargs == 1 then
+    funcargs = {{primtypes.string, 'msg'}}
+    local pos = fullerrormsg:find(errormsg)
+    local msg1, msg2 = fullerrormsg:sub(1, pos-1), fullerrormsg:sub(pos + #errormsg)
+    local emsg1, emsg2 = pegger.double_quote_c_string(msg1), pegger.double_quote_c_string(msg2)
+    if #msg1 > 0 and #msg2 > 0 then
+      emitter:add([[
+  nelua_write_stderr(]],emsg1,[[, ]],#msg1,[[, false);
+  nelua_write_stderr((const char*)msg.data, msg.size, false);
+  nelua_write_stderr(]],emsg2,[[, ]],#msg2,[[, true);
+  nelua_abort();
+]])
+    else
+      emitter:add([[
+  if(msg.size > 0) {
+    nelua_write_stderr((const char*)msg.data, msg.size, true);
+  }
+  nelua_abort();
+]])
+    end
+  else -- nargs == 0
+    funcargs = {}
+    local msg = pegger.double_quote_c_string(fullerrormsg)
+    emitter:add([[
+  nelua_write_stderr(]],msg,[[, ]],#fullerrormsg,[[, true);
+  nelua_abort();
+]])
+  end
+  emitter:add('}')
+  local funcname
+  if not context.pragmas.noerrorloc then
+    funcname = context.rootscope:generate_name('nelua_error_line')
+  elseif nargs == 1 then
+    funcname = 'nelua_error_string'
+  elseif nargs == 0 then
+    funcname = 'nelua_error'
+  end
+  context:define_function_builtin(funcname, 'NELUA_NORETURN', primtypes.void, funcargs, emitter:generate())
+  return funcname
 end
 
 -- Implementation of `warn` builtin.
@@ -819,7 +868,7 @@ function cbuiltins.calls.assert(context, node)
   local rettype = builtintype.rettypes[1] or primtypes.void
   local wherenode = nargs > 0 and node[1][1] or node
   local fullassertmsg = assertmsg
-  if not context.pragmas.noassertloc then
+  if not context.pragmas.noerrorloc then
     fullassertmsg = wherenode:format_message('runtime error', assertmsg)
   end
   emitter:add_ln('{')
@@ -865,7 +914,7 @@ function cbuiltins.calls.assert(context, node)
   end
   emitter:add('}')
   local funcname
-  if not context.pragmas.noassertloc then
+  if not context.pragmas.noerrorloc then
     funcname = 'nelua_assert_line'
     funcname = context.rootscope:generate_name(funcname)
   else
