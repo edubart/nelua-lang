@@ -140,4 +140,20 @@ do -- issue #46
   assert(n == 1)
 end
 
+do -- issue #233
+  local function f(n: integer): integer
+    defer n = n + 1 end
+    return n
+  end
+
+  local function g(n: integer, m: integer): (integer, integer)
+    defer n = n + 1 m = m + 1 end
+    return n, m
+  end
+
+  assert(f(1) == 1)
+  local n, m = g(1,2)
+  assert(n == 1 and m == 2)
+end
+
 print 'defer OK!'

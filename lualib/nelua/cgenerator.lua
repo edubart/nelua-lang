@@ -836,7 +836,7 @@ function visitors.Return(context, node, emitter)
     else
       rettype = functype:get_return_type(1)
     end
-    if not deferemitter:empty() and retnode and not retnode.is_Id and not retnode.attr.comptime then
+    if not deferemitter:empty() and not (retnode and retnode.attr.comptime) then
       local retname = funcscope:generate_name('_ret')
       emitter:add_indent(rettype, ' ', retname, ' = ')
       emitter:add_converted_val(rettype, retnode)
