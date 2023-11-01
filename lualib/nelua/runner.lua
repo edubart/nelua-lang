@@ -41,7 +41,12 @@ function runner.show_version()
   console.info('Git date: '..version.NELUA_GIT_DATE)
   console.info('Git hash: '..version.NELUA_GIT_HASH)
   console.info('Semantic version: '..version.NELUA_SEMVER)
-  console.info('Copyright (C) 2019-2022 Eduardo Bart (https://nelua.io/)')
+  local endyear = 2023
+  local curyear = tonumber(os.date('%Y'))
+  if endyear then
+    endyear = math.max(curyear, endyear)
+  end
+  console.info('Copyright (C) 2019-'..endyear..' Eduardo Bart (https://nelua.io/)')
   return 0
 end
 
