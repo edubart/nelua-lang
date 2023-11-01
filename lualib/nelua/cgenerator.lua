@@ -1515,7 +1515,6 @@ function visitors.BinaryOp(context, node, emitter, untypedinit)
       emitter:add_zeroed_type_literal(type)
       emitter:add_ln(';')
       if opname == 'and' then
-        assert(not attr.ternaryand)
         emitter:add_indent(primtypes.boolean, ' cond_ = ')
         emitter:add_val2boolean('t1_', type)
         emitter:add_ln(';')
