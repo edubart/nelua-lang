@@ -544,6 +544,8 @@ typedefs.pp_constants = {
   executor = function() return require 'nelua.utils.executor' end,
   -- Memoize function.
   memoize = function() return require 'nelua.utils.memoize' end,
+  -- Inspect function.
+  inspect = function() return require 'nelua.thirdparty.inspect' end,
   -- Filesystem module.
   fs = function() return require 'nelua.utils.fs' end,
   -- Aster module.
