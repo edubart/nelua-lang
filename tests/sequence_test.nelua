@@ -11,7 +11,7 @@ end
 
 do -- braces initializer
   local seq: sequence(integer) = {}
-  assert(#seq == 0 and seq.impl ~= nilptr)
+  assert(#seq == 0 and seq.impl == nilptr)
   seq:destroy()
   seq = {1,2,3}
   assert(#seq == 3 and seq[0] == 0 and seq[1] == 1 and seq[2] == 2 and seq[3] == 3)

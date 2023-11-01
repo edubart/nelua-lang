@@ -1614,6 +1614,8 @@ are agnostic to the input container type.
 
 Spans are also known as "fat pointer" or "slice" in some other languages.
 
+Remarks: A span initialized from a list of unnamed fields points to an array of the list elements.
+
 ### spanT
 
 ```nelua
@@ -2877,6 +2879,8 @@ A vector has the following semantics:
 otherwise the behavior is undefined, in case this is needed then try the `sequence` library.
 * Any failure when growing a vector raises an error.
 
+Remarks: A vector initialized from a list of unnamed fields is filled with the list elements.
+
 ### vectorT
 
 ```nelua
@@ -3068,6 +3072,8 @@ thus the list itself is passed by reference by default (like lua tables again).
 
 A sequence is typically used as a more efficient table that
 can hold only sequences of a fixed value type.
+
+Remarks: A sequence initialized from a list of unnamed fields is filled with the list elements.
 
 ### sequenceT
 

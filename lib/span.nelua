@@ -9,6 +9,8 @@ Spans are especially useful for making functions with arguments that
 are agnostic to the input container type.
 
 Spans are also known as "fat pointer" or "slice" in some other languages.
+
+Remarks: A span initialized from a list of unnamed fields points to an array of the list elements.
 ]]
 
 ## local function make_spanT(T)
