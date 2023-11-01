@@ -299,6 +299,22 @@ function PPContext:inject_statement(node, noclone)
 end
 
 --[[
+Utility for wrapping a statement generated from macros into an AST node.
+]]
+function PPContext:wrap_statement(f)
+  if type(f) ~= 'function' then self:raisef 'pass a macro function when wrapping a statement' end
+  local nodes = {}
+  self:push_statnodes(nodes)
+  f()
+  self:pop_statnodes()
+  if #nodes == 1 then
+    return nodes[1]
+  else
+    return aster.Do{aster.Block(nodes)}
+  end
+end
+
+--[[
 Creates a generic evaluated by function `func` returning its generic type.
 Every time the generic is type instantiated,
 `func` is called with the instantiation arguments,

@@ -1581,7 +1581,7 @@ It is possible to manually emit AST nodes for statements while preprocessing:
 local function print_macro(str)
   local node = aster.Call{{aster.String{str}}, aster.Id{"print"}}
   -- inject the node where this macro is being called from
-  inject_astnode(node)
+  inject_statement(node)
 end
 ]]
 

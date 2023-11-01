@@ -351,9 +351,19 @@ it("call codes after analyze pass", function()
   expect.analyze_error("## after_analyze(false)", "invalid arguments for preprocess")
 end)
 
-it("inject nodes", function()
+it("inject statements", function()
   expect.ast_type_equals([=[
-    ## inject_astnode(aster.Call{{aster.String{"hello"}}, aster.Id{'print'}})
+    ## inject_statement(aster.Call{{aster.String{"hello"}}, aster.Id{'print'}})
+  ]=], [[
+    print 'hello'
+  ]])
+end)
+
+it("wrap statements", function()
+  expect.ast_type_equals([=[
+    ## inject_statement(wrap_statement(function()
+      print 'hello'
+    ## end))
   ]=], [[
     print 'hello'
   ]])

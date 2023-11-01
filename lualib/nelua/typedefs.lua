@@ -501,6 +501,7 @@ These functions are documented in `PPContext`.
 ]]
 typedefs.pp_methods = {
   inject_statement = true,
+  wrap_statement = true,
   generic = true,
   concept = true,
   hygienize = true,

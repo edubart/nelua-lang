@@ -98,7 +98,7 @@ function coroutine.create(f: function_concept): (coroutine, string)
       callnode = aster.Assign{retnodes, {callnode}}
     end
     ]]
-    ## inject_astnode(callnode)
+    ## inject_statement(callnode)
     ## for i,rettype in ipairs(f.type.rettypes) do
       ## local retname = 'r'..i
       if minicoro.push(co, &#|retname|#, #@#[rettype]#) ~= minicoro.Result.MCO_SUCCESS then
