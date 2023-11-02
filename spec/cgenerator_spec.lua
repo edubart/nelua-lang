@@ -213,6 +213,9 @@ it("nil", function()
     local function g() return f() end
     local res = g()
     assert(res == nil)
+
+    local function f(x: auto): auto x = nil return x end
+    f(nil)
   ]=], 'nil')
 end)
 
@@ -2901,6 +2904,9 @@ it("nilptr", function()
   expect.run_c([[
     local p: pointer = nilptr
     assert(p == nilptr)
+
+    local function f(x: auto): auto x = nilptr return x end
+    f(nilptr)
   ]])
 end)
 

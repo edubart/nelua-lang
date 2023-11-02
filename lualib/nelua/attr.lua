@@ -108,6 +108,7 @@ end
 function Attr:must_define_at_runtime()
   local type = self.type
   return not (type.is_comptime or
+              type.is_nilptr or
               self.comptime or
               (type.size == 0 and not self.refed and not type.is_array))
 end
