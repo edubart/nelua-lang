@@ -1961,6 +1961,13 @@ it("decltype concept", function()
     local y: integer = x
   ]])
   expect.ast_type_equals([[
+    local x: auto = nil
+    local y: decltype(x) = x
+  ]], [[
+    local x: niltype = nil
+    local y: niltype = x
+  ]])
+  expect.ast_type_equals([[
     local Boolean: decltype(boolean) = @boolean
   ]], [[
     local Boolean: type = @boolean

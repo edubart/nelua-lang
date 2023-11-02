@@ -2693,7 +2693,9 @@ Returns the type of `x`.
 Where `x` can be an Attr, an ASTNode or a Type.
 ]]
 function types.decltype(x)
-  if not traits.is_table(x) then
+  if x == nil then
+    return primtypes.niltype
+  elseif not traits.is_table(x) then
     return nil, string.format("in decltype: invalid argument of lua type '%s'", type(x))
   end
   local type
