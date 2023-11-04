@@ -659,7 +659,13 @@ it("function definition", function()
   ]])
   expect.analyze_ast([[
     local function f(): type return @integer end
+    local int = f()
+    local a: int = 0
   ]])
+  expect.analyze_error([[
+    local function f() return @integer, @string end
+    local int, str = f()
+  ]], "a type declaration can only assign to the first assignment expression")
   expect.analyze_error([[
     do
       global function f() end

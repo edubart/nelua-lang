@@ -1785,6 +1785,21 @@ function FunctionType:get_return_type(index)
   end
 end
 
+-- Get the return value in the specified index.
+function FunctionType:get_return_type_and_value(index)
+  local rettype = self:get_return_type(index)
+  if not rettype.is_comptime then return rettype end
+  local node = self.node
+  if not node then return rettype end
+  local scope = node.scope
+  if not scope then return rettype end
+  local retvalues = scope.retvalues
+  if not retvalues then return rettype end
+  local retvalue = retvalues[index]
+  if not retvalue then return rettype end
+  return rettype, retvalue
+end
+
 -- Get the desired type when converting this type from another type.
 function FunctionType:get_convertible_from_type(type, explicit, fromcall)
   if type.is_nilptr then

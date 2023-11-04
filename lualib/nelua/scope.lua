@@ -358,7 +358,7 @@ function Scope:resolve_symbols()
   return count
 end
 
-function Scope:add_return_type(index, type, value, refnode)
+function Scope:add_return_type(index, type, refnode)
   if not type then
     -- ignore the unknown types in recursive functions
     if refnode then
@@ -386,9 +386,19 @@ function Scope:add_return_type(index, type, value, refnode)
   elseif type and not tabler.ifind(rettypes, type) then
     rettypes[#rettypes+1] = type
   end
-  if value then
-    self.retvalues = self.retvalues or {}
-    self.retvalues[index] = value
+end
+
+function Scope:add_return_value(index, value)
+  if not value then return end
+  local retvalues = self.retvalues
+  if not retvalues then
+    retvalues = {}
+    self.retvalues = retvalues
+  end
+  if retvalues[index] == nil then
+    retvalues[index] = value
+  elseif retvalues[index] ~= value then
+    self.node:raisef("function cannot return multiple distinct compile time types")
   end
 end
 
