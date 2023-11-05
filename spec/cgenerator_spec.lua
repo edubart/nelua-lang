@@ -2532,6 +2532,25 @@ it("record metametods", function()
     a.diff = true
     assert(not (a == a)) assert(a ~= a)
   ]])
+
+  expect.run_c([[
+    local Integer = @record{x: integer}
+    function Integer.__eq(a: auto, b: auto): boolean
+      ## if a.type.nickname == 'Integer' then
+      local a: integer = a.x
+      ## end
+      ## if b.type.nickname == 'Integer' then
+      local b: integer = b.x
+      ## end
+      return a == b
+    end
+
+    local a: Integer = {x=3}
+    assert(a == 3)
+    assert(a ~= 0)
+    assert(3 == a)
+    assert(0 ~= a)
+  ]])
 end)
 
 it("record operator overloading", function()
