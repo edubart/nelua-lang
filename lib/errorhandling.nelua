@@ -46,9 +46,14 @@ function cgenerator.visitors.Call(context, node, emitter, ...)
       emitter:add_value(deferemitter)
       emitter:add_indent_ln('nelua_error_status = true;')
     end
-    if #funcsym.type.rettypes > 0 then
+    if #funcsym.type.rettypes > 1 then
       local rettypename = context:funcrettypename(funcsym.type)
       emitter:add_indent_ln('return (',rettypename,'){0};')
+    elseif #funcsym.type.rettypes == 1 then
+      local rettypename = context:funcrettypename(funcsym.type)
+      emitter:add_indent('return ')
+      emitter:add_zeroed_type_literal(funcsym.type.rettypes[1], true)
+      emitter:add_ln(';')
     else
       emitter:add_indent_ln('return;')
     end
