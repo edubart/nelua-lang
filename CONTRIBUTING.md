@@ -16,7 +16,7 @@ To open new issue for Nelua (bug or enhancement), just try to follow these rules
 
 - If you need support, have questions, ideas to discuss you should use the [Nelua Discussions](https://github.com/edubart/nelua-lang/discussions) forum or the [Nelua Discord server](https://discord.gg/7aaGeG7) instead of opening a new issue.
 - Make sure you test the issue on the latest master branch.
-- Make sure the issue has not already been reported before by searching on GitHub under issues or planned in the roadmap.
+- Make sure the issue has not already been reported before by searching on GitHub under issues.
 - Make sure you are not misusing Nelua.
 - Be sure to include a title, a clear description, expected behavior, relevant information, and a code sample demonstrating the unexpected behavior.
 

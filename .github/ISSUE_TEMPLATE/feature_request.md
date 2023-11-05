@@ -17,7 +17,6 @@ the [Nelua Discord server](https://discord.gg/7aaGeG7).
 Please, before submitting a new issue, verify the following:
  - You have tested it on latest Nelua version from master branch.
  - You have checked that there is no similar feature already implemented or requested.
- - You have checked that the feature is not in the [roadmap](https://github.com/edubart/nelua-lang/projects).
 
 ---
 
