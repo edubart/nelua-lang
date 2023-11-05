@@ -512,7 +512,6 @@ end
 function visitors.Id(context, node, emitter, untypedinit)
   local attr = node.attr
   local type = attr.type
-  assert(not type.is_comptime)
   if type.is_nilptr then
     emitter:add_null()
   elseif type.is_niltype then
@@ -689,13 +688,15 @@ function visitors.Call(context, node, emitter, untyped)
   else -- usual function call
     local callee = calleenode
     local calleeattr = calleenode.attr
+    local calleesym = attr.calleesym
     if calleeattr.builtin then -- is a builtin call?
       local builtin = cbuiltins.calls[calleeattr.name]
       callee = builtin(context, node, emitter)
-    elseif attr.calleesym then
-      if not attr.calleesym.anonfunc then -- pass node for anon functions to force its definition
-        callee = attr.calleesym
+    elseif calleesym then
+      if calleesym.type.is_function then -- force declaration of functions
+        emitter:fork():add(calleenode)
       end
+      callee = calleesym
     end
     if callee then -- call not omitted?
       visitor_Call(context, node, emitter, argnodes, callee)
@@ -714,7 +715,16 @@ function visitors.DotIndex(context, node, emitter, untypedinit)
   local attr = node.attr
   local objnode = node[2]
   local objtype = objnode.attr.type
-  if attr.comptime then -- compile-time constant
+  if objnode.attr.requirename then -- require call
+    local rollbackpos = emitter:get_pos()
+    emitter:add_indent()
+    emitter:add(objnode)
+    if emitter:get_pos() == rollbackpos+1 then
+      emitter:rollback(rollbackpos) -- revert text added
+    else
+      emitter:add(';')
+    end
+  elseif attr.comptime then -- compile-time constant
     emitter:add_literal(attr, untypedinit)
   elseif objtype.is_type then -- global field
     emitter:add(context:declname(attr))

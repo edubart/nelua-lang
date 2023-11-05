@@ -3431,6 +3431,22 @@ it("require returns", function()
     assert(r2.x == 2)
   ]])
 
+  fs.writefile('require_tmp.nelua', [[
+    local M = @record{}
+    function M.foo() return 'foo' end
+    return M
+  ]])
+  expect.run_c([[
+    assert(require'require_tmp'.foo() == 'foo')
+  ]])
+
+  fs.writefile('require_tmp.nelua', [[
+    return function() return 'foo' end
+  ]])
+  expect.run_c([[
+    assert(require'require_tmp'() == 'foo')
+  ]])
+
   fs.deletefile('require_tmp.nelua')
 end)
 
