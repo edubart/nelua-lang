@@ -28,6 +28,9 @@ function builtins.require(context, node, argnodes)
     if not reqname then
       node:raisef('runtime require unsupported, use require with a compile time string')
     end
+    if reqname == 'string' and not context.scope.is_topscope then
+      node:raisef("the 'string' module is special and must always be required from the top scope")
+    end
     local reldir = argnode.src.name and fs.dirname(argnode.src.name) or nil
     local libpath = config.path
     if #context.libpaths > 0 then -- try to insert the lib path after the local lib path

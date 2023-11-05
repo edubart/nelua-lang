@@ -1840,6 +1840,7 @@ it("require builtin", function()
   expect.analyze_ast("require 'examples.helloworld'")
   expect.analyze_error("require 'somelualib'", 'not found')
   expect.analyze_error("local a = 'dynamiclib'; require(a)", 'runtime require unsupported')
+  expect.analyze_error([[local function f() require 'string' end]], 'must always be required from the top scope')
 end)
 
 it("strict mode", function()
