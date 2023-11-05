@@ -3735,6 +3735,9 @@ it("deprecated", function()
     local a: integer <deprecated>
     a = 1
 
+    local b <deprecated>
+    b = 2
+
     local Rec = @record{}
     function Rec:m() <deprecated> end
     local r: Rec
@@ -3744,6 +3747,7 @@ it("deprecated", function()
   ]=], {
     "use of deprecated symbol 'f'",
     "use of deprecated symbol 'a'",
+    "use of deprecated symbol 'b'",
     "use of deprecated method 'm'",
     "use of deprecated metafield 'm'"
   }, 0)

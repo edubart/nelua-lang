@@ -663,7 +663,6 @@ function visitors.Annotation(context, node, opts)
 end
 
 function visitors.Id(context, node)
-  if node.checked then return node.attr end
   local name = node[1]
   local state = context.state
   if name == 'type' and state.intypeexpr  then
@@ -698,8 +697,6 @@ function visitors.Id(context, node)
   symbol:add_use_by(state.funcscope.funcsym)
   if symbol.type then
     node.done = symbol
-  else
-    node.checked = true
   end
   return symbol
 end
