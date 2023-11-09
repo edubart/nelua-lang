@@ -1617,13 +1617,14 @@ function cgenerator.emit_warning_pragmas(context)
   #pragma clang diagnostic ignored "-Wmissing-field-initializers"
   #pragma clang diagnostic ignored "-Wparentheses-equality"
   #pragma clang diagnostic ignored "-Wtautological-compare"
+  #pragma clang diagnostic ignored "-Wmissing-braces"
   #ifndef __cplusplus
-    #pragma clang diagnostic ignored "-Wmissing-braces"
     #pragma clang diagnostic ignored "-Wincompatible-pointer-types"
     #pragma clang diagnostic error   "-Wimplicit-function-declaration"
     #pragma clang diagnostic error   "-Wimplicit-int"
   #else
     #pragma clang diagnostic ignored "-Wnarrowing"
+    #pragma clang diagnostic ignored "-Wc99-designator"
   #endif
 #elif defined(__GNUC__) && __GNUC__ >= 5
   #pragma GCC diagnostic ignored "-Wtype-limits"

@@ -2403,9 +2403,9 @@ it("record methods", function()
     function vec2pointer:len() return self.x + self.y end
     assert(v:len() == 3)
 
-    local Math = @record{}
-    function Math.abs(x: number): number <cimport'fabs',cinclude'<math.h>'> end
-    assert(Math.abs(-1) == 1)
+    local Str = @record{}
+    function Str.len(x: cstring): cint <cimport'strlen',cinclude'<string.h>'> end
+    assert(Str.len('hello') == 5)
 
     local Foo = @record{x: integer, f: function(*Foo): integer}
     local foo: Foo = {1}

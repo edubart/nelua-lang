@@ -63,9 +63,9 @@ function StrPatt.create(source: string, pattern: string, plain: boolean): StrPat
   return (@StrPatt) {
     source = source,
     pattern = pattern,
+    depth = MAX_MATCH_CALLS,
     plain = plain,
     anchor = anchor,
-    depth = MAX_MATCH_CALLS,
   }
 end
 
