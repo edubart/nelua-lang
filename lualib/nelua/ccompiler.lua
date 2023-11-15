@@ -214,7 +214,7 @@ local function get_cc_info(cc, cflags)
     except.raisef("failed to retrieve C compiler information: %s", stderr)
   end
   local text = stdout:gsub('#[^\n]*\n', ''):gsub('\n%s+','\n')
-  local ccinfo = {text=text}
+  local ccinfo = {}
   for name,value in text:gmatch('%s*([a-zA-Z0-9_]+)%s*=%s*([^;\n]+);') do
     if value:match('^[0-9]+L$') then
       value = tonumber(value:sub(1,-2))
@@ -261,7 +261,7 @@ local function get_cc_info(cc, cflags)
     except.assertraisef(not ccinfo.sizeof_size_t or ccinfo.sizeof_size_t == ccinfo.sizeof_pointer,
       "target C 'size_t' size is different from the pointer size")
   end
-  return ccinfo
+  return ccinfo, text
 end
 get_cc_info = memoize(get_cc_info)
 
@@ -270,7 +270,7 @@ function compiler.get_cc_info()
 end
 
 function compiler.compile_code(ccode, cfile, compileopts)
-  local ccinfotext = compiler.get_cc_info().text
+  local _, ccinfotext = compiler.get_cc_info()
   local cflags = get_compiler_cflags(compileopts)
   local binfile = cfile:gsub('.c$','')
   local ccmd = get_compile_args(cfile, binfile, cflags)
