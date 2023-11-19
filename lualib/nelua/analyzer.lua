@@ -601,6 +601,8 @@ function visitors.Annotation(context, node, opts)
       context.cmainimports = context.cmainimports or {}
       table.insert(context.cmainimports, (codename:gsub('nelua_', '')))
     end
+    context.cimports = context.cimports or {}
+    context.cimports[codename] = true
   elseif name == 'nickname' then
     assert(objattr._type and objattr.is_nameable)
     local type, nickname = objattr, params

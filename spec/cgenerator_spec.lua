@@ -1970,6 +1970,12 @@ it("variable shadowing", function()
     local function exit(code: cint) <cimport> end
     local function exit(code: cint) <cimport> end
     exit(0)
+
+    do -- issue #243
+      local function time(timer: *ctime_t): ctime_t <cimport,cinclude'<time.h>',nodecl> end
+      local time = time(nilptr)
+      assert(time > 0)
+    end
   ]])
 end)
 

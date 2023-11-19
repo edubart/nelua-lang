@@ -74,7 +74,8 @@ function CContext:declname(attr)
   assert(attr._attr and attr.codename)
   if not attr.nodecl and not attr.cimport then
     declname = cdefs.quotename(declname)
-    if attr.shadows and not attr.staticstorage then
+    local cshadows = self.cimports and self.cimports[declname]
+    if (attr.shadows or cshadows) and not attr.staticstorage then
       declname = self:genuniquename(declname)
     end
   end
