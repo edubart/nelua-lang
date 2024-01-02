@@ -1072,9 +1072,11 @@ function visitors.Repeat(context, node, emitter)
   emitter:add_indent_ln("do {")
   local scope = context:push_forked_scope(node)
   scope.emit_repeat_stop = function(block_emitter)
+    context:push_node(node) -- to fix get_visiting_node() call
     block_emitter:add_indent('_repeat_stop = ')
     block_emitter:add_val2boolean(condnode)
     block_emitter:add_ln(';')
+    context:pop_node(node)
   end
   emitter:add(blocknode)
   context:pop_scope()
