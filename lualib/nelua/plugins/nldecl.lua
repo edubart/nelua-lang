@@ -877,6 +877,7 @@ function BindingContext.create(opts)
     exclude_names = exclude_names,
     include_names = opts.include_names,
     enum_types = opts.enum_types,
+    import_constants = opts.import_constants,
     incomplete_names = incomplete_names,
     force_exclude_names = force_exclude_names,
   }, BindingContext_mt)
@@ -2073,6 +2074,9 @@ function generate_bindings_visitors.CEnumType(context, node, emitter, params)
       break
     end
   end
+  if context.import_constants then
+    knowallfields = false
+  end
   if not importname then -- anonymous enum
     if knowallfields then -- all fields are known
       for _,field in ipairs(fields) do
@@ -2219,13 +2223,13 @@ function generate_bindings_visitors.CDefine(context, node, emitter)
     else
       emitter:add('global '..name..': ')
       context:traverse_node(typenode, emitter)
-      if valuenode.is_comptime_scalar then
+      if valuenode.is_comptime_scalar and not context.import_constants then
         emitter:add_ln(' <comptime> = '..bn.todecsci(value))
         -- emitter:add('global '..name..'_: ')
         -- context:traverse_node(typenode, emitter)
         -- emitter:add_ln(' <cimport"'..name..'",nodecl>')
         -- emitter:add_ln('assert('..name..' == '..name..'_)')
-      elseif type(value) == 'string' then
+      elseif type(value) == 'string' and not context.import_constants then
         emitter:add_ln(' <comptime> = '..pegger.double_quote_lua_string(value))
         -- emitter:add('global '..name..'_: ')
         -- context:traverse_node(typenode, emitter)
