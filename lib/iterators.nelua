@@ -64,7 +64,7 @@ The container `a` must be contiguous, such as `array`, `span`, `vector` or `sequ
 global function ipairs(a: container_reference_concept): (auto, auto, integer) <inline>
   ## local atype = a.type:implicit_deref_type()
   ## if not atype.is_contiguous then static_error("container '%s' is not contiguous", atype) end
-  local function ipairs_next(a: #[a.type]#, k: integer): (boolean, integer, auto) <inline>
+  local function ipairs_next(a: #[a.type]#, k: integer): (boolean, integer, auto)
     ## impl_ipairs_next(atype)
   end
   return ipairs_next, a, #[atype.is_oneindexing and 0 or -1]#
@@ -74,7 +74,7 @@ end
 global function mipairs(a: container_reference_concept): (auto, auto, integer) <inline>
   ## local atype = a.type:implicit_deref_type()
   ## if not atype.is_contiguous then static_error("container '%s' is not contiguous", atype) end
-  local function mipairs_next(a: #[a.type]#, k: integer): (boolean, integer, auto) <inline>
+  local function mipairs_next(a: #[a.type]#, k: integer): (boolean, integer, auto)
     ## impl_mipairs_next(atype)
   end
   return mipairs_next, a, #[atype.is_oneindexing and 0 or -1]#
@@ -88,7 +88,7 @@ Otherwise returns `false` plus a zeroed key and value.
 
 The container `a` must either have the metamethod `__next` or be a contiguous.
 ]]
-global function next(a: container_reference_concept, k: auto): (auto, auto, auto) <inline>
+global function next(a: container_reference_concept, k: auto): (auto, auto, auto)
   ## local atype = a.type:implicit_deref_type()
   ## if atype.is_record and atype.metafields.__next then
     ## local ktype = atype.metafields.__next.type.argtypes[2]
@@ -102,7 +102,7 @@ global function next(a: container_reference_concept, k: auto): (auto, auto, auto
 end
 
 -- Like `next` but returns reference to the next element value, so that you can modify it in-place.
-global function mnext(a: container_reference_concept, k: auto): (auto, auto, auto) <inline>
+global function mnext(a: container_reference_concept, k: auto): (auto, auto, auto)
   ## local atype = a.type:implicit_deref_type()
   ## if atype.is_record and atype.metafields.__mnext then
     ## local ktype = atype.metafields.__mnext.type.argtypes[2]

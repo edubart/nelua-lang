@@ -440,7 +440,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
 
   *Remarks*: The input `key` is actually ignored.
   ]]
-  function hashmap_iteratorT:next(key: K): (boolean, K, V) <inline>
+  function hashmap_iteratorT:next(key: K): (boolean, K, V)
     local node: *hashnodeT = self:_next_node(key)
     if not node then return false, (@K)(), (@V)() end
     return true, node.key, node.value
@@ -451,7 +451,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
 
   *Remarks*: The input `key` is actually ignored.
   ]]
-  function hashmap_iteratorT:mnext(key: K): (boolean, K, *V) <inline>
+  function hashmap_iteratorT:mnext(key: K): (boolean, K, *V)
     local node: *hashnodeT = self:_next_node(key)
     if not node then return false, (@K)(), nilptr end
     return true, node.key, &node.value

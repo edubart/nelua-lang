@@ -261,7 +261,7 @@ require 'memory'
   Returns the next node of the list and its element.
   Used with `pairs()` iterator.
   ]]
-  function listT:__next(node: *listnodeT): (boolean, *listnodeT, T) <inline>
+  function listT:__next(node: *listnodeT): (boolean, *listnodeT, T)
     local nextnode: *listnodeT
     if unlikely(node == nilptr) then
       nextnode = self.front
@@ -278,7 +278,7 @@ require 'memory'
   Returns the next node of the list and its element by reference.
   Used with `mpairs()` iterator.
   ]]
-  function listT:__mnext(node: *listnodeT): (boolean, *listnodeT, *T) <inline>
+  function listT:__mnext(node: *listnodeT): (boolean, *listnodeT, *T)
     local nextnode: *listnodeT
     if unlikely(node == nilptr) then
       nextnode = self.front
