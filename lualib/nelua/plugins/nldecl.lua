@@ -324,7 +324,7 @@ extension-specifiers <==
   extension-specifier+
 
 extension-specifier <==
-  attribute / asm / tg-promote
+  attribute / asm / tg-promote / {`_Nonnull`}
 
 attribute <==
   (`__attribute__` / `__attribute`) `(` @`(` attribute-list @`)` @`)` /
