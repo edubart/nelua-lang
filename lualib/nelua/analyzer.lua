@@ -1325,6 +1325,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
         node:raisef("invalid metamethod __call in '%s'", calleetype)
       end
       attr.ismetacall = true
+      calleeobjnode = node[2]
     end
     if calleetype.is_procedure then -- function call
       local argattrs = {}
@@ -1360,18 +1361,6 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
             calleeobjnode:raisef("in method call '%s' at argument 'self': cannot pass non copyable type '%s'",
               calleename, selftype)
           end
-        end
-        table.remove(pseudoargtypes, 1)
-        table.remove(pseudoargattrs, 1)
-      elseif attr.ismetacall then
-        attr.ismethod = true
-        selftype = funcargtypes[1]
-        if not selftype then
-          node:raisef("in metamethod call '%s' at argument 'self': the function cannot have arguments", calleename)
-        end
-        local ok, err = selftype:is_convertible_from_type(types.PointerType(origintype), nil, true, argattrs)
-        if not ok then
-          node:raisef("in method call '%s' at argument 'self': %s", calleename, err)
         end
         table.remove(pseudoargtypes, 1)
         table.remove(pseudoargattrs, 1)
