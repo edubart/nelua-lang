@@ -1318,6 +1318,14 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
   local attr = node.attr
   if calleetype then
     local sideeffect
+    local origintype = calleetype
+    if calleetype.is_record and calleetype.metafields.__call ~= nil then
+      calleetype = calleetype.metafields.__call.type
+      if not calleetype.is_procedure then
+        node:raisef("invalid metamethod __call in '%s'", calleetype)
+      end
+      attr.ismetacall = true
+    end
     if calleetype.is_procedure then -- function call
       local argattrs = {}
       for i=1,#argnodes do
@@ -1352,6 +1360,18 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
             calleeobjnode:raisef("in method call '%s' at argument 'self': cannot pass non copyable type '%s'",
               calleename, selftype)
           end
+        end
+        table.remove(pseudoargtypes, 1)
+        table.remove(pseudoargattrs, 1)
+      elseif attr.ismetacall then
+        attr.ismethod = true
+        selftype = funcargtypes[1]
+        if not selftype then
+          node:raisef("in metamethod call '%s' at argument 'self': the function cannot have arguments", calleename)
+        end
+        local ok, err = selftype:is_convertible_from_type(types.PointerType(origintype), nil, true, argattrs)
+        if not ok then
+          node:raisef("in method call '%s' at argument 'self': %s", calleename, err)
         end
         table.remove(pseudoargtypes, 1)
         table.remove(pseudoargattrs, 1)
@@ -1503,7 +1523,11 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           end
         end
       end
-      attr.calleesym = calleesym
+      if attr.ismetacall then
+        attr.calleesym = calleetype.symbol
+      else
+        attr.calleesym = calleesym
+      end
       if calleetype then
         attr.type, attr.value = calleetype:get_return_type_and_value(1)
         sideeffect = calleetype.sideeffect
