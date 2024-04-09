@@ -1318,6 +1318,15 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
   local attr = node.attr
   if calleetype then
     local sideeffect
+    local origintype = calleetype
+    if calleetype.is_record and calleetype.metafields.__call ~= nil then
+      calleetype = calleetype.metafields.__call.type
+      if not calleetype.is_procedure then
+        node:raisef("invalid metamethod __call in '%s'", calleetype)
+      end
+      attr.ismetacall = true
+      calleeobjnode = node[2]
+    end
     if calleetype.is_procedure then -- function call
       local argattrs = {}
       for i=1,#argnodes do
@@ -1503,7 +1512,11 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           end
         end
       end
-      attr.calleesym = calleesym
+      if attr.ismetacall then
+        attr.calleesym = calleetype.symbol
+      else
+        attr.calleesym = calleesym
+      end
       if calleetype then
         attr.type, attr.value = calleetype:get_return_type_and_value(1)
         sideeffect = calleetype.sideeffect

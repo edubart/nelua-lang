@@ -625,7 +625,11 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
       emitter:add_value(callee)
     end
     emitter:add_text('(')
-    emitter:add_converted_val(selftype, calleeobj, calleeobjtype)
+    if attr.ismetacall then
+      emitter:add_converted_val(selftype, node[2], calleeobjtype)
+    else
+      emitter:add_converted_val(selftype, calleeobj, calleeobjtype)
+    end
   else
     emitter:add_value(callee)
     emitter:add_text('(')
