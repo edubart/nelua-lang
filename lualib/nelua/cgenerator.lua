@@ -556,7 +556,6 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
   local tmpcount = 0
   local tmpargs = {}
   local calleesym = attr.calleesym
-  local originsym = attr.originsym
   local calleeobj = calleeobjnode
   local calleeobjtype
   local selftype = attr.ismethod and calleetype.argtypes[1]
