@@ -102,7 +102,7 @@ optimized-nelua-lua:
 
 LUAC=./$(NELUALUAC)
 LUAC_DEFS=-DMAKE_LUAC
-LUAC_SRCS=src/lua/onelua.c
+LUAC_SRCS=src/onelua.c
 LUAC_HDRS=$(wildcard src/lua/*.h) $(wildcard src/lua/*.c)
 
 # Compile Nelua's Lua compiler.
