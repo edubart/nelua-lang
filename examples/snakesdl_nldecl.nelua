@@ -17,6 +17,10 @@ end
 -- include SDL2 header
 cinclude '<SDL2/SDL.h>'
 -- link SDL2 library
+if ccinfo.is_tcc and ccinfo.is_x86_64 then
+  cflags '-DSDL_DISABLE_IMMINTRIN_H'
+end
+
 if ccinfo.is_emscripten then
   cflags '-s USE_SDL=2 -s ASYNCIFY=1'
 else
