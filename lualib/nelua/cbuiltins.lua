@@ -664,7 +664,7 @@ function cbuiltins.nelua_idiv_(context, type, checked)
   local emitter = CEmitter(context)
   emitter:add_ln('{') emitter:inc_indent()
   emitter:add_indent_ln('if(NELUA_UNLIKELY(b == -1)) return 0U - (', utype ,')a;')
-  if not checked then
+  if checked then
     emitter:add_indent_ln('if(NELUA_UNLIKELY(b == 0)) nelua_panic_cstring("division by zero");')
   end
   emitter:add_indent_ln(stype,' q = a / b;')
