@@ -128,9 +128,10 @@ function pegger.split_execargs(s)
 end
 
 local filename_to_unitname_patt = re.compile[[
-  p <- {~ filebeg? c* ~}
+  p <- {~ filebeg? numprefix? c* ~}
   c <- extend -> '' / [_%w] / (%s+ / [_/\.-]) -> '_' / . -> 'X'
   filebeg <- [./\]+ -> ''
+  numprefix <- '' -> 'n' [0-9]+
   extend <- '.' [_%w]+ !.
 ]]
 
