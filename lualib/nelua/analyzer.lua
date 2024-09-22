@@ -1318,11 +1318,10 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
   local attr = node.attr
   if calleetype then
     local sideeffect
-    local origintype = calleetype
-    if calleetype.is_record and calleetype.metafields.__call ~= nil then
+    if calleetype.is_record and calleetype.metafields.__call then
       calleetype = calleetype.metafields.__call.type
       if not calleetype.is_procedure then
-        node:raisef("invalid metamethod __call in '%s'", calleetype)
+        node:raisef("in record call: expected meta field '__call' to be a procedure but is of type '%s'", calleetype)
       end
       attr.ismetacall = true
       calleeobjnode = node[2]

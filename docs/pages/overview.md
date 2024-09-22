@@ -1328,6 +1328,7 @@ Complete list of metamethods that can be defined for records:
 | `__index`        | `a[b]`{:.language-nelua}    | indexing | array index                            |
 | `__atindex`      | `a[b]`{:.language-nelua}    | indexing | array index via reference              |
 | `__tostring`     | tostring(a)                 | cast     | explicit/implicit cast to string       |
+| `__call`         | `a(...)`{:.language-nelua}  | call     | call a record                          |
 | `__convert`      |                             | cast     | implicit cast from anything            |
 | `__gc`           |                             | gc       | called when collected by the GC        |
 | `__close`        |                             | close    | called when `<close>` variables goes out of scope |

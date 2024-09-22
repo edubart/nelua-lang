@@ -2557,6 +2557,13 @@ it("record metametods", function()
     assert(3 == a)
     assert(0 ~= a)
   ]])
+
+  expect.run_c([[
+    local Foo = @record{value: number}
+    function Foo:__call(a: number, b: number): number return a + b + self.value end
+    local foo: Foo = {1}
+    assert(foo(2, 3) == 6)
+  ]])
 end)
 
 it("record operator overloading", function()

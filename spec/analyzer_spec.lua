@@ -1308,6 +1308,12 @@ it("records metamethods", function()
   ]])
   expect.analyze_error([[
     local R = @record{}
+    global R.__call: integer = 1
+    local r: R
+    r()
+  ]], "expected meta field '__call' to be a procedure")
+  expect.analyze_error([[
+    local R = @record{}
     function R:__atindex(x: integer): integer return 0 end
     local r: R
     r[0] = 1
