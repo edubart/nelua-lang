@@ -1709,11 +1709,24 @@ function FunctionType:_init(argattrs, rettypes, node, refonly)
   Type._init(self, 'function', typedefs.ptrsize)
 
   if argattrs then -- set the arguments
-    -- make sure each arg attr is really an Attr class
-    for i=1,#argattrs do
-      local argattr = argattrs[i]
-      if not argattr._attr then
-        setmetatable(argattr, Attr)
+    if argattrs[1] and argattrs[1]._astnode then
+      -- convert argnodes to argttrs
+      local argnodes = argattrs
+      argattrs = {}
+      for i=1,#argnodes do
+        local argnode = argnodes[i]
+        argattrs[i] = setmetatable({
+          name='arg'..i,
+          type=assert(argnode.attr.type, 'untyped astnode'),
+        }, Attr)
+      end
+    else
+      -- make sure each arg attr is really an Attr class
+      for i=1,#argattrs do
+        local argattr = argattrs[i]
+        if not argattr._attr then
+          setmetatable(argattr, Attr)
+        end
       end
     end
   end
