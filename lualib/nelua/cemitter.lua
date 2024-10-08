@@ -156,7 +156,7 @@ function CEmitter:add_typed_val(type, val, valtype, check)
     end
   else
     local innertype = type.is_pointer and type.subtype or type
-    local surround = innertype.is_aggregate
+    local surround = innertype.is_aggregate or type.is_function
     if surround then self:add_text('(') end
     self:add('(', type, ')')
     if type.is_integral and valtype.is_pointer and type.size ~= valtype.size then

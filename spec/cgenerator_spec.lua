@@ -265,6 +265,12 @@ it("callbacks", function()
     local r: record{f: function(x: integer):integer} = {f=f}
     assert(r.f(1) == 2)
 ]])
+  expect.generate_c([[
+local function foo(x: integer): void end
+local cb: auto = (@pointer)(foo)
+local F: type = @function(integer):void;
+((@F)(cb))(1)
+]], [[((F)cb)(1);]])
 end)
 
 it("if", function()
