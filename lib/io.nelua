@@ -97,7 +97,7 @@ function io.popen(prog: string, mode: facultative(string)) : (filestream, string
   ## if mode.type.is_niltype then
   local mode: string = "r"
   ## else
-  assert(m.size == 1 and (m.data[0] == 'r' or m.data[0] == 'w') and m.data[1] == '\0', 'invalid mode')
+  assert(mode.size == 1 and (mode.data[0] == 'r'_b or mode.data[0] == 'w'_b) and mode.data[1] == 0, 'invalid mode')
   ## end
   ## if ccinfo.is_wasm then
   return filestream{}, 'unsupported', -1

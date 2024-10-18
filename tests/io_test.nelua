@@ -42,16 +42,31 @@ do -- basic io.open/io.isopen/io.close
 end
 
 do -- io.popen
-  local file = io.popen('echo test')
-  ## if ccinfo.is_linux then
-  assert(file:isopen())
-  ## end
-  if file:isopen() then
-    local s = file:read('a')
-    assert(s == 'test\n')
-    s:destroy()
-    file:close()
-    file:destroy()
+  do
+    local file = io.popen('echo test')
+    ## if ccinfo.is_linux then
+    assert(file:isopen())
+    ## end
+    if file:isopen() then
+      local s = file:read('a')
+      assert(s == 'test\n')
+      s:destroy()
+      file:close()
+      file:destroy()
+    end
+  end
+  do
+    local file = io.popen('echo test', 'r')
+    ## if ccinfo.is_linux then
+    assert(file:isopen())
+    ## end
+    if file:isopen() then
+      local s = file:read('a')
+      assert(s == 'test\n')
+      s:destroy()
+      file:close()
+      file:destroy()
+    end
   end
 end
 
