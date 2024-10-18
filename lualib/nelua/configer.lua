@@ -182,7 +182,8 @@ local function create_parser()
     argparser:flag('--print-assembly', 'Print the assembly generated code only')
   )
   argparser:mutex(
-    argparser:argument("input", "Input source file"):args("?"),
+    argparser:argument("input", "Input source file\n\z
+                                 Use '-' to read from stdin"):args("?"),
     argparser:flag('--config', 'Print config variables only'),
     argparser:flag('-v --version', 'Print compiler detailed version'),
     argparser:flag('--semver', 'Print compiler semantic version')
@@ -226,7 +227,7 @@ local function create_parser()
     argparser:flag('-q --quiet', "Be quiet", defconfig.quiet):hidden(true)
     argparser:flag('-j --turbo', "Compile faster by disabling the garbage collector (uses more MEM)"):hidden(true)
   argparser:argument("runargs", "Arguments passed to the application\n\z
-                                 Use '--' to is passed)")
+                                 Use '--' to avoid conflicts with compiler options")
     :args("*")
   return argparser
 end
