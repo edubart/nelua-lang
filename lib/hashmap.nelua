@@ -295,7 +295,10 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   *Complexity*: Average case O(1).
   ]]
   function hashmapT:__atindex(key: K): *V
-    return &self.nodes[self:_at(key)].value
+    -- compute node index first, because it may trigger a rehash that relocate self.nodes
+    local node_index: usize = self:_at(key)
+    -- now we can access self.nodes
+    return &self.nodes[node_index].value
   end
 
   --[[
