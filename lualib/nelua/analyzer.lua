@@ -2,6 +2,7 @@ local iters = require 'nelua.utils.iterators'
 local traits = require 'nelua.utils.traits'
 local tabler = require 'nelua.utils.tabler'
 local pegger = require 'nelua.utils.pegger'
+local defer = require 'nelua.utils.defer'
 local fs = require 'nelua.utils.fs'
 local typedefs = require 'nelua.typedefs'
 local Attr = require 'nelua.attr'
@@ -3394,6 +3395,11 @@ function analyzer.analyze(context)
   -- save current analyzing context
   local old_current_context = analyzer.current_context
   analyzer.current_context = context
+  local _ <close> = defer(function()
+    -- restore old analyzing context
+    analyzer.current_context = old_current_context
+  end)
+
   -- begin tracking analyze time
   local timer
   if config.more_timing then
@@ -3449,8 +3455,6 @@ function analyzer.analyze(context)
     callback()
   end
   context:pop_state()
-  -- restore old analyzing context
-  analyzer.current_context = old_current_context
   return context
 end
 

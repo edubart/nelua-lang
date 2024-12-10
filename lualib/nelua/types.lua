@@ -22,12 +22,6 @@ local ASTNode = require 'nelua.astnode'
 
 local types = {}
 
--- Counter that increment on every new defined type that are fundamentally different.
-local typeid_counter = 0
-
--- Table of type's id by its codename.
-local typeid_by_codename = {}
-
 -- These are set by types.set_typedefs when typedefs file is loaded.
 local typedefs, primtypes
 
@@ -42,8 +36,6 @@ types.Type = Type
 -- Define the shape of all fields used in the type.
 -- Use this as a reference to know all used fields in the Type class by the compiler.
 Type.shape = shaper.shape {
-  -- Unique identifier for the type, used when needed for runtime type information.
-  id = shaper.integer,
   -- Size of the type at runtime in bytes.
   size = shaper.integer:is_optional(),
   -- Size of the type at runtime in bits.
@@ -251,15 +243,6 @@ function Type:_init(name, size)
     self.codename = 'nl' .. self.name
   end
 
-  -- generate an unique id for this type in case not generated yet for this codename
-  local id = typeid_by_codename[self.codename]
-  if not id then -- generate an id
-    id = typeid_counter
-    typeid_counter = typeid_counter + 1
-    typeid_by_codename[self.codename] = id
-  end
-  self.id = id
-
   -- set unary and binary operators tables
   local mt = getmetatable(self)
   self.unary_operators = setmetatable({}, {__index = mt.unary_operators})
@@ -269,7 +252,6 @@ end
 -- Set a new codename for this type, storing it in the typeid table.
 function Type:set_codename(codename)
   self.codename = codename
-  typeid_by_codename[codename] = self.id
 end
 
 -- Set a nickname for this type if not set yet.
@@ -400,7 +382,7 @@ end
 -- Checks if this type equals to another type.
 -- Usually this is overwritten by derived types, but this is a fallback implementation.
 function Type:is_equal(type)
-  return type.id == self.id
+  return type.codename == self.codename
 end
 
 -- Give the underlying type when implicit dereferencing this type.
@@ -441,10 +423,6 @@ end
 -- Compare if two types are equal.
 function Type.__eq(t1, t2)
   if getmetatable(t1) == getmetatable(t2) then
-    if t1.id == t2.id then -- early check for same type (optimization)
-      -- types with the same type id should always be the same
-      return true
-    end
     return t1:is_equal(t2)
   end
   return false
@@ -1106,7 +1084,7 @@ end
 -- Get the desired type when converting this type from another type.
 function IntegralType:get_convertible_from_type(type, explicit, fromcall)
   if type.is_integral then
-    if type.id == self.id then
+    if type.codename == self.codename then
       -- early return for the same type
       return self
     elseif self:is_type_inrange(type) then

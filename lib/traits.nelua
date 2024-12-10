@@ -2,6 +2,22 @@
 The traits library provides utilities to gather type information.
 ]]
 
+##[[
+-- Counter that increment on every new defined type that are fundamentally different.
+local typeid_counter = 0
+
+-- Table of type's id by its codename.
+local typeid_by_codename = {}
+local function get_typeidof(vtype)
+  local id = typeid_by_codename[vtype.codename]
+  if not id then -- generate an id
+    id = typeid_counter
+    typeid_counter = typeid_counter + 1
+    typeid_by_codename[vtype.codename] = id
+  end
+  return id
+end
+]]
 -- Namespace for traits module.
 global traits: type = @record{}
 
@@ -22,7 +38,7 @@ The given `v` can be either a runtime value or a compile-time type.
 ]]
 function traits.typeidof(v: auto): traits.typeid <inline>
   ## local vtype = v.type.is_type and v.value or v.type
-  return #[vtype.id]#
+  return #[get_typeidof(vtype)]#
 end
 
 --[[
@@ -32,7 +48,7 @@ The given `v` can be either a runtime value or a compile-time type.
 function traits.typeinfoof(v: auto): traits.typeinfo <inline>
   ## local vtype = v.type.is_type and v.value or v.type
   return (@traits.typeinfo){
-    id = #[vtype.id]#,
+    id = #[get_typeidof(vtype)]#,
     name = #[vtype.name]#,
     nickname = #[vtype.nickname or '']#,
     codename = #[vtype.codename]#
