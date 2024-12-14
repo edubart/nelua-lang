@@ -93,6 +93,11 @@ function ASTNode._create(mt, ...)
   }, mt)
 end
 
+-- Creates unique id counter of AST nodes.
+function ASTNode.reset_uid_counter()
+  uid = 0
+end
+
 -- Allows calling ASTNode to create a new node.
 getmetatable(ASTNode).__call = ASTNode._create
 

@@ -91,7 +91,7 @@ compilers_flags.cc = {
   ext = '.c',
 }
 -- GCC
-compilers_flags.gcc = tabler.updatecopy(compilers_flags.cc, {
+compilers_flags.gcc = tabler.copyupdate(compilers_flags.cc, {
   cflags_base = "-fwrapv -fno-strict-aliasing",
   cflags_sanitize = "-Wall -Wextra -fsanitize=address,undefined",
   cflags_devel = "-g",
@@ -107,42 +107,42 @@ compilers_flags.gcc = tabler.updatecopy(compilers_flags.cc, {
   cmd_defines = '$(cc) -E -dM -x c "$(cfile)" -x none $(cflags)',
 })
 -- Emscripten CC
-compilers_flags.emcc = tabler.updatecopy(compilers_flags.gcc, {
+compilers_flags.emcc = tabler.copyupdate(compilers_flags.gcc, {
   cflags_release = "-Oz -DNDEBUG",
   cflags_maximum_performance = "-O3 -ffast-math -DNDEBUG -fno-plt -flto",
 })
 -- Clang
-compilers_flags.clang = tabler.updatecopy(compilers_flags.gcc, {
+compilers_flags.clang = tabler.copyupdate(compilers_flags.gcc, {
   cmd_compile = '$(cc) -x c "$(cfile)" -x none -Wno-unused-command-line-argument $(cflags) -o "$(binfile)"',
   cmd_info = '$(cc) -E -x c "$(cfile)" -x none -Wno-unused-command-line-argument $(cflags)',
   cmd_defines = '$(cc) -E -dM -x c "$(cfile)" -x none -Wno-unused-command-line-argument $(cflags)',
 })
 -- TCC
-compilers_flags.tcc = tabler.updatecopy(compilers_flags.cc, {
+compilers_flags.tcc = tabler.copyupdate(compilers_flags.cc, {
   cflags_base = "-w",
   cflags_devel = "-g",
   cflags_debug = "-g",
 })
 -- C2M
-compilers_flags.c2m = tabler.updatecopy(compilers_flags.cc, {
+compilers_flags.c2m = tabler.copyupdate(compilers_flags.cc, {
   cflags_base = "-w",
   cflags_shared_lib = "-c",
 })
 -- GCC (C++)
-compilers_flags['g++'] = tabler.updatecopy(compilers_flags.gcc, {
+compilers_flags['g++'] = tabler.copyupdate(compilers_flags.gcc, {
   cmd_compile = '$(cc) -x c++ "$(cfile)" -x none $(cflags) -o "$(binfile)"',
   cmd_info = '$(cc) -E -x c++ "$(cfile)" -x none $(cflags)',
   cmd_defines = '$(cc) -E -dM -x c++ "$(cfile)" -x none $(cflags)',
   ext = '.cpp',
 })
 -- Clang (C++)
-compilers_flags['clang++'] = tabler.updatecopy(compilers_flags['g++'], {
+compilers_flags['clang++'] = tabler.copyupdate(compilers_flags['g++'], {
   cmd_compile = '$(cc) -x c++ "$(cfile)" -x none -Wno-unused-command-line-argument $(cflags) -o "$(binfile)"',
   cmd_info = '$(cc) -E -x c++ "$(cfile)" -x none -Wno-unused-command-line-argument $(cflags)',
   cmd_defines = '$(cc) -E -dM -x c++ "$(cfile)" -x none -Wno-unused-command-line-argument $(cflags)',
 })
 -- NVCC (CUDA C++)
-compilers_flags['nvcc'] = tabler.updatecopy(compilers_flags.gcc, {
+compilers_flags['nvcc'] = tabler.copyupdate(compilers_flags.gcc, {
   cflags_base = "",
   cmd_compile = '$(cc) -x cu "$(cfile)" $(cflags) -o "$(binfile)"',
   cmd_info = '$(cc) -E -x cu "$(cfile)" $(cflags)',

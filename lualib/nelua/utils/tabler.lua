@@ -60,8 +60,23 @@ function tabler.copy(t)
   return ot
 end
 
+-- Shallow copy for table (including metatables).
+function tabler.copymt(t)
+  local ot = {}
+  for i,v in next,t do
+    ot[i] = v
+  end
+  return setmetatable(ot, getmetatable(t))
+end
+
+-- Update a table with shallow copy of children (including metatables).
+function tabler.updatecopymt(dest, src)
+  for k,v in pairs(src) do dest[k] = tabler.copymt(v) end
+  return dest
+end
+
 -- Shallow copy a table and update its elements.
-function tabler.updatecopy(s,t)
+function tabler.copyupdate(s, t)
   return tabler.update(tabler.copy(s), t)
 end
 
@@ -113,10 +128,7 @@ function tabler.mirror(dst, src)
   if rawequal(dst, src) then
     return
   end
-  setmetatable(dst, nil)
-  tabler.clear(dst)
-  tabler.update(dst, src)
-  setmetatable(dst, getmetatable(src))
+  return setmetatable(tabler.update(tabler.clear(setmetatable(dst, nil)), src), getmetatable(src))
 end
 
 return tabler

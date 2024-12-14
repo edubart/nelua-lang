@@ -20,6 +20,12 @@ local analyzer = {}
 local luatype = type
 
 local primtypes = typedefs.primtypes
+local builtin_attrs = typedefs.builtin_attrs
+local orig_primtypes = {}
+local orig_builtin_attrs = {}
+tabler.updatecopymt(orig_primtypes, primtypes)
+tabler.updatecopymt(orig_builtin_attrs, builtin_attrs)
+
 local visitors = {}
 analyzer.visitors = visitors
 
@@ -3392,6 +3398,19 @@ function visitors.BinaryOp(context, node, opts)
 end
 
 function analyzer.analyze(context)
+  -- this is necessary to support calling analyzer multiple times (eg in LSPs),
+  -- previous analyzer may have filled references in builtin symbols and primtypes
+  -- so we cleanup before
+  for k,v in pairs(orig_primtypes) do
+    local primtype = tabler.mirror(primtypes[k], v)
+    if primtype.metafields then
+      tabler.clear(primtype.metafields)
+    end
+  end
+  for k,v in pairs(orig_builtin_attrs) do
+    tabler.mirror(builtin_attrs[k], v)
+  end
+
   -- save current analyzing context
   local old_current_context = analyzer.current_context
   analyzer.current_context = context
