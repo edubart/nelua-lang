@@ -593,7 +593,8 @@ function lpegrex.calcline(subject, position)
   local lastpos = caps[#caps] or 0
   local linestart = lastpos + 1
   local lineend = subject:find("\n", linestart, true) or #subject + 1
-  return #caps,                              -- line number 
+  
+  return #caps + 1,                          -- line number
          position - lastpos > 0 and position - lastpos or position,  -- column number
          subject:sub(linestart, lineend - 1), -- line content
          linestart,                           -- line start pos
