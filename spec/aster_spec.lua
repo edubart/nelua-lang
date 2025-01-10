@@ -2,6 +2,7 @@ local lester = require 'nelua.thirdparty.lester'
 local aster = require 'nelua.aster'
 local expect = require 'spec.tools.expect'
 local Attr = require 'nelua.attr'
+local lpegrex = require 'nelua.thirdparty.lpegrex'
 local describe, it = lester.describe, lester.it
 
 local n = aster
@@ -60,6 +61,14 @@ end)
 it("clone", function()
   expect.equal(aster.pretty(aster.clone(n.Id{'x'})), aster.pretty(n.Id{'x'}))
   expect.equal(aster.pretty(aster.clone{n.Id{'x'},n.Number{1}}), aster.pretty{n.Id{'x'},n.Number{1}})
+end)
+
+it("error on line numbers", function()
+  expect.fail(function() 
+    aster.parse([[print(]])
+  end, "unclosed parenthesis, did you forget a `)`?")
+  local lineno, colno = lpegrex.calcline("print(", 6)
+  assert(lineno == 1 and colno == 6, "expected error at line 1, column 6")
 end)
 
 end)
