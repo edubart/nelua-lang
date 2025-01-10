@@ -589,24 +589,16 @@ Returns line number, column number, line content, line start position and line e
 function lpegrex.calcline(subject, position)
   if position < 0 then error 'invalid position' end
   position = math.min(position, #subject)
-  local linestart = 0
-  local lastNewline = 0
-  while true do
-    local nextNewline = subject:find('\n', lastNewline + 1, true)
-    if not nextNewline or nextNewline > position then
-      break
-    end
-    linestart = lastNewline
-    lastNewline = nextNewline
+  local lastNewlinePatt = lpeg.P {lpeg.Cp() * ((1 - lpeg.P "\n") ^ 0 * "\n") ^ 0 * lpeg.Cp()}
+  local linestart = (lastNewlinePatt:match(subject:sub(1, position)) or 1) - 1
+  local linenum = select(2, subject:sub(1, position):gsub("\n", "\n")) + 1
+  if position > 0 and subject:sub(position, position) == "\n" then
+      linenum = linenum - 1
   end
-  local linenum = select(2, subject:sub(1, position):gsub('\n', '\n')) + 1
-  if position > 0 and subject:sub(position, position) == '\n' then
-    linenum = linenum - 1
-  end
-  local lineend = subject:find('\n', position + 1, true) or #subject + 1
+  local lineend = subject:find("\n", position + 1, true) or #subject + 1
   local line = subject:sub(linestart + 1, lineend - 1)
   local colnum = position - linestart
-  return linenum,colnum,line,linestart + 1,lineend
+  return linenum, colnum, line, linestart + 1, lineend
 end
 
 -- Auxiliary function for `prettyast`
