@@ -428,6 +428,14 @@ do -- string.gsub
   assert(sub == 'HELLO WORLD' and n == 5)
   sub:destroy()
 
+  -- function substantiation using special characters (issue #299)
+  sub, n = string.gsub("a1%()+~[]-", ".", function(x: string)
+    defer x:destroy() end
+    return string.upper(x)
+  end)
+  assert(sub == "A1%()+~[]-" and n == 10)
+  sub:destroy()
+
   local map: hashmap(string, string)
   map['hello'] = 'HI'
   map['world'] = 'EARTH'

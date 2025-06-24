@@ -2168,16 +2168,16 @@ which can be a string, a string hashmap, or a function.
 The name `gsub` comes from Global SUBstitution.
 
 * If `repl` is a string, then its value is used for replacement.
-The character '% works as an escape character: any sequence in `repl` of the form '%d',
+The character '%' works as an escape character: any sequence in `repl` of the form '%d',
 with d between 1 and 9, stands for the value of the d-th captured substring;
 the sequence '%0' stands for the whole match; the sequence '%%' stands for a single %.
 
 If `repl` is a hashmap of strings, then it is queried for every match,
-using the first capture as the key and its hashmap value as the replacement string,
-if the.
+using the first capture as the key and its hashmap value as the replacement string.
 
 If `repl` is a function, then this function is called every time a match occurs
 with all captured substrings passed as arguments, in order.
+
 In any case, if the pattern specifies no captures,
 then it behaves as if the whole pattern was inside a capture.
 

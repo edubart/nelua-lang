@@ -665,16 +665,16 @@ which can be a string, a string hashmap, or a function.
 The name `gsub` comes from Global SUBstitution.
 
 * If `repl` is a string, then its value is used for replacement.
-The character '% works as an escape character: any sequence in `repl` of the form '%d',
+The character '%' works as an escape character: any sequence in `repl` of the form '%d',
 with d between 1 and 9, stands for the value of the d-th captured substring;
 the sequence '%0' stands for the whole match; the sequence '%%' stands for a single %.
 
 If `repl` is a hashmap of strings, then it is queried for every match,
-using the first capture as the key and its hashmap value as the replacement string,
-if the.
+using the first capture as the key and its hashmap value as the replacement string.
 
 If `repl` is a function, then this function is called every time a match occurs
 with all captured substrings passed as arguments, in order.
+
 In any case, if the pattern specifies no captures,
 then it behaves as if the whole pattern was inside a capture.
 
@@ -720,6 +720,37 @@ function string.gsub(s: string, pattern: string, repl: auto, maxn: facultative(i
       ## else
         ## if repl.type.is_stringy then -- string replacement
           matchrepl = repl
+          --TODO: handle numbers
+          while true do -- replace captures
+            local found: pointer = memory.scan(&matchrepl.data[ri], '%'_b, matchrepl.size - ri)
+            if not found then break end
+            local advance: usize = (@usize)(found) - (@usize)(&matchrepl.data[ri])
+            sb:write((@string){&matchrepl.data[ri], advance})
+            local c: byte = matchrepl.data[ri + advance + 1]
+            if c == '%'_b then -- %%
+              sb:writebyte('%'_b)
+            elseif c == '0'_b then -- %0
+              sb:write(match)
+            elseif c >= '1'_b and c <= '9'_b then -- should be a digit
+              local capindex: isize = c - '1'_b
+              local ok: boolean, capstr: string, capture: auto = ms:get_capture(capindex)
+              if not ok and capindex == 0 and ms.numcaptures == 0 then
+                sb:write(match)
+              else
+                assert(ok, capstr)
+                if capture:is_position() then
+                  local s: string = tostring(capture.init+1)
+                  sb:write(s)
+                  s:destroy()
+                else
+                  sb:write(capstr)
+                end
+              end
+            else
+              error "invalid use of '%' in replacement string"
+            end
+            ri = ri + advance + 2
+          end
         ## elseif repl.type.is_function then -- callback replacement
           local capindex: isize, capstr: string
           ## local args = {}
@@ -749,37 +780,6 @@ function string.gsub(s: string, pattern: string, repl: auto, maxn: facultative(i
         ## else
           ## static_error('invalid replacement argument')
         ## end
-        --TODO: handle numbers
-        while true do -- replace captures
-          local found: pointer = memory.scan(&matchrepl.data[ri], '%'_b, matchrepl.size - ri)
-          if not found then break end
-          local advance: usize = (@usize)(found) - (@usize)(&matchrepl.data[ri])
-          sb:write((@string){&matchrepl.data[ri], advance})
-          local c: byte = matchrepl.data[ri + advance + 1]
-          if c == '%'_b then -- %%
-            sb:writebyte('%'_b)
-          elseif c == '0'_b then -- %0
-            sb:write(match)
-          elseif c >= '1'_b and c <= '9'_b then -- should be a digit
-            local capindex: isize = c - '1'_b
-            local ok: boolean, capstr: string, capture: auto = ms:get_capture(capindex)
-            if not ok and capindex == 0 and ms.numcaptures == 0 then
-              sb:write(match)
-            else
-              assert(ok, capstr)
-              if capture:is_position() then
-                local s: string = tostring(capture.init+1)
-                sb:write(s)
-                s:destroy()
-              else
-                sb:write(capstr)
-              end
-            end
-          else
-            error "invalid use of '%' in replacement string"
-          end
-          ri = ri + advance + 2
-        end
       ## end
       sb:write((@string){&matchrepl.data[ri], matchrepl.size - ri})
       pos = endpos
