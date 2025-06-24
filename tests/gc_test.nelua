@@ -50,8 +50,8 @@ do -- finalizers
       end
     end
 
-    local foo: *Foo <volatile> = gc_allocator:new(Foo{count=count})
-    local foos: span(Foo) <volatile> = gc_allocator:new(Foo{count=count}, 2)
+    local foo: *Foo = gc_allocator:new(Foo{count=count})
+    local foos: span(Foo) = gc_allocator:new(Foo{count=count}, 2)
     foos = (@span(Foo)){}
     foo = nilptr
   end

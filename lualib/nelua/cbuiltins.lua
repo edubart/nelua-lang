@@ -262,6 +262,9 @@ end
 
 -- Used to take reference of literals (rvalues).
 function cbuiltins.NELUA_LITERAL_REF(context)
+  if ccompiler.get_cc_info().is_cpp then --luacov:disable
+    context:get_visiting_node():raisef('taking reference of a compound literal is not allowed in the C++ backend')
+  end --luacov:enable
   context:define_builtin_macro('NELUA_LITERAL_REF', [[
 /* Macro used to take reference of literals. */
 #define NELUA_LITERAL_REF(T, x) (&((struct{T v;}){x}.v))
@@ -1519,11 +1522,8 @@ function cbuiltins.operators.bnot(_, _, emitter, argattr, argname)
 end
 
 -- Implementation of reference operator (`&`).
-function cbuiltins.operators.ref(_, node, emitter, argattr, argname)
+function cbuiltins.operators.ref(_, _, emitter, argattr, argname)
   if not argattr.lvalue and argattr.type.is_aggregate then -- taking reference of a literal
-    if ccompiler.get_cc_info().is_cpp then --luacov:disable
-      node:raisef('taking reference of a compound literal is not allowed in the C++ backend')
-    end --luacov:enable
     emitter:add_builtin('NELUA_LITERAL_REF')
     emitter:add('(', argattr.type, ', (', argname, '))')
   else

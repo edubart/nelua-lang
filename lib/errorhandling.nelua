@@ -48,7 +48,9 @@ function cgenerator.visitors.Call(context, node, emitter, ...)
     end
     if #funcsym.type.rettypes > 1 then
       local rettypename = context:funcrettypename(funcsym.type)
-      emitter:add_indent_ln('return (',rettypename,'){0};')
+      emitter:add_indent('return')
+      emitter:add_zeroed_type_literal(rettypename, rettypename);
+      emitter:add_ln(';')
     elseif #funcsym.type.rettypes == 1 then
       local rettypename = context:funcrettypename(funcsym.type)
       emitter:add_indent('return ')

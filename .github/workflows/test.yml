@@ -7,13 +7,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest, windows-2025]
         cc: [gcc, clang]
         exclude:
         - os: macos-latest
           cc: gcc
-        - os: windows-latest
-          cc: clang
     runs-on: ${{matrix.os}}
     env:
       CC: ${{matrix.cc}}
@@ -29,13 +27,13 @@ jobs:
     - name: Test
       run: make test CC=${{matrix.cc}}
     - name: Install (Unix)
-      if: ${{ matrix.os != 'windows-latest' }}
+      if: ${{ matrix.os != 'windows-2025' }}
       run: sudo make install
     - name: Install (Windows)
-      if: ${{ matrix.os == 'windows-latest' }}
+      if: ${{ matrix.os == 'windows-2025' }}
       run: make install
     - name: Run hello world example
-      if: ${{ matrix.os != 'windows-latest' }}
+      if: ${{ matrix.os != 'windows-2025' }}
       run: nelua --verbose examples/helloworld.nelua
 
   test-32bits:

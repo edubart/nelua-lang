@@ -893,6 +893,7 @@ function visitors.RecordType(context, node, opts)
   else
     recordtype = types.RecordType({}, node)
     recordtype.size = nil -- size is unknown yet
+    recordtype.is_empty = nil
   end
   attr.type = primtypes.type
   attr.value = recordtype
