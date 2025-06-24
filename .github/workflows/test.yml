@@ -55,8 +55,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@master
-    - uses: leafo/gh-actions-lua@v9
-    - uses: leafo/gh-actions-luarocks@v4
+    - uses: leafo/gh-actions-lua@v11
+    - uses: leafo/gh-actions-luarocks@v5
     - name: Install luacov
       run: luarocks install cluacov
     - name: Coverage
@@ -68,8 +68,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@master
-    - uses: leafo/gh-actions-lua@v9
-    - uses: leafo/gh-actions-luarocks@v4
+    - uses: leafo/gh-actions-lua@v11
+    - uses: leafo/gh-actions-luarocks@v5
     - name: Install luacheck
       run: luarocks install luacheck
     - name: Check
