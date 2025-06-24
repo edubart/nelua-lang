@@ -781,10 +781,8 @@ it("compiler information", function()
     local compiler = require 'nelua.ccompiler'
     local ccinfo = compiler.get_cc_info()
     if ccinfo.is_gcc or ccinfo.is_clang then
-      local ccdefs = compiler.get_cc_defines('<stdbool.h>')
-      if not ccinfo.is_cpp then
-        assert(ccdefs.bool == '_Bool')
-      end
+      local ccdefs = compiler.get_cc_defines('<stdint.h>')
+      assert(ccdefs.INTMAX_MAX)
     end
   ]]]=])
 end)
