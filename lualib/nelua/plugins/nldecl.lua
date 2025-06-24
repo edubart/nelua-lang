@@ -2310,7 +2310,7 @@ end
 local function preprocess_c_code(ccode, opts)
   local cfilename = gen_c_file(ccode)
   local cc = opts.cc or 'gcc'
-  local ccargs = {'-E', '-dD', '-P', cfilename}
+  local ccargs = {'-E', '-dD', '-P', '-std=c17', cfilename}
   if opts.include_dirs then
     for _,incdir in ipairs(opts.include_dirs) do
       table.insert(ccargs, '-I')
